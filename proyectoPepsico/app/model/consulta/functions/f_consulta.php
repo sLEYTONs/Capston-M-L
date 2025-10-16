@@ -129,4 +129,90 @@ function obtenerVehiculoPorID($id) {
 function obtenerTodosLosVehiculos() {
     return buscarVehiculos([]);
 }
+
+function actualizarVehiculo($datos) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        error_log("Error: No se pudo conectar a la base de datos en actualizarVehiculo");
+        return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
+    }
+
+    // Verificar si la placa ya existe en otro vehículo
+    if (!empty($datos['Placa'])) {
+        $checkQuery = "SELECT ID FROM ingreso_vehiculos WHERE Placa = ? AND ID != ?";
+        $stmt = mysqli_prepare($conn, $checkQuery);
+        mysqli_stmt_bind_param($stmt, 'si', $datos['Placa'], $datos['id']);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if (mysqli_num_rows($result) > 0) {
+            mysqli_stmt_close($stmt);
+            mysqli_close($conn);
+            return ['status' => 'error', 'message' => 'La placa ya existe en otro vehículo'];
+        }
+        mysqli_stmt_close($stmt);
+    }
+
+    // Construir la consulta de actualización
+    $query = "UPDATE ingreso_vehiculos SET 
+                Placa = ?,
+                TipoVehiculo = ?,
+                Marca = ?,
+                Modelo = ?,
+                Color = ?,
+                Anio = ?,
+                ConductorNombre = ?,
+                ConductorCedula = ?,
+                ConductorTelefono = ?,
+                Licencia = ?,
+                EmpresaCodigo = ?,
+                EmpresaNombre = ?,
+                Proposito = ?,
+                Area = ?,
+                PersonaContacto = ?,
+                Observaciones = ?,
+                Estado = ?
+            WHERE ID = ?";
+
+    $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'Error en prepare: ' . mysqli_error($conn)];
+    }
+
+    // Bind parameters - USANDO LOS NOMBRES CORRECTOS
+    mysqli_stmt_bind_param(
+        $stmt,
+        'sssssisssssssssssi',
+        $datos['Placa'],
+        $datos['TipoVehiculo'],
+        $datos['Marca'],
+        $datos['Modelo'],
+        $datos['Color'],
+        $datos['Anio'],
+        $datos['ConductorNombre'],
+        $datos['ConductorCedula'],
+        $datos['ConductorTelefono'],
+        $datos['Licencia'],
+        $datos['EmpresaCodigo'],
+        $datos['EmpresaNombre'],
+        $datos['Proposito'],
+        $datos['Area'],
+        $datos['PersonaContacto'],
+        $datos['Observaciones'],
+        $datos['Estado'],
+        $datos['id']
+    );
+
+    if (mysqli_stmt_execute($stmt)) {
+        $response = ['status' => 'success', 'message' => 'Vehículo actualizado correctamente'];
+    } else {
+        $response = ['status' => 'error', 'message' => 'Error al actualizar: ' . mysqli_stmt_error($stmt)];
+    }
+
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+    return $response;
+}
+
 ?>

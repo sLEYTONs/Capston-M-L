@@ -325,6 +325,172 @@ class ConsultaVehiculos {
             $('#detallesModal').modal('show');
         }
     }
+    
+    editarVehiculo(id) {
+        this.cargarDatosParaEdicion(id);
+    }
+
+    cargarDatosParaEdicion(id) {
+    // Mostrar loading en el modal
+    this.mostrarLoadingModal();
+
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_detalles.php',
+            type: 'POST',
+            data: { id: id },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarModalEdicion(response.data);
+                } else {
+                    this.mostrarError('Error al cargar datos para edición: ' + response.message);
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error de conexión al cargar datos: ' + error);
+            },
+            complete: () => {
+                this.ocultarLoadingModal();
+            }
+        });
+    }
+
+    mostrarLoadingModal() {
+        const loadingHtml = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2">Cargando datos...</p>
+            </div>
+        `;
+        $('#editarModal .modal-body').html(loadingHtml);
+    }
+
+    ocultarLoadingModal() {
+        // Se restaurará el formulario cuando se carguen los datos
+    }
+
+    mostrarModalEdicion(vehiculo) {
+        // Llenar el formulario con los datos del vehículo
+        $('#edit-id').val(vehiculo.ID);
+        $('#modal-placa').text(vehiculo.Placa);
+        $('#edit-placa').val(vehiculo.Placa);
+        $('#edit-tipo-vehiculo').val(vehiculo.TipoVehiculo);
+        $('#edit-marca').val(vehiculo.Marca);
+        $('#edit-modelo').val(vehiculo.Modelo);
+        $('#edit-color').val(vehiculo.Color);
+        $('#edit-anio').val(vehiculo.Anio);
+        $('#edit-conductor-nombre').val(vehiculo.ConductorNombre);
+        $('#edit-conductor-cedula').val(vehiculo.ConductorCedula);
+        $('#edit-conductor-telefono').val(vehiculo.ConductorTelefono);
+        $('#edit-licencia').val(vehiculo.Licencia);
+        $('#edit-empresa-codigo').val(vehiculo.EmpresaCodigo);
+        $('#edit-empresa-nombre').val(vehiculo.EmpresaNombre);
+        $('#edit-proposito').val(vehiculo.Proposito);
+        $('#edit-area').val(vehiculo.Area);
+        $('#edit-persona-contacto').val(vehiculo.PersonaContacto);
+        $('#edit-observaciones').val(vehiculo.Observaciones);
+        $('#edit-estado').val(vehiculo.Estado);
+
+        // Mostrar el modal
+        const editarModal = new bootstrap.Modal(document.getElementById('editarModal'));
+        editarModal.show();
+
+        // Bindear evento de guardar
+        this.bindGuardarEvent();
+    }
+
+    bindGuardarEvent() {
+        $('#guardar-cambios').off('click').on('click', () => {
+            this.guardarCambios();
+        });
+    }
+
+    guardarCambios() {
+        // Obtener los datos directamente del formulario
+        const formData = new FormData(document.getElementById('editar-form'));
+        
+        // Convertir FormData a objeto
+        const datos = {};
+        for (let [key, value] of formData.entries()) {
+            datos[key] = value.trim();
+        }
+
+        console.log('Datos a enviar:', datos); // Debug
+
+        // Validación básica
+        if (!this.validarFormularioEdicion(datos)) {
+            return;
+        }
+
+        // Mostrar loading en el botón
+        $('#guardar-cambios').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
+
+        $.ajax({
+            url: 'app/model/consulta/scripts/s_editar.php',
+            type: 'POST',
+            data: datos,
+            dataType: 'json',
+            success: (response) => {
+                console.log('Respuesta del servidor:', response); // Debug
+                if (response.status === 'success') {
+                    this.mostrarToast('Éxito', 'Vehículo actualizado correctamente', 'success');
+                    this.cerrarModalEdicion();
+                    this.buscarVehiculos(); // Refrescar la tabla
+                } else {
+                    this.mostrarError('Error al guardar: ' + response.message);
+                    $('#guardar-cambios').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Cambios');
+                }
+            },
+            error: (xhr, status, error) => {
+                console.error('Error en AJAX:', error); // Debug
+                this.mostrarError('Error de conexión: ' + error);
+                $('#guardar-cambios').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Cambios');
+            }
+        });
+    }
+
+    validarFormularioEdicion(datos) {
+        const camposRequeridos = [
+            'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 
+            'ConductorNombre', 'ConductorCedula', 
+            'EmpresaCodigo', 'EmpresaNombre', 'Proposito'
+        ];
+
+        for (const campo of camposRequeridos) {
+            if (!datos[campo]) {
+                this.mostrarError(`El campo ${campo} es requerido`);
+                // Enfocar el campo correspondiente
+                const campoId = 'edit-' + campo.toLowerCase().replace(/([a-z])([A-Z])/g, '$1-$2');
+                $('#' + campoId).focus();
+                return false;
+            }
+        }
+
+        if (datos.Anio && (datos.Anio < 1980 || datos.Anio > 2025)) {
+            this.mostrarError('El año debe estar entre 1980 y 2025');
+            $('#edit-anio').focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    cerrarModalEdicion() {
+        const editarModal = bootstrap.Modal.getInstance(document.getElementById('editarModal'));
+        editarModal.hide();
+        
+        // Limpiar formulario
+        $('#editar-form')[0].reset();
+        $('#guardar-cambios').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Cambios');
+    }
+
+
+
+
+
+
 
     obtenerClaseEstado(estado) {
         const clases = {
