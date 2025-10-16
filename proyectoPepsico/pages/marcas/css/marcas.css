@@ -1,0 +1,566 @@
+/* Additional styles for brands page */
+.brands-container {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.brands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.brand-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 1.5rem;
+    border-left: 4px solid #004B87;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.brand-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 75, 135, 0.15);
+}
+
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.brand-logo {
+    width: 60px;
+    height: 60px;
+    background: #004B87;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.brand-info h3 {
+    color: #004B87;
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.brand-info p {
+    color: #6c757d;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+}
+
+.brand-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 5px;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #004B87;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.brand-vehicles {
+    margin-top: 1rem;
+}
+
+.vehicle-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e1e5e9;
+    border-radius: 5px;
+    padding: 0.5rem;
+}
+
+.vehicle-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+    font-size: 0.9rem;
+}
+
+.vehicle-item:last-child {
+    border-bottom: none;
+}
+
+.vehicle-plate {
+    font-weight: bold;
+    color: #004B87;
+}
+
+.vehicle-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.filters-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 0.75rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #004B87;
+    box-shadow: 0 0 0 3px rgba(0, 75, 135, 0.1);
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.summary-card {
+    background: linear-gradient(135deg, #004B87 0%, #0066CC 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 75, 135, 0.2);
+}
+
+.summary-card h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.summary-card .number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0.5rem 0;
+}
+
+.summary-card p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.chart-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin: 2rem 0;
+}
+
+.chart-container h3 {
+    color: #004B87;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.chart-placeholder {
+    height: 300px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.export-section {
+    background: #e3f2fd;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.export-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.btn-export {
+    background: #004B87;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-export:hover {
+    background: #003366;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 75, 135, 0.3);
+}
+
+.btn-export.secondary {
+    background: #6c757d;
+}
+
+.btn-export.secondary:hover {
+    background: #5a6268;
+}
+
+@media (max-width: 768px) {
+    .brands-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .export-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .brand-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-header {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* Estilos para analíticas avanzadas */
+.analytics-filters {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.analytics-filters h3 {
+    color: #004B87;
+    margin-bottom: 1rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 0.75rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #004B87;
+    box-shadow: 0 0 0 3px rgba(0, 75, 135, 0.1);
+}
+
+.advanced-analytics {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.data-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card h4 {
+    color: #004B87;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #004B87;
+    padding-bottom: 0.5rem;
+}
+
+.summary-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.stat-value {
+    font-weight: bold;
+    color: #004B87;
+    font-size: 1.1rem;
+}
+
+.excel-tabs-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tab-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #e9ecef;
+    border-radius: 5px;
+    border-left: 4px solid #004B87;
+}
+
+.tab-name {
+    font-weight: 600;
+    color: #004B87;
+}
+
+.tab-count {
+    font-weight: bold;
+    color: #28a745;
+    background: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+}
+
+.excel-tabs-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.chart-content {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+}
+
+.chart-placeholder i {
+    margin-bottom: 1rem;
+}
+
+/* Estilos para gráficos específicos */
+.brand-pie-chart {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    position: relative;
+}
+
+.brand-pie-chart::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    background: white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.temporal-line-chart {
+    height: 200px;
+    background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%),
+                linear-gradient(-45deg, #f8f9fa 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #f8f9fa 75%),
+                linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    border-radius: 8px;
+    position: relative;
+    margin: 1rem 0;
+}
+
+.company-bar-chart {
+    display: flex;
+    align-items: end;
+    height: 200px;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.bar-item {
+    background: linear-gradient(135deg, #004B87 0%, #0066CC 100%);
+    border-radius: 4px 4px 0 0;
+    min-width: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.bar-item:hover {
+    background: linear-gradient(135deg, #003366 0%, #004B87 100%);
+    transform: scale(1.05);
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+    .data-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .excel-tabs-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+}
