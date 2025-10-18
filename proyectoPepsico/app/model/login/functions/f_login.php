@@ -75,9 +75,6 @@ function estoy_logeado() {
     return true;
 }
 
-/**
- * Cierra la sesión del usuario
- */
 function logout() {
     @session_start();
     unset($_SESSION['usuario']);

@@ -20,14 +20,14 @@
 
             <!-- Info del usuario -->
             <div class="flex-grow-1 ms-3">
-              <h6 class="mb-0">Admin</h6>
-              <small>Administrador</small> <!-- cambiar al rol de usuario -->
+              <h6 class="mb-0"><?php echo htmlspecialchars($usuario_actual); ?> A</h6>
+              <small><?php echo htmlspecialchars($usuario_rol); ?></small>
             </div>
           </div>
 
           <!-- Link cerrar sesión -->
           <div class="pc-user-links mt-3 text-center">
-            <a href="login.php" class="d-inline-flex align-items-center">
+            <a href="../auth/logout.php" class="d-inline-flex align-items-center">
               <i class="ti ti-power me-2"></i>
               <span>Cerrar Sesión</span>
             </a>
@@ -47,7 +47,6 @@
             <span class="pc-mtext">Ingreso Vehículos</span>
           </a>
         </li>
-        <!-- Agregar Más -->
         <li class="pc-item pc-hasmenu">
           <a href="consulta.php" class="pc-link">
             <span class="pc-micon">
@@ -88,9 +87,16 @@
             <span class="pc-mtext">Base de Datos</span>
           </a>
         </li>
-
-
-
+        <li class="pc-item pc-hasmenu">
+          <a href="gestion_usuarios.php" class="pc-link">
+            <span class="pc-micon">
+              <svg class="pc-icon">
+                <use xlink:href="#custom-document-filter"></use>
+              </svg>
+            </span>
+            <span class="pc-mtext">Gestión de Usuarios</span>
+          </a>
+        </li>
       </ul>
     </div>
   </div>
