@@ -1,7 +1,11 @@
 <?php
 include 'general/middle.php';
-?>
 
+// Redirigir a cada usuario a su página principal según su rol
+$pagina_principal = obtener_pagina_principal($usuario_rol);
+header("Location: $pagina_principal");
+exit();
+?>
 <!DOCTYPE html>
   <head>
 

@@ -7,7 +7,7 @@ $(document).ready(function() {
         "processing": true,
         "serverSide": false,
         "ajax": {
-            "url": "../../app/models/gestion_usuarios/scripts/s_gestionusuarios.php",
+            "url": "../app/model/gestion_usuarios/scripts/s_gestionusuarios.php",
             "type": "POST",
             "data": {
                 "action": "listar_usuarios"
@@ -81,7 +81,7 @@ $(document).ready(function() {
                 formData.push({ name: 'action', value: 'crear_usuario' });
                 
                 $.ajax({
-                    url: '../../app/models/gestion_usuarios/scripts/s_gestionusuarios.php',
+                    url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
                     type: 'POST',
                     data: formData,
                     dataType: 'json',
@@ -127,7 +127,7 @@ $(document).ready(function() {
         var usuarioId = $(this).data('id');
         
         $.ajax({
-            url: '../../app/models/gestion_usuarios/scripts/s_gestionusuarios.php',
+            url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
             type: 'POST',
             data: {
                 action: 'obtener_usuario',
@@ -180,7 +180,7 @@ $(document).ready(function() {
                 formData.push({ name: 'action', value: 'editar_usuario' });
                 
                 $.ajax({
-                    url: '../../app/models/gestion_usuarios/scripts/s_gestionusuarios.php',
+                    url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
                     type: 'POST',
                     data: formData,
                     dataType: 'json',

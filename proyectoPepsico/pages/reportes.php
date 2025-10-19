@@ -1,7 +1,11 @@
 <?php
 include 'general/middle.php';
+$roles_permitidos = ['Administrador', 'Recepcionista'];
+if (!in_array($usuario_rol, $roles_permitidos)) {
+    header('Location: ../index.php');
+    exit();
+}
 ?>
-
 <!DOCTYPE html>
 <head>
 

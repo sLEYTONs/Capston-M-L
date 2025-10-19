@@ -7,28 +7,64 @@ if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
     exit();
 }
 
-// Obtener datos del usuario
+// Obtener datos del usuario de la sesión
 $usuario_actual = $_SESSION['usuario']['nombre'];
 $usuario_id = $_SESSION['usuario']['id'];
 $usuario_rol = $_SESSION['usuario']['rol'];
 
-// Definir roles permitidos para cada módulo
-$roles_permisos = [
-    'Administrador' => ['todos_los_modulos'],
-    'Jefe de Taller' => ['vehiculos', 'tareas', 'usuarios_operativos'],
-    'Mecánico' => ['tareas_propias', 'vehiculos_asignados'],
-    'Recepcionista' => ['registro_vehiculos'],
-    'Guardia' => ['registro_entrada_salida'],
-    'Supervisor' => ['lectura_todos_modulos']
+// Definir páginas permitidas para cada rol
+$paginas_por_rol = [
+    'Administrador' => [
+        'base_datos.php', 'consulta.php', 'gestion_usuarios.php', 
+        'ingreso_vehiculos.php', 'marcas.php', 'reportes.php'
+    ],
+    'Jefe de Taller' => [
+        'consulta.php', 'ingreso_vehiculos.php', 'marcas.php', 'reportes.php'
+    ],
+    'Mecánico' => [
+        'consulta.php', 'reportes.php'
+    ],
+    'Recepcionista' => [
+        'ingreso_vehiculos.php', 'consulta.php'
+    ],
+    'Guardia' => [
+        'ingreso_vehiculos.php'
+    ],
+    'Supervisor' => [
+        'consulta.php', 'reportes.php'
+    ],
+    'Chofer' => [
+        'ingreso_vehiculos.php'
+    ]
 ];
 
-function tiene_permiso($modulo_requerido) {
-    global $usuario_rol, $roles_permisos;
+// Función para verificar si el usuario tiene acceso a una página
+function tiene_acceso($pagina) {
+    global $usuario_rol, $paginas_por_rol;
     
-    if ($usuario_rol === 'Administrador') return true;
+    // Administrador tiene acceso a todo
+    if ($usuario_rol === 'Administrador') {
+        return true;
+    }
     
-    return isset($roles_permisos[$usuario_rol]) && 
-           in_array($modulo_requerido, $roles_permisos[$usuario_rol]);
+    // Verificar si el rol tiene acceso a la página
+    return isset($paginas_por_rol[$usuario_rol]) && 
+           in_array($pagina, $paginas_por_rol[$usuario_rol]);
+}
+
+// Función para obtener la página principal según el rol
+function obtener_pagina_principal($rol) {
+    $paginas_principales = [
+        'Administrador' => 'gestion_usuarios.php',
+        'Jefe de Taller' => 'consulta.php',
+        'Mecánico' => 'consulta.php',
+        'Recepcionista' => 'ingreso_vehiculos.php',
+        'Guardia' => 'ingreso_vehiculos.php',
+        'Supervisor' => 'reportes.php',
+        'Chofer' => 'ingreso_vehiculos.php'
+    ];
+    
+    return $paginas_principales[$rol] ?? 'ingreso_vehiculos.php';
 }
 
 // Función para obtener datos del usuario actual

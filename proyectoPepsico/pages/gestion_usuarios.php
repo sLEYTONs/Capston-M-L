@@ -1,8 +1,7 @@
 <?php
-include '../general/middle.php';
-
-// Verificar que el usuario sea administrador
-if ($usuario_rol !== 'Administrador') {
+include 'general/middle.php';
+$roles_permitidos = ['Administrador'];
+if (!in_array($usuario_rol, $roles_permitidos)) {
     header('Location: ../index.php');
     exit();
 }
@@ -14,16 +13,21 @@ if ($usuario_rol !== 'Administrador') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios - Sistema Vehículos</title>
- 
-    <?php include '../general/head.php'; ?>
-    <link rel="stylesheet" href="css/gestion_usuarios.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+    
+    <?php include 'general/head.php'; ?>
+    <link rel="stylesheet" href="gestion_usuarios/css/gestion_usuarios.css">
 </head>
 
 <body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
       data-pc-theme_contrast="" data-pc-theme="light">
     
-    <?php include '../general/sidebar.php'; ?>
-    <?php include '../general/header.php'; ?>
+    <?php include 'general/sidebar.php'; ?>
+    <?php include 'general/header.php'; ?>
     
     <div class="pc-container">
         <div class="pc-content">
@@ -43,12 +47,12 @@ if ($usuario_rol !== 'Administrador') {
                 </div>
             </div>
             
-            <?php include 'components/c_gestion_usuarios.php'; ?>
+            <?php include 'gestion_usuarios/components/c_gestion_usuarios.php'; ?>
         </div>
     </div>
     
-    <?php include '../general/footer.php'; ?>
-    <?php include '../general/scripts.php'; ?>
+    <?php include 'general/footer.php'; ?>
+    <?php include 'general/script.php'; ?>
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -59,6 +63,6 @@ if ($usuario_rol !== 'Administrador') {
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
     
-    <script src="js/app.js"></script>
+    <script src="gestion_usuarios/js/app.js"></script>
 </body>
 </html>

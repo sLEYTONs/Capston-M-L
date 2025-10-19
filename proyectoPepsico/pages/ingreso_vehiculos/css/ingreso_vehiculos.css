@@ -1,0 +1,158 @@
+/* Estilos para el módulo de ingreso de vehículos */
+.section-title {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.card-header h5 {
+    margin-bottom: 0.25rem;
+}
+
+.card-header small {
+    opacity: 0.9;
+}
+
+/* Dropzone personalizado */
+.dropzone {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dropzone:hover {
+    border-color: #007bff;
+    background: #e3f2fd;
+}
+
+.dropzone .dz-message {
+    color: #6c757d;
+    margin: 0;
+}
+
+.dropzone.dz-drag-hover {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.dz-preview {
+    margin: 10px;
+}
+
+.dz-image {
+    border-radius: 8px;
+}
+
+.dz-success-mark, .dz-error-mark {
+    display: none;
+}
+
+/* Estados del formulario */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.invalid-feedback {
+    display: block;
+}
+
+.was-validated .form-control:invalid {
+    border-color: #dc3545;
+}
+
+.was-validated .form-control:valid {
+    border-color: #28a745;
+}
+
+/* Botones */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 12px 30px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+    padding: 12px 30px;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-lg {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .dropzone {
+        min-height: 120px;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Preview de archivos */
+.dz-preview .dz-details {
+    padding: 10px;
+}
+
+.dz-preview .dz-filename {
+    font-size: 0.875rem;
+}
+
+.dz-preview .dz-size {
+    font-size: 0.75rem;
+}
+
+/* Estilos para secciones */
+hr {
+    border-top: 2px solid #e9ecef;
+    margin: 1rem 0;
+}
+
+/* Mejora visual para selects */
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}

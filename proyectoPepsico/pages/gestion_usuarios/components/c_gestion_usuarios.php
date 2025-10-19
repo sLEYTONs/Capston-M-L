@@ -137,6 +137,7 @@
                                 <select class="form-control" id="edit-rol" name="rol" required>
                                     <option value="Administrador">Administrador</option>
                                     <option value="Jefe de Taller">Jefe de Taller</option>
+                                    <option value="Chofer">Chofer</option>
                                     <option value="Mecánico">Mecánico</option>
                                     <option value="Recepcionista">Recepcionista</option>
                                     <option value="Guardia">Guardia</option>

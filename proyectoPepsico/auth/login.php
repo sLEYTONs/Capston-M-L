@@ -17,10 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user = verificarUsuario($usuario, $password);
 
     if ($user) {
-        // Crear sesión
+        // Crear sesión - CORREGIDO: usar NombreUsuario en lugar de 'usuario'
         $_SESSION['usuario'] = [
             'id' => $user['UsuarioID'],
-            'nombre' => $user['usuario'],
+            'nombre' => $user['NombreUsuario'], // ← CORREGIDO AQUÍ
             'rol' => $user['Rol']
         ];
 
@@ -38,14 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $mensaje = 'Usuario o contraseña incorrecto.';
     }
 }
+
+// Si ya está logueado, redirigir al index
+if (isset($_SESSION['usuario']) && !empty($_SESSION['usuario']['id'])) {
+    header('Location: ../pages/index.php');
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <?php include '../pages/login/contents.php'; ?>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Inicio de Sesión | Portal Pepsico</title>
+    <link rel="icon" href="../assets/images/pepsicoLogo.png" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" crossorigin="anonymous" />
 </head>

@@ -9,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     <!-- [Favicon] -->
-        <link rel="icon" href="../assets/images/pepsicoLogo.png" type="image/svg+xml">
+    <link rel="icon" href="../assets/images/pepsicoLogo.png" type="image/svg+xml">
 
     <!-- [Fonts] -->
     <link rel="stylesheet" href="../assets/fonts/inter/inter.css" id="main-font-link">
