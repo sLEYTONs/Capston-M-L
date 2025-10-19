@@ -1,4 +1,39 @@
 <head>
+    <style>
+        html {
+            box-sizing: border-box;
+            }
+
+            *, *:before, *:after {
+            box-sizing: inherit;
+            }
+
+            /* Prevenir scroll horizontal */
+            body {
+            overflow-x: hidden;
+            }
+
+            /* Asegurar que los contenedores se expandan correctamente */
+            .pc-container {
+            min-height: calc(100vh - 140px); /* Ajusta según la altura de header + footer */
+            }
+
+            /* Para tablas largas dentro de cards */
+            .card-body .table-responsive {
+            max-height: 60vh;
+            overflow-y: auto;
+            }
+
+            /* Para formularios largos */
+            .form-container {
+            min-height: 400px;
+            }
+
+            /* Utilidad para contenido que necesita espacio extra */
+            .content-with-footer-space {
+            padding-bottom: 2rem;
+            }
+    </style>
     <title>Portal | PepsiCo</title>
 
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">   

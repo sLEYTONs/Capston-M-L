@@ -14,6 +14,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Ingreso de Vehículos - PepsiCo</title>
+    <link rel="stylesheet" href="ingreso_vehiculos/css/ingreso_vehiculos.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <?php
@@ -34,7 +35,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <div class="pc-content">
       <?php
 
-      include 'ingreso_vehiculos/contents.php';
+      include 'ingreso_vehiculos/components/c_ingresovehiculos.php';
 
       ?>
     </div>
@@ -47,5 +48,5 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
   
   ?>
 </body>
-
+<script src="ingreso_vehiculos/js/app.js"></script>
 </html>

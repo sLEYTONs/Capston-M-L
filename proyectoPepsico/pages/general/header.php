@@ -16,7 +16,7 @@
                     </a>
                 </li>
                 
-                <!-- Logo solo en desktop -->
+                <!-- Logo -->
                 <li class="pc-h-item d-none d-md-inline-flex align-items-center">
                     <a href="<?php echo obtener_pagina_principal($usuario_rol); ?>" class="header-logo">
                         <img src="../assets/images/pepsicoLogo.png" alt="PepsiCo" height="32" class="me-2">
@@ -27,31 +27,9 @@
         </div>
         <!-- [Mobile Menu Block end] -->
 
-        <!-- Información del usuario y controles -->
+        <!-- Controles del usuario -->
         <div class="ms-auto">
             <ul class="list-unstyled">
-                <!-- Información del usuario visible -->
-                <li class="pc-h-item d-none d-md-inline-flex align-items-center me-3">
-                    <div class="user-info">
-                        <div class="user-name fw-semibold"><?php echo htmlspecialchars($usuario_actual ?? 'Usuario'); ?></div>
-                        <div class="user-role">
-                            <?php 
-                            $rol = $usuario_rol ?? 'Usuario';
-                            $badge_class = [
-                                'Administrador' => 'badge-admin',
-                                'Jefe de Taller' => 'badge-jefe-taller',
-                                'Mecánico' => 'badge-mecanico',
-                                'Recepcionista' => 'badge-recepcionista',
-                                'Guardia' => 'badge-guardia',
-                                'Supervisor' => 'badge-supervisor',
-                                'Chofer' => 'badge-chofer'
-                            ][$rol] ?? 'badge-secondary';
-                            ?>
-                            <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($rol); ?></span>
-                        </div>
-                    </div>
-                </li>
-
                 <!-- Selector de tema -->
                 <li class="dropdown pc-h-item">
                     <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
@@ -131,12 +109,12 @@
                     </div>
                 </li>
 
-                <!-- User Profile -->
+                <!-- User Profile - Solo avatar como en sidebar -->
                 <li class="dropdown pc-h-item">
                     <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                        <span class="user-avatar">
+                        <div class="header-avatar">
                             <?php
-                            // Generar iniciales del nombre de usuario
+                            // Generar iniciales del nombre de usuario (igual que en sidebar)
                             $iniciales = '';
                             if (isset($usuario_actual)) {
                                 $nombres = explode(' ', $usuario_actual);
@@ -149,25 +127,39 @@
                             }
                             echo $iniciales ?: 'U';
                             ?>
-                        </span>
-                        <span class="user-name d-none d-md-inline-block">
-                            <?php echo htmlspecialchars($usuario_actual ?? 'Usuario'); ?>
-                        </span>
+                        </div>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
-                        <div class="dropdown-header">
+                        <!-- Header del dropdown igual al sidebar -->
+                        <div class="dropdown-header user-dropdown-header">
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0">
-                                    <div class="user-avatar-lg">
+                                    <div class="dropdown-avatar">
                                         <?php echo $iniciales ?: 'U'; ?>
                                     </div>
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6 class="mb-0"><?php echo htmlspecialchars($usuario_actual ?? 'Usuario'); ?></h6>
-                                    <small class="text-muted"><?php echo htmlspecialchars($usuario_rol ?? 'Usuario'); ?></small>
+                                    <small class="text-muted">
+                                        <?php 
+                                        $rol = $usuario_rol ?? 'Usuario';
+                                        $badge_class = [
+                                            'Administrador' => 'badge-admin',
+                                            'Jefe de Taller' => 'badge-jefe-taller',
+                                            'Mecánico' => 'badge-mecanico',
+                                            'Recepcionista' => 'badge-recepcionista',
+                                            'Guardia' => 'badge-guardia',
+                                            'Supervisor' => 'badge-supervisor',
+                                            'Chofer' => 'badge-chofer'
+                                        ][$rol] ?? 'badge-secondary';
+                                        ?>
+                                        <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($rol); ?></span>
+                                    </small>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Opciones del menú -->
                         <div class="dropdown-body">
                             <a href="#!" class="dropdown-item">
                                 <i class="ti ti-user me-2"></i>
@@ -182,8 +174,10 @@
                                 <span>Notificaciones</span>
                             </a>
                         </div>
+                        
+                        <!-- Footer con cerrar sesión -->
                         <div class="dropdown-footer">
-                            <a href="../auth/logout.php" class="dropdown-item">
+                            <a href="../auth/logout.php" class="dropdown-item text-danger">
                                 <i class="ti ti-power me-2"></i>
                                 <span>Cerrar Sesión</span>
                             </a>
@@ -227,50 +221,10 @@
     margin-left: 0.5rem;
 }
 
-/* Información del usuario */
-.user-info {
-    text-align: right;
-}
-
-.user-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #004B93;
-    margin-bottom: 0.1rem;
-}
-
-.user-role .badge {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-}
-
-/* Badges de roles */
-.badge-admin { background-color: #E21C21; color: white; }
-.badge-jefe-taller { background-color: #FFC107; color: #212529; }
-.badge-mecanico { background-color: #17A2B8; color: white; }
-.badge-recepcionista { background-color: #28A745; color: white; }
-.badge-guardia { background-color: #6C757D; color: white; }
-.badge-supervisor { background-color: #6F42C1; color: white; }
-.badge-chofer { background-color: #FD7E14; color: white; }
-
-/* Avatar de usuario */
-.user-avatar {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, #004B93 0%, #E21C21 100%);
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 0.9rem;
-    margin-right: 0.5rem;
-}
-
-.user-avatar-lg {
-    width: 48px;
-    height: 48px;
+/* Avatar del header (igual que sidebar) */
+.header-avatar {
+    width: 40px;
+    height: 40px;
     background: linear-gradient(135deg, #004B93 0%, #E21C21 100%);
     border-radius: 50%;
     display: flex;
@@ -278,7 +232,14 @@
     justify-content: center;
     color: white;
     font-weight: bold;
-    font-size: 1.2rem;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.header-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Iconos del header */
@@ -303,20 +264,58 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-radius: 8px;
     min-width: 280px;
+    overflow: hidden;
 }
 
-.dropdown-header {
+/* Header del dropdown de usuario (estilo sidebar) */
+.user-dropdown-header {
     background: linear-gradient(135deg, #004B93 0%, #002D5A 100%);
     color: white;
+    padding: 1.25rem;
     border-radius: 8px 8px 0 0;
-    padding: 1rem;
 }
 
-.dropdown-header h6 {
+.user-dropdown-header h6 {
     color: white;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
 }
 
+.user-dropdown-header .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dropdown-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #004B93 0%, #E21C21 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Badges de roles (igual que sidebar) */
+.badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.badge-admin { background-color: #E21C21; color: white; }
+.badge-jefe-taller { background-color: #FFC107; color: #212529; }
+.badge-mecanico { background-color: #17A2B8; color: white; }
+.badge-recepcionista { background-color: #28A745; color: white; }
+.badge-guardia { background-color: #6C757D; color: white; }
+.badge-supervisor { background-color: #6F42C1; color: white; }
+.badge-chofer { background-color: #FD7E14; color: white; }
+
+/* Cuerpo del dropdown */
 .dropdown-body {
     padding: 0.5rem 0;
 }
@@ -334,6 +333,10 @@
     display: flex;
     align-items: center;
     transition: all 0.3s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
 }
 
 .dropdown-item:hover {
@@ -341,9 +344,15 @@
     color: #004B93;
 }
 
+.dropdown-item.text-danger:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
 .dropdown-item i {
     width: 20px;
     text-align: center;
+    margin-right: 0.5rem;
 }
 
 /* Notificaciones */
@@ -397,10 +406,6 @@
         padding: 0.4rem 0.6rem;
     }
     
-    .user-info {
-        display: none;
-    }
-    
     .notification-dropdown {
         min-width: 280px;
         right: 0 !important;
@@ -409,6 +414,12 @@
     
     .pc-h-dropdown {
         min-width: 250px;
+    }
+    
+    .header-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
     }
 }
 
@@ -422,7 +433,7 @@
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Estados de tema */
+/* Estados de tema oscuro */
 [data-pc-theme="dark"] .pc-header {
     background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
     border-bottom-color: #4a5568;
@@ -439,6 +450,20 @@
 
 [data-pc-theme="dark"] .header-logo {
     color: white;
+}
+
+[data-pc-theme="dark"] .dropdown-body .dropdown-item {
+    color: #cbd5e0;
+}
+
+[data-pc-theme="dark"] .dropdown-body .dropdown-item:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-pc-theme="dark"] .dropdown-footer {
+    background: #2d3748;
+    border-top-color: #4a5568;
 }
 </style>
 
@@ -496,6 +521,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const badge = document.querySelector('.notification-badge');
             if (badge) {
                 badge.style.display = 'none';
+            }
+        });
+    }
+    
+    // Confirmación al cerrar sesión
+    const logoutLink = document.querySelector('.dropdown-item.text-danger');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+            if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                e.preventDefault();
             }
         });
     }

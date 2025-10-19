@@ -65,14 +65,7 @@
               </small>
             </div>
           </div>
-
-          <!-- Link cerrar sesión -->
-          <div class="pc-user-links mt-3 text-center">
-            <a href="../auth/logout.php" class="d-inline-flex align-items-center justify-content-center logout-btn">
-              <i class="ti ti-power me-2"></i>
-              <span>Cerrar Sesión</span>
-            </a>
-          </div>
+          
         </div>
       </div>
 

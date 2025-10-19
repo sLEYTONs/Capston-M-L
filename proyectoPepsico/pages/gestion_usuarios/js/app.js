@@ -237,3 +237,23 @@ $(document).ready(function() {
         tablaUsuarios.ajax.reload(null, false);
     }, 30000);
 });
+
+function adjustDataTableFooter() {
+    const tableWrapper = $('.dataTables_wrapper');
+    const footer = $('.pc-footer');
+    
+    if (tableWrapper.length && footer.length) {
+        const tableBottom = tableWrapper.offset().top + tableWrapper.outerHeight();
+        const footerTop = footer.offset().top;
+        
+        if (tableBottom > footerTop) {
+            // Agregar espacio extra después de la tabla
+            tableWrapper.css('margin-bottom', '50px');
+        }
+    }
+}
+
+// También ajustar cuando cambie el page length
+$(document).on('draw.dt', function() {
+    setTimeout(adjustDataTableFooter, 100);
+});
