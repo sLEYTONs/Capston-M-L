@@ -1,12 +1,13 @@
 <?php
 include 'general/middle.php';
+
 $roles_permitidos = ['Administrador'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
-    header('Location: ../index.php');
+    $pagina_principal = obtener_pagina_principal($usuario_rol);
+    header('Location: ' . $pagina_principal);
     exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>

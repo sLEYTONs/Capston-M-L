@@ -19,19 +19,19 @@ $paginas_por_rol = [
         'ingreso_vehiculos.php', 'marcas.php', 'reportes.php'
     ],
     'Jefe de Taller' => [
-        'consulta.php', 'ingreso_vehiculos.php', 'marcas.php', 'reportes.php'
+        'consulta.php', 'marcas.php', 'reportes.php', 'base_datos.php'
     ],
     'Mecánico' => [
-        'consulta.php', 'reportes.php'
+        'consulta.php'
     ],
     'Recepcionista' => [
-        'ingreso_vehiculos.php', 'consulta.php'
+        'consulta.php', 'base_datos.php'
     ],
     'Guardia' => [
-        'ingreso_vehiculos.php'
+        'consulta.php'
     ],
     'Supervisor' => [
-        'consulta.php', 'reportes.php'
+        'consulta.php', 'reportes.php', 'base_datos.php'
     ],
     'Chofer' => [
         'ingreso_vehiculos.php'
@@ -58,13 +58,13 @@ function obtener_pagina_principal($rol) {
         'Administrador' => 'gestion_usuarios.php',
         'Jefe de Taller' => 'consulta.php',
         'Mecánico' => 'consulta.php',
-        'Recepcionista' => 'ingreso_vehiculos.php',
-        'Guardia' => 'ingreso_vehiculos.php',
+        'Recepcionista' => 'consulta.php',
+        'Guardia' => 'consulta.php',
         'Supervisor' => 'reportes.php',
         'Chofer' => 'ingreso_vehiculos.php'
     ];
     
-    return $paginas_principales[$rol] ?? 'ingreso_vehiculos.php';
+    return $paginas_principales[$rol] ?? 'consulta.php';
 }
 
 // Función para obtener datos del usuario actual
@@ -74,4 +74,13 @@ function get_usuario_actual() {
     }
     return null;
 }
+
+// Función para redirigir a página no autorizada
+function redirigir_no_autorizado() {
+    global $usuario_rol;
+    $pagina_principal = obtener_pagina_principal($usuario_rol);
+    header('Location: ' . $pagina_principal);
+    exit();
+}
+
 ?>

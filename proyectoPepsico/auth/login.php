@@ -6,6 +6,12 @@ session_start();
 
 $mensaje = "";
 
+// Si ya está logueado, redirigir a su página principal ANTES de procesar el POST
+if (isset($_SESSION['usuario']) && !empty($_SESSION['usuario']['id'])) {
+    $pagina_principal = obtener_pagina_principal_directa($_SESSION['usuario']['rol']);
+    header('Location: ' . $pagina_principal);
+    exit();
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     require_once '../app/model/login/functions/f_login.php';
     
@@ -17,10 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user = verificarUsuario($usuario, $password);
 
     if ($user) {
-        // Crear sesión - CORREGIDO: usar NombreUsuario en lugar de 'usuario'
+        // Crear sesión
         $_SESSION['usuario'] = [
             'id' => $user['UsuarioID'],
-            'nombre' => $user['NombreUsuario'], // ← CORREGIDO AQUÍ
+            'nombre' => $user['NombreUsuario'],
             'rol' => $user['Rol']
         ];
 
@@ -32,17 +38,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->close();
         $conn->close();
 
-        header('Location: ../pages/index.php');
+        // Redirigir a la página principal correspondiente
+        $pagina_principal = obtener_pagina_principal_directa($user['Rol']);
+        header('Location: ' . $pagina_principal);
         exit();
     } else {
         $mensaje = 'Usuario o contraseña incorrecto.';
     }
 }
 
-// Si ya está logueado, redirigir al index
-if (isset($_SESSION['usuario']) && !empty($_SESSION['usuario']['id'])) {
-    header('Location: ../pages/index.php');
-    exit();
+/**
+ * Función directa para obtener página principal sin incluir middle.php
+ * AHORA RETORNA LA RUTA COMPLETA
+ */
+function obtener_pagina_principal_directa($rol) {
+    $paginas_principales = [
+        'Administrador' => '../pages/gestion_usuarios.php',
+        'Jefe de Taller' => '../pages/consulta.php',
+        'Mecánico' => '../pages/consulta.php',
+        'Recepcionista' => '../pages/ingreso_vehiculos.php',
+        'Guardia' => '../pages/ingreso_vehiculos.php',
+        'Supervisor' => '../pages/reportes.php',
+        'Chofer' => '../pages/ingreso_vehiculos.php'
+    ];
+    
+    return $paginas_principales[$rol] ?? '../pages/ingreso_vehiculos.php';
 }
 ?>
 <!DOCTYPE html>

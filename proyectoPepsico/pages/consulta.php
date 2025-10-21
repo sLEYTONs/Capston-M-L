@@ -1,8 +1,11 @@
 <?php
 include 'general/middle.php';
-$roles_permitidos = ['Administrador', 'Recepcionista'];
+
+$roles_permitidos = ['Administrador', 'Jefe de Taller', 'Mecánico', 'Recepcionista', 'Supervisor','Guardia'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
-    header('Location: ../index.php');
+    // En lugar de redirigir a index.php, redirige a la página principal del usuario
+    $pagina_principal = obtener_pagina_principal($usuario_rol);
+    header('Location: ' . $pagina_principal);
     exit();
 }
 ?>
