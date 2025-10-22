@@ -1,353 +1,369 @@
-<main class="main">
-    <div class="container">
-        <div class="database-container">
-            <div class="database-header">
-                <h1><i class="fas fa-database"></i> Base de Datos Completa</h1>
-                <p>Visualización completa de todos los datos disponibles en el sistema</p>
+<div class="row">
+    <div class="col-12">
+        <!-- Tarjeta de Estadísticas Generales -->
+        <div class="card base-datos-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Estadísticas del Sistema</h5>
             </div>
-
-            <!-- Estadísticas Generales -->
-            <div class="stats-grid" id="general-stats">
-                <div class="stat-card">
-                    <h3>Total Registros</h3>
-                    <div class="number" id="total-records">-</div>
-                    <p>Registros en la base de datos</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Vehículos Activos</h3>
-                    <div class="number" id="active-vehicles">-</div>
-                    <p>Vehículos en uso</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Marcas Únicas</h3>
-                    <div class="number" id="unique-brands">-</div>
-                    <p>Marcas diferentes</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Empresas</h3>
-                    <div class="number" id="unique-companies">-</div>
-                    <p>Empresas registradas</p>
-                </div>
-            </div>
-
-            <!-- Búsqueda y Filtros -->
-            <div class="search-container">
-                <h3><i class="fas fa-search"></i> Búsqueda y Filtros</h3>
-                <div class="search-fields">
-                    <div class="search-field">
-                        <label for="global-search">Búsqueda Global:</label>
-                        <input type="text" id="global-search" placeholder="Buscar en todos los campos...">
+            <div class="card-body">
+                <div class="row" id="stats-container">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-registros">0</h3>
+                                <p>Total Registros</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="search-field">
-                        <label for="filter-status">Estado:</label>
-                        <select id="filter-status">
-                            <option value="">Todos los estados</option>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-car"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="vehiculos-activos">0</h3>
+                                <p>Vehículos Activos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="marcas-unicas">0</h3>
+                                <p>Marcas Únicas</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="empresas-registradas">0</h3>
+                                <p>Empresas Registradas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Búsqueda y Filtros -->
+        <div class="card base-datos-card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-search me-2"></i>Búsqueda y Filtros Avanzados</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Búsqueda Global</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="global-search" placeholder="Buscar en todos los campos...">
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="filter-status">
+                            <option value="">Todos</option>
                             <option value="active">Activo</option>
                             <option value="inactive">Inactivo</option>
-                            <option value="pending">Pendiente</option>
                         </select>
                     </div>
-                    <div class="search-field">
-                        <label for="filter-company">Empresa:</label>
-                        <select id="filter-company">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Empresa</label>
+                        <select class="form-select" id="filter-company">
                             <option value="">Todas las empresas</option>
                         </select>
                     </div>
-                    <div class="search-field">
-                        <label for="filter-brand">Marca:</label>
-                        <select id="filter-brand">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Marca</label>
+                        <select class="form-select" id="filter-brand">
                             <option value="">Todas las marcas</option>
                         </select>
                     </div>
-                    <div class="search-field">
-                        <button class="btn btn-primary" id="apply-filters">
-                            <i class="fas fa-filter"></i> Aplicar Filtros
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <button class="btn btn-primary me-2" id="apply-filters">
+                            <i class="fas fa-filter me-2"></i>Aplicar Filtros
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pestañas de Datos -->
-            <div class="tabs-container">
-                <button class="tab-button active" data-tab="vehiculos">
-                    <i class="fas fa-truck"></i> Vehículos
-                </button>
-                <button class="tab-button" data-tab="marcas">
-                    <i class="fas fa-tags"></i> Marcas
-                </button>
-                <button class="tab-button" data-tab="empresas">
-                    <i class="fas fa-building"></i> Empresas
-                </button>
-                <button class="tab-button" data-tab="conductores">
-                    <i class="fas fa-user"></i> Conductores
-                </button>
-                <button class="tab-button" data-tab="estadisticas">
-                    <i class="fas fa-chart-bar"></i> Estadísticas
-                </button>
-                <button class="tab-button" data-tab="temporal">
-                    <i class="fas fa-calendar"></i> Análisis Temporal
-                </button>
-                <button class="tab-button" data-tab="graficos">
-                    <i class="fas fa-chart-pie"></i> Gráficos
-                </button>
-                <button class="tab-button" data-tab="exportar">
-                    <i class="fas fa-download"></i> Exportar
-                </button>
-            </div>
-
-            <!-- Contenido de Pestañas -->
-            <div id="vehiculos" class="tab-content active">
-                <h3><i class="fas fa-truck"></i> Registros de Vehículos</h3>
-                <div class="data-summary" id="vehiculos-summary">
-                    Cargando datos de vehículos...
-                </div>
-                <div id="vehiculos-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando datos...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="marcas" class="tab-content">
-                <h3><i class="fas fa-tags"></i> Análisis por Marcas</h3>
-                <div class="data-summary" id="marcas-summary">
-                    Cargando análisis de marcas...
-                </div>
-                <div id="marcas-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando análisis...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="empresas" class="tab-content">
-                <h3><i class="fas fa-building"></i> Análisis por Empresas</h3>
-                <div class="data-summary" id="empresas-summary">
-                    Cargando análisis de empresas...
-                </div>
-                <div id="empresas-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando análisis...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="conductores" class="tab-content">
-                <h3><i class="fas fa-user"></i> Registros de Conductores</h3>
-                <div class="data-summary" id="conductores-summary">
-                    Cargando datos de conductores...
-                </div>
-                <div id="conductores-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando datos...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="estadisticas" class="tab-content">
-                <h3><i class="fas fa-chart-bar"></i> Estadísticas del Sistema</h3>
-                <div class="data-summary" id="estadisticas-summary">
-                    Cargando estadísticas...
-                </div>
-                <div id="estadisticas-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando estadísticas...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="temporal" class="tab-content">
-                <h3><i class="fas fa-calendar"></i> Análisis Temporal</h3>
-                <div class="data-summary" id="temporal-summary">
-                    Cargando análisis temporal...
-                </div>
-                
-                <!-- Gráficos Temporales -->
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <h4>Evolución Mensual</h4>
-                        <div class="chart-placeholder" id="monthly-chart">
-                            <i class="fas fa-chart-line" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de evolución mensual</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Distribución por Horas</h4>
-                        <div class="chart-placeholder" id="hourly-chart">
-                            <i class="fas fa-clock" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de distribución horaria</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Actividad por Día de la Semana</h4>
-                        <div class="chart-placeholder" id="weekday-chart">
-                            <i class="fas fa-calendar-week" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de días de la semana</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Tendencias de Crecimiento</h4>
-                        <div class="chart-placeholder" id="trends-chart">
-                            <i class="fas fa-trending-up" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de tendencias</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="temporal-table-container">
-                    <div class="loading">
-                        <i class="fas fa-spinner"></i>
-                        <p>Cargando análisis...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="graficos" class="tab-content">
-                <h3><i class="fas fa-chart-pie"></i> Gráficos y Analíticas Avanzadas</h3>
-                <div class="data-summary" id="graficos-summary">
-                    Visualización completa de todos los datos con gráficos interactivos
-                </div>
-                
-                <!-- Gráficos Principales -->
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <h4>Distribución por Marcas</h4>
-                        <div class="chart-placeholder" id="brands-pie-chart">
-                            <i class="fas fa-chart-pie" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de distribución por marcas</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Distribución por Empresas</h4>
-                        <div class="chart-placeholder" id="companies-bar-chart">
-                            <i class="fas fa-chart-bar" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Gráfico de barras por empresas</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Tipos de Vehículo</h4>
-                        <div class="chart-placeholder" id="vehicle-types-chart">
-                            <i class="fas fa-truck" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Distribución por tipos de vehículo</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Estados de Vehículos</h4>
-                        <div class="chart-placeholder" id="status-chart">
-                            <i class="fas fa-check-circle" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Distribución por estados</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Propósitos de Visita</h4>
-                        <div class="chart-placeholder" id="purpose-chart">
-                            <i class="fas fa-clipboard-list" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Distribución por propósitos</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Áreas de Destino</h4>
-                        <div class="chart-placeholder" id="areas-chart">
-                            <i class="fas fa-map-marker-alt" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Distribución por áreas</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Gráficos de Análisis Avanzado -->
-                <div class="charts-grid">
-                    <div class="chart-container">
-                        <h4>Top 10 Conductores Más Activos</h4>
-                        <div class="chart-placeholder" id="top-drivers-chart">
-                            <i class="fas fa-user-tie" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Ranking de conductores</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Análisis de Edad de Vehículos</h4>
-                        <div class="chart-placeholder" id="vehicle-age-chart">
-                            <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Distribución por años</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Patrones de Uso por Hora</h4>
-                        <div class="chart-placeholder" id="hourly-patterns-chart">
-                            <i class="fas fa-clock" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Patrones horarios</span>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Evolución Temporal Completa</h4>
-                        <div class="chart-placeholder" id="temporal-evolution-chart">
-                            <i class="fas fa-chart-line" style="font-size: 3rem; margin-right: 1rem;"></i>
-                            <span>Evolución temporal</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="exportar" class="tab-content">
-                <h3><i class="fas fa-download"></i> Exportar Datos</h3>
-                <div class="export-section">
-                    <h4>Descargar Base de Datos Completa</h4>
-                    <p>Exporta todos los datos del sistema en diferentes formatos</p>
-                    
-                    <div class="export-buttons">
-                        <button class="btn-export" id="export-all-csv">
-                            <i class="fas fa-file-csv"></i> Exportar CSV Completo
-                        </button>
-                        <button class="btn-export secondary" id="export-all-json">
-                            <i class="fas fa-file-code"></i> Exportar JSON Completo
-                        </button>
-                        <button class="btn-export secondary" id="export-excel-sheets">
-                            <i class="fas fa-file-excel"></i> Exportar Hojas Excel
-                        </button>
-                        <button class="btn-export secondary" id="export-statistics">
-                            <i class="fas fa-chart-line"></i> Exportar Estadísticas
-                        </button>
-                    </div>
-                </div>
-
-                <div class="export-section">
-                    <h4>Exportaciones Especializadas</h4>
-                    <p>Descarga datos específicos por categoría</p>
-                    
-                    <div class="export-buttons">
-                        <button class="btn-export" id="export-vehicles-only">
-                            <i class="fas fa-truck"></i> Solo Vehículos
-                        </button>
-                        <button class="btn-export" id="export-brands-only">
-                            <i class="fas fa-tags"></i> Solo Marcas
-                        </button>
-                        <button class="btn-export" id="export-companies-only">
-                            <i class="fas fa-building"></i> Solo Empresas
-                        </button>
-                        <button class="btn-export" id="export-drivers-only">
-                            <i class="fas fa-user"></i> Solo Conductores
+                        <button class="btn btn-outline-secondary" id="reset-filters">
+                            <i class="fas fa-redo me-2"></i>Limpiar Filtros
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</main>
 
-<!-- Notificaciones -->
-<div id="notification" class="notification"></div>
+        <!-- Navegación por Pestañas -->
+        <div class="card base-datos-card mt-4">
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs base-datos-tabs" id="databaseTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="vehiculos-tab" data-bs-toggle="tab" data-bs-target="#vehiculos" type="button" role="tab">
+                            <i class="fas fa-truck me-2"></i>Vehículos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="marcas-tab" data-bs-toggle="tab" data-bs-target="#marcas" type="button" role="tab">
+                            <i class="fas fa-tags me-2"></i>Marcas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="empresas-tab" data-bs-toggle="tab" data-bs-target="#empresas" type="button" role="tab">
+                            <i class="fas fa-building me-2"></i>Empresas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="conductores-tab" data-bs-toggle="tab" data-bs-target="#conductores" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Conductores
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="graficos-tab" data-bs-toggle="tab" data-bs-target="#graficos" type="button" role="tab">
+                            <i class="fas fa-chart-pie me-2"></i>Gráficos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="exportar-tab" data-bs-toggle="tab" data-bs-target="#exportar" type="button" role="tab">
+                            <i class="fas fa-download me-2"></i>Exportar
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-3" id="databaseTabContent">
+                    <!-- Pestaña Vehículos -->
+                    <div class="tab-pane fade show active" id="vehiculos" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Registros de Vehículos</h5>
+                            <button class="btn btn-success btn-sm" id="refresh-vehicles">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="vehiculos-table" class="table table-striped table-hover" style="width:100%">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Placa</th>
+                                        <th>Marca/Modelo</th>
+                                        <th>Conductor</th>
+                                        <th>Empresa</th>
+                                        <th>Estado</th>
+                                        <th>FechaIngreso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Marcas -->
+                    <div class="tab-pane fade" id="marcas" role="tabpanel">
+                        <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Análisis por Marcas</h5>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="table-responsive">
+                                    <table id="marcas-table" class="table table-striped table-hover" style="width:100%">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Marca</th>
+                                                <th>Total Vehículos</th>
+                                                <th>Activos</th>
+                                                <th>Porcentaje</th>
+                                                <th>Último Ingreso</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="chart-container">
+                                    <canvas id="marcas-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Empresas -->
+                    <div class="tab-pane fade" id="empresas" role="tabpanel">
+                        <h5 class="mb-3"><i class="fas fa-building me-2"></i>Análisis por Empresas</h5>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="table-responsive">
+                                    <table id="empresas-table" class="table table-striped table-hover" style="width:100%">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Empresa</th>
+                                                <th>Total Vehículos</th>
+                                                <th>Conductores</th>
+                                                <th>Activos</th>
+                                                <th>Frecuencia</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="chart-container">
+                                    <canvas id="empresas-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Conductores -->
+                    <div class="tab-pane fade" id="conductores" role="tabpanel">
+                        <h5 class="mb-3"><i class="fas fa-users me-2"></i>Registros de Conductores</h5>
+                        <div class="table-responsive">
+                            <table id="conductores-table" class="table table-striped table-hover" style="width:100%">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Cédula</th>
+                                        <th>Nombre</th>
+                                        <th>Teléfono</th>
+                                        <th>Licencia</th>
+                                        <th>Empresa</th>
+                                        <th>Vehículos</th>
+                                        <th>Última Visita</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Gráficos -->
+                    <div class="tab-pane fade" id="graficos" role="tabpanel">
+                        <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Gráficos y Analíticas</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Distribución por Marcas</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="chart-marcas" height="250"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Distribución por Empresas</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="chart-empresas" height="250"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Estados de Vehículos</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="chart-estados" height="250"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Ingresos por Mes</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="chart-mensual" height="250"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Exportar -->
+                    <div class="tab-pane fade" id="exportar" role="tabpanel">
+                        <h5 class="mb-3"><i class="fas fa-download me-2"></i>Exportar Datos</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-file-export me-2"></i>Exportación Completa</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <p class="text-muted">Exporta todos los datos del sistema</p>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-primary" id="export-csv-completo">
+                                                <i class="fas fa-file-csv me-2"></i>CSV Completo
+                                            </button>
+                                            <button class="btn btn-warning" id="export-excel-completo">
+                                                <i class="fas fa-file-excel me-2"></i>Excel Completo
+                                            </button>
+                                            <button class="btn btn-info" id="export-json-completo">
+                                                <i class="fas fa-file-code me-2"></i>JSON Completo
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Exportaciones Específicas</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <p class="text-muted">Exporta datos por categoría</p>
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary" id="export-vehiculos">
+                                                <i class="fas fa-truck me-2"></i>Solo Vehículos
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="export-marcas">
+                                                <i class="fas fa-tags me-2"></i>Solo Marcas
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="export-empresas">
+                                                <i class="fas fa-building me-2"></i>Solo Empresas
+                                            </button>
+                                            <button class="btn btn-outline-primary" id="export-conductores">
+                                                <i class="fas fa-users me-2"></i>Solo Conductores
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Detalles de Vehículo -->
+<div class="modal fade" id="modalDetalleVehiculo" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Vehículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalle-vehiculo-content">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notificación -->
+<div id="notification" class="notification-alert"></div>
