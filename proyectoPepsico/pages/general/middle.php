@@ -28,7 +28,7 @@ $paginas_por_rol = [
         'consulta.php', 'base_datos.php'
     ],
     'Guardia' => [
-        'consulta.php'
+        'control_ingreso.php'
     ],
     'Supervisor' => [
         'consulta.php', 'reportes.php', 'base_datos.php'

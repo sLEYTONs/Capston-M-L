@@ -57,7 +57,7 @@ function obtener_pagina_principal_directa($rol) {
         'Jefe de Taller' => '../pages/consulta.php',
         'Mecánico' => '../pages/consulta.php',
         'Recepcionista' => '../pages/ingreso_vehiculos.php',
-        'Guardia' => '../pages/ingreso_vehiculos.php',
+        'Guardia' => '../pages/control_ingreso.php',
         'Supervisor' => '../pages/reportes.php',
         'Chofer' => '../pages/ingreso_vehiculos.php'
     ];

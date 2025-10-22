@@ -74,6 +74,19 @@
         <li class="pc-item pc-caption">
           <label>Navegación Principal</label>
         </li>
+
+        <!-- Control de Ingreso - Solo para Guardia y Administrador -->
+        <?php if (tiene_acceso('control_ingreso.php')): ?>
+        <li class="pc-item">
+          <a href="control_ingreso.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-shield-alt"></i>
+            </span>
+            <span class="pc-mtext">Control de Ingreso</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Ingreso de Vehículos -->
         <?php if (tiene_acceso('ingreso_vehiculos.php')): ?>
         <li class="pc-item">
