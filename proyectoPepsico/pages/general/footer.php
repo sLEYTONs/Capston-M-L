@@ -7,8 +7,12 @@
         </p>
       </div>
       <div class="col-md-6 text-center text-md-end my-2">
-        <p class="m-0 text-muted">
-          Desarrollado por <span class="fw-bold">Matías Mora</span> y <span class="fw-bold">Sebastián Leyton</span>
+        <p class="m-0 text-muted desarrollado-text">
+          Desarrollado por 
+          <span class="d-inline-block">
+            <span class="fw-bold">Matías Mora</span> y 
+            <span class="fw-bold">Sebastián Leyton</span>
+          </span>
         </p>
       </div>
     </div>
@@ -16,6 +20,61 @@
 </footer>
 
 <style>
+/* Ajustes ESPECÍFICOS para 1366x768 */
+@media (max-width: 1366px) and (min-width: 1200px) {
+  .desarrollado-text {
+    font-size: 0.8rem !important;
+    white-space: normal;
+    line-height: 1.2;
+    word-spacing: -0.3px;
+  }
+  
+  .footer-wrapper {
+    padding: 0 10px !important;
+    max-width: 95% !important;
+  }
+  
+  .col-md-6.text-center.text-md-end {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+}
+
+/* Para cuando la ventana es más estrecha (1366x768 en modo ventana) */
+@media (max-width: 1300px) {
+  .desarrollado-text {
+    font-size: 0.78rem !important;
+  }
+  
+  .desarrollado-text .d-inline-block {
+    display: inline !important;
+  }
+}
+
+/* Breakpoint específico para el texto problemático */
+@media (max-width: 1250px) and (min-width: 1200px) {
+  .desarrollado-text {
+    font-size: 0.76rem !important;
+  }
+}
+
+/* Si sigue sin caber, forzar dos líneas */
+@media (max-width: 1280px) {
+  .desarrollado-text br.d-md-none {
+    display: block !important;
+  }
+}
+
+/* Asegurar que el contenedor no se desborde */
+.pc-footer .container-fluid {
+  overflow: hidden;
+}
+
+.col-md-6.text-center.text-md-end {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Reset para asegurar que no haya márgenes no deseados */
 html, body {
   height: 100%;
@@ -81,20 +140,67 @@ body {
   margin-bottom: 2rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* Ajustes responsivos mejorados */
+
+/* Pantallas pequeñas (hasta 576px) */
+@media (max-width: 576px) {
   .pc-footer {
     padding: 0.75rem 0;
   }
   
   .footer-wrapper {
-    padding: 0 15px;
+    padding: 0 10px;
+  }
+  
+  .pc-footer p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .col-md-6 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .col-md-6:last-child {
+    margin-bottom: 0;
   }
 }
 
-/* Para páginas con contenido muy largo */
-body.has-long-content .pc-footer {
-  position: relative;
+/* Pantallas medianas (577px - 768px) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .pc-footer {
+    padding: 0.8rem 0;
+  }
+  
+  .footer-wrapper {
+    padding: 0 12px;
+  }
+  
+  .pc-footer p {
+    font-size: 0.85rem;
+  }
+}
+
+/* Pantallas específicas para 1366x768 (769px - 1366px) */
+@media (min-width: 769px) and (max-width: 1366px) {
+  .footer-wrapper {
+    padding: 0 15px;
+  }
+  
+  .pc-footer p {
+    font-size: 0.9rem;
+  }
+  
+  .col-md-6 {
+    padding: 0 8px;
+  }
+}
+
+/* Pantallas grandes (más de 1366px) */
+@media (min-width: 1367px) {
+  .footer-wrapper {
+    padding: 0 20px;
+  }
 }
 
 /* Para evitar que tablas o elementos largos se salgan */
