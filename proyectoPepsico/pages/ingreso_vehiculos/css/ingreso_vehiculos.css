@@ -218,3 +218,315 @@ hr {
         padding-bottom: 150px; /* Más espacio en móviles */
     }
 }
+
+
+/* ===== ESTILOS MEJORADOS PARA MODAL DE CONFIRMACIÓN ===== */
+
+/* Contenedor principal del modal */
+.modal-confirm {
+    max-width: 450px;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    animation: modalAppear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Header del modal */
+.modal-header-confirm {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    padding: 40px 30px 30px;
+    text-align: center;
+    position: relative;
+    border-bottom: none;
+}
+
+.modal-header-confirm .close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    color: rgba(255, 255, 255, 0.8);
+    opacity: 1;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.modal-header-confirm .close:hover {
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Círculo del icono */
+.icon-box {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: iconPulse 2s infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 15px rgba(255, 255, 255, 0);
+    }
+}
+
+.icon-box i {
+    font-size: 3rem;
+    color: white;
+    animation: iconCheck 0.6s ease;
+}
+
+@keyframes iconCheck {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Cuerpo del modal */
+.modal-body-confirm {
+    padding: 40px 30px 30px;
+    background: white;
+}
+
+.modal-title-confirm {
+    color: #2c3e50;
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    animation: titleAppear 0.6s 0.3s both;
+}
+
+@keyframes titleAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-message {
+    color: #6c757d;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    animation: messageAppear 0.6s 0.4s both;
+}
+
+@keyframes messageAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Detalles de éxito */
+.success-details {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 25px 0;
+    border-left: 4px solid #28a745;
+    animation: detailsAppear 0.6s 0.5s both;
+}
+
+@keyframes detailsAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.detail-item i {
+    color: #28a745;
+    margin-right: 12px;
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Footer del modal */
+.modal-footer-confirm {
+    padding: 25px 30px 30px;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: footerAppear 0.6s 0.6s both;
+}
+
+@keyframes footerAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.btn-continue {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 50px;
+    padding: 14px 30px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-continue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    background: linear-gradient(135deg, #23923d 0%, #1ba87e 100%);
+    color: white;
+}
+
+.btn-another {
+    border: 2px solid #667eea;
+    border-radius: 50px;
+    padding: 12px 30px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #667eea;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.btn-another:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Efectos de overlay del modal */
+.modal-backdrop.show {
+    opacity: 0.85;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .modal-confirm {
+        margin: 20px;
+    }
+    
+    .modal-header-confirm {
+        padding: 30px 20px 25px;
+    }
+    
+    .icon-box {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .icon-box i {
+        font-size: 2.5rem;
+    }
+    
+    .modal-body-confirm {
+        padding: 30px 20px 25px;
+    }
+    
+    .modal-footer-confirm {
+        padding: 20px 20px 25px;
+    }
+    
+    .modal-title-confirm {
+        font-size: 1.5rem;
+    }
+    
+    .btn-continue,
+    .btn-another {
+        padding: 12px 20px;
+        font-size: 1rem;
+    }
+}
+
+/* Efecto de brillo sutil */
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #28a745, #20c997, #28a745);
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* ID de registro destacado */
+#id-registro {
+    font-weight: 700;
+    color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}

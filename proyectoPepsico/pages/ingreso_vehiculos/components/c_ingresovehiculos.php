@@ -17,7 +17,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="placa">Placa *</label>
-                                <input type="text" class="form-control" id="placa" name="placa" required 
+                                <input type="text" class="form-control" id="placa" name="placa" required placeholder="ej: ABCD12"
                                        pattern="[A-Z0-9]{6,8}" title="Formato de placa válido (ej: ABC123 o AB123CD)">
                                 <div class="invalid-feedback">Ingrese una placa válida</div>
                             </div>
@@ -44,6 +44,14 @@
                                 <input type="text" class="form-control" id="marca" name="marca" required>
                             </div>
                         </div>
+
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="chasis">Chasis</label>
+                                <input type="text" class="form-control" id="chasis" name="chasis" 
+                                    placeholder="Número de chasis" maxlength="100">
+                            </div>
+                        </div>
                         
                         <div class="col-md-3">
                             <div class="form-group">
@@ -57,7 +65,7 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="color">Color</label>
-                                <input type="text" class="form-control" id="color" name="color" value="Sin especificar">
+                                <input type="text" class="form-control" id="color" name="color" placeholder="Especifique">
                             </div>
                         </div>
                         
@@ -82,7 +90,7 @@
                                 <label for="combustible">Nivel de Combustible</label>
                                 <select class="form-control" id="combustible" name="combustible">
                                     <option value="Lleno">Lleno</option>
-                                    <option value="3/4" selected>3/4</option>
+                                    <option value="3/4">3/4</option>
                                     <option value="1/2">1/2</option>
                                     <option value="1/4">1/4</option>
                                     <option value="Reserva">Reserva</option>
@@ -268,23 +276,55 @@
 </div>
 
 <!-- Modal de Éxito -->
-<div class="modal fade" id="modal-exito" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+<div class="modal fade" id="modal-exito" tabindex="-1" role="dialog" aria-labelledby="modalExitoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">¡Registro Exitoso!</h5>
+            <!-- Header con gradiente -->
+            <div class="modal-header-confirm">
+                <div class="icon-box">
+                    <i class="fas fa-check"></i>
+                </div>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body text-center">
-                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
-                <h4>Vehículo registrado correctamente</h4>
-                <p id="mensaje-exito" class="mb-0">Se ha registrado el ingreso del vehículo y se han notificado a los responsables.</p>
+            
+            <!-- Contenido principal -->
+            <div class="modal-body-confirm text-center">
+                <h4 class="modal-title-confirm">¡Registro Exitoso!</h4>
+                <p class="modal-message" id="mensaje-exito">
+                    El vehículo ha sido registrado correctamente en el sistema. 
+                    Se ha generado el ID de ingreso y notificado a los responsables correspondientes.
+                </p>
+                
+                <!-- Información adicional -->
+                <div class="success-details">
+                    <div class="detail-item">
+                        <i class="fas fa-car"></i>
+                        <span>Vehículo registrado en la base de datos</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-bell"></i>
+                        <span>Notificaciones enviadas</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span>Fecha: <span id="fecha-registro"><?php echo date('d/m/Y H:i'); ?></span></span>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" data-dismiss="modal">Aceptar</button>
+            
+            <!-- Footer con acciones -->
+            <div class="modal-footer-confirm">
+                <button type="button" class="btn btn-success btn-continue" data-dismiss="modal">
+                    <i class="fas fa-check-circle"></i> Continuar
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-another">
+                    <i class="fas fa-plus-circle"></i> Registrar otro vehículo
+                </button>
             </div>
         </div>
     </div>
+</div>
+
 </div>

@@ -1,32 +1,115 @@
 $(document).ready(function() {
-    // Ruta base para los scripts PHP
-    var baseUrl = '../../../app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php';
+    var baseUrl = '../app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php';
     
     // Variables para almacenar archivos
     var documentosSubidos = [];
     var fotosSubidas = [];
 
+    // Configuración de Bootstrap File Input
+    $('.custom-file-input').on('change', function() {
+        let fileName = 'Seleccionar archivos...';
+        const files = this.files;
+        
+        if (files && files.length > 0) {
+            if (files.length === 1) {
+                fileName = files[0].name;
+            } else {
+                fileName = `${files.length} archivos seleccionados`;
+            }
+        }
+        
+        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+        mostrarArchivosSeleccionados(this);
+    });
+
+    // Mostrar archivos seleccionados
+    function mostrarArchivosSeleccionados(input) {
+        if (!input) {
+            console.warn('⚠️ Input no encontrado');
+            return;
+        }
+        
+        const files = input.files;
+        const listaId = input.id === 'documentos' ? 'lista-documentos' : 'lista-fotos';
+        const lista = document.getElementById(listaId);
+        
+        if (!lista) {
+            console.warn(`⚠️ Elemento con id ${listaId} no encontrado`);
+            return;
+        }
+        
+        lista.innerHTML = '';
+        
+        if (files && files.length > 0) {
+            const ul = document.createElement('ul');
+            ul.className = 'list-group list-group-flush';
+            
+            Array.from(files).forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    <span>${file.name} (${formatFileSize(file.size)})</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerArchivo(${index}, '${input.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                ul.appendChild(li);
+            });
+            
+            lista.appendChild(ul);
+        }
+    }
+
+    // Función global para remover archivos
+    window.removerArchivo = function(index, tipo) {
+        const input = document.getElementById(tipo);
+        
+        if (!input) {
+            console.warn(`⚠️ Input ${tipo} no encontrado`);
+            return;
+        }
+        
+        const files = Array.from(input.files);
+        files.splice(index, 1);
+        
+        const dt = new DataTransfer();
+        files.forEach(file => dt.items.add(file));
+        input.files = dt.files;
+        
+        mostrarArchivosSeleccionados(input);
+        
+        const fileName = files.length > 0 ? `${files.length} archivo(s) seleccionado(s)` : 'Seleccionar archivos...';
+        $(input).next('.custom-file-label').addClass("selected").html(fileName);
+    };
+
+    // Formatear tamaño de archivo
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     // Validación de patente chilena
     function validarPatenteChilena(patente) {
-        // Remover espacios y convertir a mayúsculas
-        patente = patente.trim().toUpperCase().replace(/\s/g, '');
+        patente = patente.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
         
-        // Patrones de patentes chilenas
         const patrones = [
-            /^[A-Z]{4}\d{2}$/, // Formato antiguo: ABCD12
-            /^[A-Z]{2}\d{4}$/, // Formato para vehículos más nuevos: AB1234
-            /^[A-Z]{2}\d{2}[A-Z]{2}$/, // Formato nuevo: AB12CD
-            /^[A-Z]{2}\d{3}[A-Z]{1}$/, // Formato para vehículos comerciales: ABC123D
-            /^\d{4}[A-Z]{2}$/ // Formato para motos: 1234AB
+            /^[A-Z]{4}\d{2}$/,      // ABCD12
+            /^[A-Z]{2}\d{4}$/,      // AB1234
+            /^[A-Z]{2}\d{2}[A-Z]{2}$/, // AB12CD
+            /^[A-Z]{3}\d{3}$/,      // ABC123
+            /^\d{4}[A-Z]{2}$/,      // 1234AB
+            /^[A-Z]{2}\d{3}[A-Z]{1}$/ // AB123C
         ];
         
-        // Verificar si coincide con algún patrón
         const valida = patrones.some(patron => patron.test(patente));
         
         if (!valida) {
             return {
                 valida: false,
-                mensaje: 'Formato de patente inválido. Formatos aceptados: ABCD12, AB1234, AB12CD, ABC123D, 1234AB',
+                mensaje: 'Formato de patente inválido. Formatos: ABCD12, AB1234, AB12CD, ABC123, 1234AB, AB123C',
                 patenteNormalizada: patente
             };
         }
@@ -38,266 +121,46 @@ $(document).ready(function() {
         };
     }
 
-    // Formatear patente mientras se escribe
+    // Formatear patente en tiempo real
     $('#placa').on('input', function() {
         let valor = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, '');
         
-        // Aplicar formato según la longitud
-        if (valor.length <= 4) {
-            $(this).val(valor);
-        } else if (valor.length === 6) {
-            // Formatear según el patrón detectado
-            if (/^[A-Z]{4}\d{2}$/.test(valor)) {
-                // ABCD12 -> ABCD-12
-                $(this).val(valor.substring(0, 4) + '-' + valor.substring(4));
-            } else if (/^[A-Z]{2}\d{4}$/.test(valor)) {
-                // AB1234 -> AB-1234
-                $(this).val(valor.substring(0, 2) + '-' + valor.substring(2));
-            } else if (/^[A-Z]{2}\d{2}[A-Z]{2}$/.test(valor)) {
-                // AB12CD -> AB-12-CD
-                $(this).val(valor.substring(0, 2) + '-' + valor.substring(2, 4) + '-' + valor.substring(4));
-            } else {
-                $(this).val(valor);
-            }
-        } else {
-            $(this).val(valor);
+        if (valor.length > 10) {
+            valor = valor.substring(0, 10);
         }
         
-        // Validar en tiempo real
+        $(this).val(valor);
         validarCampoPlaca();
     });
 
-    // Validación específica para el campo placa
+    // Validación específica para placa
     function validarCampoPlaca() {
         const placa = $('#placa').val();
-        const resultado = validarPatenteChilena(placa.replace(/-/g, ''));
+        const resultado = validarPatenteChilena(placa);
         
         if (placa === '') {
             $('#placa').removeClass('is-valid is-invalid');
-            $('#error-placa').remove();
             return false;
         }
         
         if (!resultado.valida) {
             $('#placa').removeClass('is-valid').addClass('is-invalid');
-            $('#error-placa').remove();
-            $('#placa').after('<div class="invalid-feedback" id="error-placa">' + resultado.mensaje + '</div>');
             return false;
         } else {
             $('#placa').removeClass('is-invalid').addClass('is-valid');
-            $('#error-placa').remove();
             return true;
         }
     }
-
-    // Validación de RUT chileno (opcional, si necesitas validar cédula)
-    function validarRUT(rut) {
-        // Implementación básica de validación de RUT
-        rut = rut.replace(/[^0-9kK]/g, '');
-        if (rut.length < 8) return false;
-        
-        return true; // Para simplificar, aceptamos cualquier número de 8+ dígitos
-    }
-
-    // Inicializar Dropzone para documentos
-    if (typeof Dropzone !== 'undefined') {
-        var dropzoneDocumentos = new Dropzone("#dropzone-documentos", {
-            url: baseUrl,
-            paramName: "documentos",
-            maxFiles: 5,
-            maxFilesize: 10, // MB
-            acceptedFiles: ".pdf,.doc,.docx,.xls,.xlsx,.txt",
-            addRemoveLinks: true,
-            dictRemoveFile: "Eliminar",
-            dictMaxFilesExceeded: "Solo puede subir máximo 5 documentos",
-            dictFileTooBig: "El archivo es demasiado grande ({{filesize}}MB). Máximo: {{maxFilesize}}MB.",
-            init: function() {
-                this.on("success", function(file, response) {
-                    if (response.success) {
-                        documentosSubidos.push({
-                            nombre: file.name,
-                            ruta: response.ruta,
-                            tipo: response.tipo
-                        });
-                    }
-                });
-                this.on("removedfile", function(file) {
-                    documentosSubidos = documentosSubidos.filter(doc => doc.nombre !== file.name);
-                });
-            }
-        });
-
-        // Inicializar Dropzone para fotos
-        var dropzoneFotos = new Dropzone("#dropzone-fotos", {
-            url: baseUrl,
-            paramName: "fotos",
-            maxFiles: 10,
-            maxFilesize: 5, // MB
-            acceptedFiles: "image/*",
-            addRemoveLinks: true,
-            dictRemoveFile: "Eliminar",
-            dictMaxFilesExceeded: "Solo puede subir máximo 10 fotos",
-            dictFileTooBig: "La imagen es demasiado grande ({{filesize}}MB). Máximo: {{maxFilesize}}MB.",
-            init: function() {
-                this.on("success", function(file, response) {
-                    if (response.success) {
-                        fotosSubidas.push({
-                            nombre: file.name,
-                            ruta: response.ruta,
-                            miniatura: response.miniatura
-                        });
-                    }
-                });
-                this.on("removedfile", function(file) {
-                    fotosSubidas = fotosSubidas.filter(foto => foto.nombre !== file.name);
-                });
-            }
-        });
-    } else {
-        console.error('Dropzone no está cargado');
-    }
-
-    // Validación del formulario
-    $('#form-ingreso-vehiculo').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Validar patente primero
-        if (!validarCampoPlaca()) {
-            $('#placa').focus();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error en la patente',
-                text: 'Por favor, ingrese una patente válida',
-                timer: 3000
-            });
-            return;
-        }
-
-        // Validar formulario completo
-        if (!this.checkValidity()) {
-            e.stopPropagation();
-            $(this).addClass('was-validated');
-            
-            // Encontrar el primer campo inválido y enfocarlo
-            const firstInvalid = $(this).find('.is-invalid').first();
-            if (firstInvalid.length) {
-                firstInvalid.focus();
-            }
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Formulario incompleto',
-                text: 'Por favor, complete todos los campos obligatorios correctamente',
-                timer: 3000
-            });
-            return;
-        }
-
-        // Validar cédula (mínimo 8 caracteres)
-        const cedula = $('#conductor_cedula').val().replace(/\D/g, '');
-        if (cedula.length < 8) {
-            $('#conductor_cedula').addClass('is-invalid');
-            $('#conductor_cedula').focus();
-            Swal.fire({
-                icon: 'error',
-                title: 'Cédula inválida',
-                text: 'La cédula debe tener al menos 8 dígitos',
-                timer: 3000
-            });
-            return;
-        }
-
-        // Confirmación con SweetAlert
-        Swal.fire({
-            title: '¿Registrar ingreso de vehículo?',
-            text: "¿Está seguro de que desea registrar el ingreso de este vehículo?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, registrar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true,
-            showLoaderOnConfirm: true,
-            preConfirm: () => {
-                // Preparar datos del formulario
-                var formData = new FormData();
-                var formFields = $(this).serializeArray();
-                
-                // Normalizar patente (quitar guiones)
-                const patenteNormalizada = $('#placa').val().replace(/-/g, '');
-                formData.append('placa', patenteNormalizada);
-                
-                // Agregar otros campos del formulario (excepto placa que ya la agregamos normalizada)
-                formFields.forEach(function(field) {
-                    if (field.name !== 'placa') {
-                        formData.append(field.name, field.value);
-                    }
-                });
-                
-                // Agregar archivos
-                formData.append('documentos', JSON.stringify(documentosSubidos));
-                formData.append('fotos', JSON.stringify(fotosSubidas));
-                formData.append('action', 'registrar_ingreso');
-                formData.append('usuario_id', '<?php echo $usuario_id; ?>');
-
-                return $.ajax({
-                    url: baseUrl,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    dataType: 'json',
-                    timeout: 30000
-                }).then(function(response) {
-                    if (!response.success) {
-                        throw new Error(response.message || 'Error al registrar el vehículo');
-                    }
-                    return response;
-                }).catch(function(error) {
-                    let errorMsg = 'Error de conexión';
-                    if (error.responseJSON && error.responseJSON.message) {
-                        errorMsg = error.responseJSON.message;
-                    } else if (error.statusText) {
-                        errorMsg = error.statusText;
-                    }
-                    Swal.showValidationMessage(`Error: ${errorMsg}`);
-                });
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Mostrar modal de éxito
-                $('#mensaje-exito').html(result.value.message);
-                $('#modal-exito').modal('show');
-                
-                // Limpiar formulario
-                $('#form-ingreso-vehiculo')[0].reset();
-                $('#form-ingreso-vehiculo').removeClass('was-validated');
-                
-                // Limpiar dropzones
-                if (typeof dropzoneDocumentos !== 'undefined') {
-                    dropzoneDocumentos.removeAllFiles(true);
-                }
-                if (typeof dropzoneFotos !== 'undefined') {
-                    dropzoneFotos.removeAllFiles(true);
-                }
-                documentosSubidos = [];
-                fotosSubidas = [];
-                
-                // Redirigir después de 3 segundos
-                setTimeout(function() {
-                    window.location.href = '../index.php';
-                }, 3000);
-            }
-        });
-    });
 
     // Validación en tiempo real para todos los campos
     $('#form-ingreso-vehiculo input, #form-ingreso-vehiculo select, #form-ingreso-vehiculo textarea').on('blur', function() {
         const $field = $(this);
         const value = $field.val().trim();
         
-        if ($field.is(':invalid') || ($field.prop('required') && value === '')) {
+        if ($field.prop('required') && value === '') {
+            $field.addClass('is-invalid');
+            $field.removeClass('is-valid');
+        } else if ($field.is(':invalid')) {
             $field.addClass('is-invalid');
             $field.removeClass('is-valid');
         } else {
@@ -309,9 +172,12 @@ $(document).ready(function() {
     // Validación específica para cédula
     $('#conductor_cedula').on('input', function() {
         let valor = $(this).val().replace(/\D/g, '');
+        if (valor.length > 15) {
+            valor = valor.substring(0, 15);
+        }
         $(this).val(valor);
         
-        if (valor.length >= 8) {
+        if (valor.length >= 7 && valor.length <= 15) {
             $(this).removeClass('is-invalid').addClass('is-valid');
         } else if (valor.length > 0) {
             $(this).removeClass('is-valid').addClass('is-invalid');
@@ -320,7 +186,7 @@ $(document).ready(function() {
         }
     });
 
-    // Auto-completar empresa basado en código
+    // Auto-completar empresa
     $('#empresa_codigo').on('change', function() {
         var codigo = $(this).val();
         var empresas = {
@@ -332,59 +198,224 @@ $(document).ready(function() {
         };
         
         if (empresas[codigo]) {
-            $('#empresa_nombre').val(empresas[codigo]);
+            $('#empresa_nombre').val(empresas[codigo]).addClass('is-valid');
         }
     });
 
-    // Mostrar/ocultar campos basados en el estado
-    $('#estado_ingreso').on('change', function() {
-        var estado = $(this).val();
-        if (estado === 'Accidentado') {
-            $('#observaciones').attr('placeholder', 'Describa los daños del accidente...');
-        } else {
-            $('#observaciones').attr('placeholder', 'Describa cualquier detalle importante sobre el estado del vehículo...');
-        }
-    });
-
-    // Formato automático para teléfono
-    $('#conductor_telefono').on('input', function() {
-        let valor = $(this).val().replace(/\D/g, '');
-        if (valor.length <= 8) {
-            $(this).val(valor);
-        } else if (valor.length === 9) {
-            $(this).val(valor.substring(0, 1) + ' ' + valor.substring(1, 5) + ' ' + valor.substring(5));
-        }
-    });
-
-    // Tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Cerrar modal de éxito
-    $('#modal-exito').on('hidden.bs.modal', function() {
-        window.location.href = '../index.php';
-    });
-
-    // Ajustar posición para evitar solapamiento con footer
-    function adjustFormPosition() {
-        const form = document.getElementById('form-ingreso-vehiculo');
-        const footer = document.querySelector('.pc-footer');
+    // EVENTO PRINCIPAL DEL FORMULARIO
+    $('#form-ingreso-vehiculo').on('submit', function(e) {
+        console.log('🔔 Submit del formulario capturado');
+        e.preventDefault();
         
-        if (form && footer) {
-            const formRect = form.getBoundingClientRect();
-            const footerRect = footer.getBoundingClientRect();
-            const windowHeight = window.innerHeight;
+        // Validar patente
+        if (!validarCampoPlaca()) {
+            $('#placa').focus();
+            mostrarError('Error en la patente', 'Por favor, ingrese una patente válida');
+            return;
+        }
+
+        // Validar formulario completo
+        if (!this.checkValidity()) {
+            console.log('❌ Formulario inválido');
+            $(this).addClass('was-validated');
             
-            if (formRect.bottom > footerRect.top - 50) {
-                const extraSpace = formRect.bottom - (footerRect.top - 100);
-                document.querySelector('.pc-content').style.paddingBottom = (extraSpace + 100) + 'px';
+            const firstInvalid = $(this).find('.is-invalid').first();
+            if (firstInvalid.length) {
+                firstInvalid.focus();
             }
+            
+            mostrarError('Formulario incompleto', 'Por favor, complete todos los campos obligatorios correctamente');
+            return;
+        }
+
+        // Validar cédula
+        const cedula = $('#conductor_cedula').val().replace(/\D/g, '');
+        if (cedula.length < 7) {
+            $('#conductor_cedula').focus();
+            mostrarError('Cédula inválida', 'La cédula debe tener entre 7 y 15 dígitos');
+            return;
+        }
+
+        console.log('✅ Formulario válido, procediendo con registro...');
+        registrarVehiculo();
+    });
+
+    // Función para mostrar errores
+    function mostrarError(titulo, mensaje) {
+        Swal.fire({
+            icon: 'error',
+            title: titulo,
+            text: mensaje,
+            timer: 5000
+        });
+    }
+
+    // Función principal para registrar el vehículo
+    function registrarVehiculo() {
+        // Deshabilitar botón
+        $('#btn-registrar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+
+        // Preparar FormData
+        const formData = new FormData();
+        const formFields = $('#form-ingreso-vehiculo').serializeArray();
+        
+        // Agregar campos del formulario
+        formFields.forEach(field => {
+            formData.append(field.name, field.value);
+        });
+
+        // Manejar archivos de forma segura
+        try {
+            const inputDocumentos = document.getElementById('documentos');
+            const inputFotos = document.getElementById('fotos');
+            
+            if (inputDocumentos && inputDocumentos.files) {
+                const documentos = inputDocumentos.files;
+                for (let i = 0; i < documentos.length; i++) {
+                    formData.append('documentos[]', documentos[i]);
+                }
+                console.log(`📄 Documentos a subir: ${documentos.length}`);
+            }
+            
+            if (inputFotos && inputFotos.files) {
+                const fotos = inputFotos.files;
+                for (let i = 0; i < fotos.length; i++) {
+                    formData.append('fotos[]', fotos[i]);
+                }
+                console.log(`📷 Fotos a subir: ${fotos.length}`);
+            }
+        } catch (error) {
+            console.warn('⚠️ Error al procesar archivos:', error);
+        }
+
+        // Agregar acción
+        formData.append('action', 'registrar_ingreso');
+
+        console.log('📤 Enviando datos al servidor:', baseUrl);
+
+        // Enviar datos via AJAX
+        $.ajax({
+            url: baseUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            timeout: 30000,
+            success: function(response) {
+                console.log('📨 Respuesta del servidor:', response);
+                
+                if (response.success) {
+                    // Éxito - usar la nueva función mejorada
+                    mostrarModalExito(response.ingreso_id, response.message);
+                    
+                    // Limpiar formulario
+                    $('#form-ingreso-vehiculo')[0].reset();
+                    $('#form-ingreso-vehiculo').removeClass('was-validated');
+                    $('.custom-file-label').html('Seleccionar archivos...');
+                    $('#lista-documentos, #lista-fotos').empty();
+                    $('.is-valid').removeClass('is-valid');
+                    
+                    console.log('✅ Vehículo registrado exitosamente');
+                } else {
+                    mostrarError('Error al registrar', response.message || 'Error desconocido');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error en AJAX:', error);
+                console.error('📊 Estado:', status);
+                console.error('🔧 XHR:', xhr);
+                
+                let errorMsg = 'Error de conexión con el servidor';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.statusText) {
+                    errorMsg = xhr.statusText;
+                }
+                
+                // Mostrar más detalles del error
+                let detalles = '';
+                if (xhr.status === 404) {
+                    detalles = 'El archivo PHP no fue encontrado. Verifica la ruta.';
+                } else if (xhr.status === 500) {
+                    detalles = 'Error interno del servidor. Revisa el log de errores.';
+                }
+                
+                mostrarError('Error de conexión', errorMsg + (detalles ? '<br><small>' + detalles + '</small>' : ''));
+            },
+            complete: function() {
+                $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
+            }
+        });
+    }
+
+    // Función mejorada para mostrar el modal de éxito
+    function mostrarModalExito(ingresoId, mensaje) {
+        // Actualizar mensaje con ID si está disponible
+        if (ingresoId) {
+            $('#mensaje-exito').html(`
+                El vehículo ha sido registrado correctamente en el sistema. 
+                <br><strong>ID de ingreso: <span id="id-registro">${ingresoId}</span></strong>
+                <br>Se han notificado a los responsables correspondientes.
+            `);
+        } else {
+            $('#mensaje-exito').html(mensaje || 'El vehículo ha sido registrado correctamente en el sistema.');
+        }
+        
+        // Actualizar fecha actual
+        const ahora = new Date();
+        const fechaFormateada = ahora.toLocaleDateString('es-CL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        $('#fecha-registro').text(fechaFormateada);
+        
+        // Mostrar modal con efectos
+        $('#modal-exito').modal('show');
+        
+        // Efecto de confeti opcional (requiere librería confetti.js)
+        if (typeof confetti === 'function') {
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }, 300);
         }
     }
 
-    // Ejecutar ajustes al cargar y redimensionar
-    adjustFormPosition();
-    window.addEventListener('resize', adjustFormPosition);
-    window.addEventListener('scroll', adjustFormPosition);
-    
-    console.log('Aplicación de ingreso de vehículos cargada correctamente');
+    // MANEJADORES DE EVENTOS PARA EL MODAL - CORREGIDOS
+    $(document).on('click', '#modal-exito .btn-success, #modal-exito .close, #modal-exito [data-dismiss="modal"]', function() {
+        $('#modal-exito').modal('hide');
+    });
+
+    $(document).on('click', '#modal-exito .btn-outline-primary', function() {
+        $('#modal-exito').modal('hide');
+        setTimeout(() => {
+            window.location.reload();
+        }, 300);
+    });
+
+    // También manejar el evento hidden.bs.modal para asegurar el cierre
+    $('#modal-exito').on('hidden.bs.modal', function() {
+        // Código adicional que quieras ejecutar después de cerrar el modal
+        console.log('Modal cerrado correctamente');
+    });
+
+    // Limpiar validación al resetear formulario
+    $('button[type="reset"]').on('click', function() {
+        $('#form-ingreso-vehiculo').removeClass('was-validated');
+        $('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+        $('.custom-file-label').html('Seleccionar archivos...');
+        $('#lista-documentos, #lista-fotos').empty();
+        documentosSubidos = [];
+        fotosSubidas = [];
+    });
+
+    console.log('🚀 Aplicación lista para usar');
 });
