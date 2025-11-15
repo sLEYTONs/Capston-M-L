@@ -585,3 +585,63 @@ body {
 .pc-footer-fix {
     margin-top: auto;
 }
+
+/* Estilos para los nuevos estados */
+.status-Asignado {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-Enreparacion {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.status-Completado {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Estilos para prioridades */
+.prioridad-baja { color: #6c757d; }
+.prioridad-media { color: #ffc107; }
+.prioridad-alta { color: #fd7e14; }
+.prioridad-urgente { color: #dc3545; font-weight: bold; }
+
+/* Estilos para avances */
+.avances-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.avance-item {
+    border-left: 4px solid #007bff;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+}
+
+.avance-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.avance-estado {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.avance-estado.enprogreso { background-color: #17a2b8; color: white; }
+.avance-estado.completado { background-color: #28a745; color: white; }
+
+.avance-descripcion {
+    margin-bottom: 5px;
+}
+
+.avance-observaciones {
+    font-style: italic;
+    color: #6c757d;
+}

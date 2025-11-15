@@ -65,7 +65,8 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="color">Color</label>
-                                <input type="text" class="form-control" id="color" name="color" placeholder="Especifique">
+                                <input type="text" class="form-control" id="color" name="color" 
+                                    placeholder="Especifique" maxlength="30" value="">
                             </div>
                         </div>
                         
@@ -110,7 +111,7 @@
                             <div class="form-group">
                                 <label for="conductor_nombre">Nombre del Conductor *</label>
                                 <input type="text" class="form-control" id="conductor_nombre" name="conductor_nombre" 
-                                       value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>" required>
+                                    value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>" required>
                             </div>
                         </div>
                         

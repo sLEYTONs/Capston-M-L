@@ -215,4 +215,118 @@ function actualizarVehiculo($datos) {
     return $response;
 }
 
+// Nuevas funciones para mecánicos
+function obtenerMecanicosDisponibles() {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return [];
+    }
+
+    $query = "SELECT ID, Nombre, Especialidad FROM mecanicos WHERE Activo = 1 ORDER BY Nombre";
+    $result = mysqli_query($conn, $query);
+    $mecanicos = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $mecanicos[] = $row;
+    }
+
+    mysqli_close($conn);
+    return $mecanicos;
+}
+
+function asignarMecanico($vehiculo_id, $mecanico_id, $prioridad, $descripcion, $observaciones) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        // 1. Actualizar estado del vehículo
+        $updateVehiculo = "UPDATE ingreso_vehiculos SET Estado = 'Asignado' WHERE ID = ?";
+        $stmt = mysqli_prepare($conn, $updateVehiculo);
+        mysqli_stmt_bind_param($stmt, 'i', $vehiculo_id);
+        mysqli_stmt_execute($stmt);
+
+        // 2. Crear asignación
+        $insertAsignacion = "INSERT INTO asignaciones_mecanico 
+                            (VehiculoID, MecanicoID, Prioridad, DescripcionTrabajo, Observaciones) 
+                            VALUES (?, ?, ?, ?, ?)";
+        $stmt2 = mysqli_prepare($conn, $insertAsignacion);
+        mysqli_stmt_bind_param($stmt2, 'iisss', $vehiculo_id, $mecanico_id, $prioridad, $descripcion, $observaciones);
+        mysqli_stmt_execute($stmt2);
+
+        mysqli_commit($conn);
+        return ['status' => 'success', 'message' => 'Mecánico asignado correctamente'];
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        return ['status' => 'error', 'message' => 'Error al asignar: ' . $e->getMessage()];
+    } finally {
+        mysqli_close($conn);
+    }
+}
+
+function obtenerAsignacionActiva($vehiculo_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null;
+    }
+
+    $query = "SELECT 
+                a.ID,
+                a.VehiculoID,
+                a.MecanicoID,
+                m.Nombre as MecanicoNombre,
+                m.Especialidad as MecanicoEspecialidad,
+                a.Prioridad,
+                a.DescripcionTrabajo,
+                a.Observaciones,
+                a.Estado,
+                DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
+            FROM asignaciones_mecanico a
+            INNER JOIN mecanicos m ON a.MecanicoID = m.ID
+            WHERE a.VehiculoID = ? AND a.Estado != 'Completado'
+            ORDER BY a.FechaAsignacion DESC LIMIT 1";
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $vehiculo_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $asignacion = mysqli_fetch_assoc($result);
+
+    mysqli_close($conn);
+    return $asignacion;
+}
+
+function obtenerAvancesMecanico($asignacion_id) {
+    if (!$asignacion_id) return [];
+
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return [];
+    }
+
+    $query = "SELECT 
+                Descripcion,
+                Observaciones,
+                Estado,
+                DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance
+            FROM avances_mecanico 
+            WHERE AsignacionID = ? 
+            ORDER BY FechaAvance DESC";
+
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $asignacion_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $avances = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $avances[] = $row;
+    }
+
+    mysqli_close($conn);
+    return $avances;
+}
 ?>

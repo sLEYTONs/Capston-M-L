@@ -17,7 +17,7 @@ function registrarIngresoVehiculo($datos) {
         EmpresaCodigo, EmpresaNombre, Proposito, Area, PersonaContacto,
         Observaciones, EstadoIngreso, Kilometraje, Combustible, 
         Documentos, Fotos, UsuarioRegistro, FechaIngreso, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'active')";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
     
     $stmt = $conn->prepare($sql);
     
@@ -30,17 +30,18 @@ function registrarIngresoVehiculo($datos) {
     $documentos_json = !empty($datos['documentos']) ? json_encode($datos['documentos']) : NULL;
     $fotos_json = !empty($datos['fotos']) ? json_encode($datos['fotos']) : NULL;
     
-    // Manejar valores NULL para año y kilometraje
-    $anio = !empty($datos['anio']) ? $datos['anio'] : NULL;
-    $kilometraje = !empty($datos['kilometraje']) ? $datos['kilometraje'] : NULL;
+    // Manejar valores NULL para año, kilometraje y chasis
+    $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
+    $kilometraje = !empty($datos['kilometraje']) ? intval($datos['kilometraje']) : NULL;
+    $chasis = !empty($datos['chasis']) ? $datos['chasis'] : NULL;
     
     $stmt->bind_param(
-        "sssssissssssssssssisssi",
+        "ssssssisssssssssssisssi",
         $datos['placa'],
         $datos['tipo_vehiculo'],
         $datos['marca'],
         $datos['modelo'],
-        $datos['chasis'],
+        $chasis,
         $datos['color'],
         $anio,
         $datos['conductor_nombre'],
@@ -88,7 +89,7 @@ function placaExiste($placa) {
     }
     
     $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
-            WHERE Placa = ? AND Estado = 'active'";
+            WHERE Placa = ? AND Estado = 'Ingresado'";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -97,6 +98,40 @@ function placaExiste($placa) {
     }
     
     $stmt->bind_param("s", $placa);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Verifica si un chasis ya está registrado (solo si no está vacío)
+ */
+function chasisExiste($chasis) {
+    if (empty($chasis) || $chasis === '') {
+        return false; // No validar chasis vacíos
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE Chasis = ? AND Estado = 'active'";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $chasis);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();

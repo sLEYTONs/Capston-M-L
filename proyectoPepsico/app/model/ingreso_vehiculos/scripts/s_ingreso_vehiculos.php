@@ -50,11 +50,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 
-                // CORRECCIÓN: Usar función global en lugar de método de clase
+                // Verificar si la placa ya existe
                 if (placaExiste($_POST['placa'])) {
                     $response['message'] = 'La placa ' . $_POST['placa'] . ' ya está registrada en el sistema';
                     echo json_encode($response);
                     exit;
+                }
+                
+                // NUEVA VALIDACIÓN: Verificar si el chasis ya existe (solo si no está vacío)
+                $chasis = trim($_POST['chasis'] ?? '');
+                if (!empty($chasis)) {
+                    if (chasisExiste($chasis)) {
+                        $response['message'] = 'El chasis ' . $chasis . ' ya está registrado en el sistema';
+                        echo json_encode($response);
+                        exit;
+                    }
                 }
                 
                 // Preparar datos
@@ -63,8 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'chasis' => $_POST['chasis'] ?? '', // AGREGADO: campo chasis
-                    'color' => $_POST['color'] ?? '',
+                    'chasis' => $chasis,
+                    'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
                     'conductor_cedula' => trim($_POST['conductor_cedula']),
@@ -84,11 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'fotos' => $_FILES['fotos'] ?? []
                 ];
                 
-                // CORRECCIÓN: Usar función global en lugar de método de clase
+                // Registrar ingreso
                 $ingreso_id = registrarIngresoVehiculo($datos);
                 
                 if ($ingreso_id) {
-                    // CORRECCIÓN: Usar funciones globales
+                    // Obtener roles para notificación
                     $roles_notificar = obtenerRolesParaNotificacion($datos['proposito']);
                     $mensaje_notificacion = "Nuevo ingreso de vehículo: {$datos['placa']} - {$datos['marca']} {$datos['modelo']} - Conductor: {$datos['conductor_nombre']}";
                     guardarNotificacion($ingreso_id, $roles_notificar, $mensaje_notificacion);

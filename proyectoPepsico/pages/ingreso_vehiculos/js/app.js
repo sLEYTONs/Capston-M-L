@@ -257,12 +257,50 @@ $(document).ready(function() {
 
         // Preparar FormData
         const formData = new FormData();
-        const formFields = $('#form-ingreso-vehiculo').serializeArray();
         
-        // Agregar campos del formulario
-        formFields.forEach(field => {
-            formData.append(field.name, field.value);
+        // OBTENER TODOS LOS CAMPOS DEL FORMULARIO DE FORMA MANUAL
+        const camposFormulario = {
+            placa: $('#placa').val(),
+            tipo_vehiculo: $('#tipo_vehiculo').val(),
+            marca: $('#marca').val(),
+            modelo: $('#modelo').val(),
+            chasis: $('#chasis').val(),
+            color: $('#color').val(),
+            anio: $('#anio').val(),
+            conductor_nombre: $('#conductor_nombre').val(),
+            conductor_cedula: $('#conductor_cedula').val(),
+            conductor_telefono: $('#conductor_telefono').val(),
+            licencia: $('#licencia').val(),
+            empresa_codigo: $('#empresa_codigo').val(),
+            empresa_nombre: $('#empresa_nombre').val(),
+            proposito: $('#proposito').val(),
+            area: $('#area').val(),
+            persona_contacto: $('#persona_contacto').val(),
+            observaciones: $('#observaciones').val(),
+            estado_ingreso: $('#estado_ingreso').val(),
+            kilometraje: $('#kilometraje').val(),
+            combustible: $('#combustible').val(),
+            usuario_id: $('#usuario_id').val()
+        };
+
+        // DEBUG: Mostrar el valor del color
+        console.log('🎨 Valor del campo color:', camposFormulario.color);
+        console.log('📝 Tipo del campo color:', typeof camposFormulario.color);
+
+        // Agregar campos manualmente al FormData
+        Object.keys(camposFormulario).forEach(key => {
+            if (camposFormulario[key] !== undefined && camposFormulario[key] !== null) {
+                formData.append(key, camposFormulario[key]);
+            }
         });
+
+        // DEBUG: Verificar que el color se agregó correctamente
+        console.log('🔍 Verificando FormData - color:');
+        for (let pair of formData.entries()) {
+            if (pair[0] === 'color') {
+                console.log('✅ Color encontrado en FormData:', pair[1]);
+            }
+        }
 
         // Manejar archivos de forma segura
         try {
@@ -311,42 +349,38 @@ $(document).ready(function() {
                     
                     // Limpiar formulario
                     $('#form-ingreso-vehiculo')[0].reset();
-                    $('#form-ingreso-vehiculo').removeClass('was-validated');
-                    $('.custom-file-label').html('Seleccionar archivos...');
-                    $('#lista-documentos, #lista-fotos').empty();
-                    $('.is-valid').removeClass('is-valid');
-                    
-                    console.log('✅ Vehículo registrado exitosamente');
-                } else {
-                    mostrarError('Error al registrar', response.message || 'Error desconocido');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('❌ Error en AJAX:', error);
-                console.error('📊 Estado:', status);
-                console.error('🔧 XHR:', xhr);
+                $('#form-ingreso-vehiculo').removeClass('was-validated');
+                $('.custom-file-label').html('Seleccionar archivos...');
+                $('#lista-documentos, #lista-fotos').empty();
+                $('.is-valid').removeClass('is-valid');
                 
-                let errorMsg = 'Error de conexión con el servidor';
-                
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                } else if (xhr.statusText) {
-                    errorMsg = xhr.statusText;
-                }
-                
-                // Mostrar más detalles del error
-                let detalles = '';
-                if (xhr.status === 404) {
-                    detalles = 'El archivo PHP no fue encontrado. Verifica la ruta.';
-                } else if (xhr.status === 500) {
-                    detalles = 'Error interno del servidor. Revisa el log de errores.';
-                }
-                
-                mostrarError('Error de conexión', errorMsg + (detalles ? '<br><small>' + detalles + '</small>' : ''));
-            },
-            complete: function() {
-                $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
+                console.log('✅ Vehículo registrado exitosamente');
+            } else {
+                mostrarError('Error al registrar', response.message || 'Error desconocido');
             }
+        },
+        error: function(xhr, status, error) {
+            console.error('❌ Error en AJAX:', error);
+            console.error('📊 Estado:', status);
+            
+            // Mostrar la respuesta del servidor para debugging
+            if (xhr.responseText) {
+                console.error('📄 Respuesta del servidor:', xhr.responseText);
+            }
+            
+            let errorMsg = 'Error de conexión con el servidor';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            } else if (xhr.statusText) {
+                errorMsg = xhr.statusText;
+            }
+            
+            mostrarError('Error de conexión', errorMsg);
+        },
+        complete: function() {
+            $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
+        }
         });
     }
 

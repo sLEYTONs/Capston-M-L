@@ -47,3 +47,95 @@
         </div>
     </div>
 </section>
+
+<!-- Modal para Asignar Mecánico -->
+<div class="modal fade" id="asignarModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-tools me-2"></i>
+                    Asignar Mecánico - <span id="modal-placa-asignar"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="asignar-form">
+                    <input type="hidden" id="asignar-vehiculo-id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="asignar-mecanico" class="form-label">Seleccionar Mecánico *</label>
+                                <select class="form-select" id="asignar-mecanico" required>
+                                    <option value="">Seleccionar mecánico...</option>
+                                    <!-- Los mecánicos se cargarán dinámicamente -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="asignar-prioridad" class="form-label">Prioridad</label>
+                                <select class="form-select" id="asignar-prioridad">
+                                    <option value="Baja">Baja</option>
+                                    <option value="Media" selected>Media</option>
+                                    <option value="Alta">Alta</option>
+                                    <option value="Urgente">Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="asignar-descripcion" class="form-label">Descripción del Trabajo *</label>
+                        <textarea class="form-control" id="asignar-descripcion" rows="3" 
+                                  placeholder="Describa el trabajo a realizar..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="asignar-observaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="asignar-observaciones" rows="2" 
+                                  placeholder="Observaciones adicionales..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmar-asignacion">
+                    <i class="fas fa-user-cog me-2"></i>Asignar Mecánico
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Seguimiento -->
+<div class="modal fade" id="seguimientoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    Seguimiento de Reparación - <span id="modal-placa-seguimiento"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información de la Asignación</h6>
+                        <div id="info-asignacion">
+                            <!-- Se cargará dinámicamente -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Avances del Mecánico</h6>
+                        <div id="avances-mecanico" class="avances-container">
+                            <!-- Se cargarán los avances -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -146,16 +146,34 @@ class ConsultaVehiculos {
                         data: null,
                         orderable: false,
                         render: (data) => {
-                            return `
+                            let acciones = `
                                 <div class="btn-group">
                                     <button class="btn-action btn-view" data-id="${data.ID}" title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn-action btn-edit" data-id="${data.ID}" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
+
                             `;
+
+                            // Solo mostrar botón de asignar si está en estado "Ingresado" o "En espera"
+                            if (data.Estado === 'Ingresado' || data.Estado === 'En espera') {
+                                acciones += `
+                                    <button class="btn-action btn-assign" data-id="${data.ID}" title="Asignar Mecánico">
+                                        <i class="fas fa-user-cog"></i>
+                                    </button>
+                                `;
+                            }
+
+                            // Mostrar botón de seguimiento si está asignado o en reparación
+                            if (data.Estado === 'Asignado' || data.Estado === 'En reparación' || data.Estado === 'Completado') {
+                                acciones += `
+                                    <button class="btn-action btn-tracking" data-id="${data.ID}" title="Ver Seguimiento">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </button>
+                                `;
+                            }
+
+                            acciones += `</div>`;
+                            return acciones;
                         }
                     }
                 ],
@@ -181,6 +199,16 @@ class ConsultaVehiculos {
         $(document).on('click', '.btn-edit', (e) => {
             const id = $(e.currentTarget).data('id');
             this.editarVehiculo(id);
+        });
+
+        $(document).on('click', '.btn-assign', (e) => {
+            const id = $(e.currentTarget).data('id');
+            this.asignarMecanico(id);
+        });
+
+        $(document).on('click', '.btn-tracking', (e) => {
+            const id = $(e.currentTarget).data('id');
+            this.verSeguimiento(id);
         });
     }
 
@@ -244,7 +272,7 @@ class ConsultaVehiculos {
     }
 
     editarVehiculo(id) {
-        console.log('Editar vehículo:', id);
+        this.cargarDatosParaEdicion(id);
     }
 
     mostrarModalDetalles(id) {
@@ -326,13 +354,9 @@ class ConsultaVehiculos {
         }
     }
     
-    editarVehiculo(id) {
-        this.cargarDatosParaEdicion(id);
-    }
-
     cargarDatosParaEdicion(id) {
-    // Mostrar loading en el modal
-    this.mostrarLoadingModal();
+        // Mostrar loading en el modal
+        this.mostrarLoadingModal();
 
         $.ajax({
             url: '../app/model/consulta/scripts/s_detalles.php',
@@ -486,26 +510,215 @@ class ConsultaVehiculos {
         $('#guardar-cambios').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Cambios');
     }
 
+    // Nuevo método para asignar mecánico
+    asignarMecanico(id) {
+        this.cargarDatosParaAsignacion(id);
+    }
 
+    cargarDatosParaAsignacion(id) {
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_detalles.php',
+            type: 'POST',
+            data: { id: id },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarModalAsignacion(response.data);
+                } else {
+                    this.mostrarError('Error al cargar datos para asignación: ' + response.message);
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error de conexión: ' + error);
+            }
+        });
+    }
 
+    mostrarModalAsignacion(vehiculo) {
+        $('#asignar-vehiculo-id').val(vehiculo.ID);
+        $('#modal-placa-asignar').text(vehiculo.Placa);
 
+        // Cargar lista de mecánicos disponibles
+        this.cargarMecanicosDisponibles();
 
+        const asignarModal = new bootstrap.Modal(document.getElementById('asignarModal'));
+        asignarModal.show();
 
+        // Bindear evento de confirmación
+        this.bindConfirmarAsignacion();
+    }
+
+    cargarMecanicosDisponibles() {
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_mecanicos.php',
+            type: 'GET',
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    const $select = $('#asignar-mecanico');
+                    $select.empty().append('<option value="">Seleccionar mecánico...</option>');
+                    
+                    response.data.forEach(mecanico => {
+                        $select.append(`<option value="${mecanico.ID}">${mecanico.Nombre} - ${mecanico.Especialidad}</option>`);
+                    });
+                } else {
+                    this.mostrarError('Error al cargar mecánicos: ' + response.message);
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error al cargar mecánicos: ' + error);
+            }
+        });
+    }
+
+    bindConfirmarAsignacion() {
+        $('#confirmar-asignacion').off('click').on('click', () => {
+            this.confirmarAsignacion();
+        });
+    }
+
+    confirmarAsignacion() {
+        const vehiculoID = $('#asignar-vehiculo-id').val();
+        const mecanicoID = $('#asignar-mecanico').val();
+        const prioridad = $('#asignar-prioridad').val();
+        const descripcion = $('#asignar-descripcion').val();
+        const observaciones = $('#asignar-observaciones').val();
+
+        if (!mecanicoID || !descripcion.trim()) {
+            this.mostrarError('Seleccione un mecánico y describa el trabajo a realizar');
+            return;
+        }
+
+        $('#confirmar-asignacion').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Asignando...');
+
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_asignar.php',
+            type: 'POST',
+            data: {
+                vehiculo_id: vehiculoID,
+                mecanico_id: mecanicoID,
+                prioridad: prioridad,
+                descripcion: descripcion,
+                observaciones: observaciones
+            },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarToast('Éxito', 'Mecánico asignado correctamente', 'success');
+                    this.cerrarModalAsignacion();
+                    this.buscarVehiculos(); // Refrescar la tabla
+                } else {
+                    this.mostrarError('Error al asignar: ' + response.message);
+                    $('#confirmar-asignacion').prop('disabled', false).html('<i class="fas fa-user-cog me-2"></i>Asignar Mecánico');
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error de conexión: ' + error);
+                $('#confirmar-asignacion').prop('disabled', false).html('<i class="fas fa-user-cog me-2"></i>Asignar Mecánico');
+            }
+        });
+    }
+
+    cerrarModalAsignacion() {
+        const asignarModal = bootstrap.Modal.getInstance(document.getElementById('asignarModal'));
+        asignarModal.hide();
+        
+        // Limpiar formulario
+        $('#asignar-form')[0].reset();
+        $('#confirmar-asignacion').prop('disabled', false).html('<i class="fas fa-user-cog me-2"></i>Asignar Mecánico');
+    }
+
+    // Método para ver seguimiento
+    verSeguimiento(id) {
+        this.cargarSeguimiento(id);
+    }
+
+    cargarSeguimiento(id) {
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_seguimiento.php',
+            type: 'POST',
+            data: { vehiculo_id: id },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarModalSeguimiento(response.data);
+                } else {
+                    this.mostrarError('Error al cargar seguimiento: ' + response.message);
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error de conexión: ' + error);
+            }
+        });
+    }
+
+    mostrarModalSeguimiento(data) {
+        $('#modal-placa-seguimiento').text(data.vehiculo.Placa);
+        
+        // Mostrar información de asignación
+        this.mostrarInfoAsignacion(data.asignacion);
+        
+        // Mostrar avances del mecánico
+        this.mostrarAvancesMecanico(data.avances);
+
+        const seguimientoModal = new bootstrap.Modal(document.getElementById('seguimientoModal'));
+        seguimientoModal.show();
+    }
+
+    mostrarInfoAsignacion(asignacion) {
+        const html = `
+            <p><strong>Mecánico:</strong> ${asignacion.MecanicoNombre}</p>
+            <p><strong>Especialidad:</strong> ${asignacion.MecanicoEspecialidad}</p>
+            <p><strong>Prioridad:</strong> <span class="prioridad-${asignacion.Prioridad.toLowerCase()}">${asignacion.Prioridad}</span></p>
+            <p><strong>Fecha Asignación:</strong> ${asignacion.FechaAsignacion}</p>
+            <p><strong>Descripción:</strong> ${asignacion.DescripcionTrabajo}</p>
+            ${asignacion.Observaciones ? `<p><strong>Observaciones:</strong> ${asignacion.Observaciones}</p>` : ''}
+            <p><strong>Estado Actual:</strong> <span class="status-badge status-${asignacion.Estado.replace(' ', '')}">${asignacion.Estado}</span></p>
+        `;
+        $('#info-asignacion').html(html);
+    }
+
+    mostrarAvancesMecanico(avances) {
+        let html = '';
+        
+        if (avances.length === 0) {
+            html = '<div class="alert alert-info">No hay avances registrados aún.</div>';
+        } else {
+            avances.forEach(avance => {
+                html += `
+                    <div class="avance-item">
+                        <div class="avance-header">
+                            <strong>${avance.FechaAvance}</strong>
+                            <span class="avance-estado ${avance.Estado.toLowerCase().replace(' ', '')}">${avance.Estado}</span>
+                        </div>
+                        <div class="avance-descripcion">${avance.Descripcion}</div>
+                        ${avance.Observaciones ? `<div class="avance-observaciones"><small>Observaciones: ${avance.Observaciones}</small></div>` : ''}
+                    </div>
+                `;
+            });
+        }
+        
+        $('#avances-mecanico').html(html);
+    }
 
     obtenerClaseEstado(estado) {
         const clases = {
-            'active': 'status-active',
-            'inactive': 'status-inactive',
-            'retired': 'status-retired'
+            'Ingresado': 'status-Ingresado',
+            'En espera': 'status-Enespera',
+            'Asignado': 'status-Asignado',
+            'En reparación': 'status-Enreparacion',
+            'Completado': 'status-Completado'
         };
         return clases[estado] || 'status-unknown';
     }
 
     obtenerTextoEstado(estado) {
         const textos = {
-            'active': 'Activo',
-            'inactive': 'Inactivo',
-            'retired': 'Retirado'
+            'Ingresado': 'Ingresado',
+            'En espera': 'En espera',
+            'Asignado': 'Asignado',
+            'En reparación': 'En reparación',
+            'Completado': 'Completado'
         };
         return textos[estado] || 'Desconocido';
     }
