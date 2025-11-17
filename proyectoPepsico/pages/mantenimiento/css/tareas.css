@@ -1,0 +1,114 @@
+
+/* Estilos específicos para Tareas */
+.tareas-container {
+    padding: 20px 0;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Estados de tareas */
+.status-Asignado {
+    background-color: #ffc107;
+    color: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-Enprogreso {
+    background-color: #17a2b8;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-Completado {
+    background-color: #28a745;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+/* Botones de acción */
+.btn-action {
+    padding: 6px 12px;
+    margin: 2px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-avance {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-avance:hover {
+    background-color: #138496;
+}
+
+.btn-completar {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-completar:hover {
+    background-color: #218838;
+}
+
+/* Tabla responsive */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#tareas-table {
+    font-size: 0.9em;
+}
+
+#tareas-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Loading */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Badges informativos */
+.vehicle-badge {
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.placa-badge {
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9em;
+}

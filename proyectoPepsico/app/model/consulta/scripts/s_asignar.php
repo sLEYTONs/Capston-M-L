@@ -11,12 +11,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $vehiculo_id = intval($_POST['vehiculo_id']);
     $mecanico_id = intval($_POST['mecanico_id']);
-    $prioridad = $_POST['prioridad'] ?? 'Media';
-    $descripcion = trim($_POST['descripcion'] ?? '');
     $observaciones = trim($_POST['observaciones'] ?? '');
 
     try {
-        $resultado = asignarMecanico($vehiculo_id, $mecanico_id, $prioridad, $descripcion, $observaciones);
+        $resultado = asignarMecanico($vehiculo_id, $mecanico_id, $observaciones);
         echo json_encode($resultado);
     } catch (Exception $e) {
         echo json_encode([

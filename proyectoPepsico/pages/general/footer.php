@@ -20,62 +20,7 @@
 </footer>
 
 <style>
-/* Ajustes ESPECÍFICOS para 1366x768 */
-@media (max-width: 1366px) and (min-width: 1200px) {
-  .desarrollado-text {
-    font-size: 0.8rem !important;
-    white-space: normal;
-    line-height: 1.2;
-    word-spacing: -0.3px;
-  }
-  
-  .footer-wrapper {
-    padding: 0 10px !important;
-    max-width: 95% !important;
-  }
-  
-  .col-md-6.text-center.text-md-end {
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-  }
-}
-
-/* Para cuando la ventana es más estrecha (1366x768 en modo ventana) */
-@media (max-width: 1300px) {
-  .desarrollado-text {
-    font-size: 0.78rem !important;
-  }
-  
-  .desarrollado-text .d-inline-block {
-    display: inline !important;
-  }
-}
-
-/* Breakpoint específico para el texto problemático */
-@media (max-width: 1250px) and (min-width: 1200px) {
-  .desarrollado-text {
-    font-size: 0.76rem !important;
-  }
-}
-
-/* Si sigue sin caber, forzar dos líneas */
-@media (max-width: 1280px) {
-  .desarrollado-text br.d-md-none {
-    display: block !important;
-  }
-}
-
-/* Asegurar que el contenedor no se desborde */
-.pc-footer .container-fluid {
-  overflow: hidden;
-}
-
-.col-md-6.text-center.text-md-end {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Reset para asegurar que no haya márgenes no deseados */
+/* Reset para estructura principal */
 html, body {
   height: 100%;
   margin: 0;
@@ -88,7 +33,7 @@ body {
   min-height: 100vh;
 }
 
-/* Contenedor principal debe crecer para empujar el footer hacia abajo */
+/* Contenedor principal debe crecer */
 .pc-container {
   flex: 1 0 auto;
   display: flex;
@@ -97,6 +42,7 @@ body {
 
 .pc-content {
   flex: 1 0 auto;
+  padding-bottom: 20px; /* Espacio antes del footer */
 }
 
 /* Estilos del footer */
@@ -109,22 +55,11 @@ body {
   flex-shrink: 0;
   width: 100%;
   position: relative;
-  z-index: 100;
 }
 
 .footer-wrapper {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.pc-footer a {
-  color: white;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-.pc-footer a:hover {
-  color: #E21C21;
 }
 
 .pc-footer .text-muted {
@@ -135,113 +70,58 @@ body {
   color: white;
 }
 
-/* Asegurar que el contenido no quede detrás del footer */
-.pc-content > .row:last-child {
-  margin-bottom: 2rem;
-}
-
-/* Ajustes responsivos mejorados */
-
-/* Pantallas pequeñas (hasta 576px) */
-@media (max-width: 576px) {
-  .pc-footer {
-    padding: 0.75rem 0;
+/* Ajustes ESPECÍFICOS para 1366x768 */
+@media (max-width: 1366px) and (min-width: 1200px) {
+  .desarrollado-text {
+    font-size: 0.8rem !important;
+    white-space: normal;
+    line-height: 1.2;
   }
   
   .footer-wrapper {
-    padding: 0 10px;
-  }
-  
-  .pc-footer p {
-    font-size: 0.8rem;
-    line-height: 1.4;
-  }
-  
-  .col-md-6 {
-    margin-bottom: 0.5rem;
-  }
-  
-  .col-md-6:last-child {
-    margin-bottom: 0;
+    padding: 0 10px !important;
   }
 }
 
-/* Pantallas medianas (577px - 768px) */
-@media (min-width: 577px) and (max-width: 768px) {
-  .pc-footer {
-    padding: 0.8rem 0;
-  }
-  
-  .footer-wrapper {
-    padding: 0 12px;
-  }
-  
-  .pc-footer p {
-    font-size: 0.85rem;
+/* Para cuando la ventana es más estrecha */
+@media (max-width: 1300px) {
+  .desarrollado-text {
+    font-size: 0.78rem !important;
   }
 }
 
-/* Pantallas específicas para 1366x768 (769px - 1366px) */
-@media (min-width: 769px) and (max-width: 1366px) {
-  .footer-wrapper {
-    padding: 0 15px;
-  }
-  
-  .pc-footer p {
-    font-size: 0.9rem;
-  }
-  
-  .col-md-6 {
-    padding: 0 8px;
-  }
+/* Asegurar que no haya espacios no deseados */
+.pc-footer-fix {
+  display: none; /* Ocultamos el espaciador manual */
 }
 
-/* Pantallas grandes (más de 1366px) */
-@media (min-width: 1367px) {
-  .footer-wrapper {
-    padding: 0 20px;
-  }
-}
-
-/* Para evitar que tablas o elementos largos se salgan */
-.table-responsive {
-  margin-bottom: 1rem;
-}
-
-.card {
-  margin-bottom: 1.5rem;
+/* Eliminar cualquier padding/margin extra del body */
+body {
+  overflow-x: hidden;
 }
 </style>
 
 <script>
-// Script para manejar el posicionamiento del footer
+// Script simplificado para el footer
 document.addEventListener('DOMContentLoaded', function() {
   function adjustFooter() {
     const body = document.body;
     const html = document.documentElement;
     const footer = document.querySelector('.pc-footer');
     
-    // Calcular la altura del contenido
+    // Calcular si el contenido es más corto que la ventana
     const bodyHeight = body.scrollHeight;
     const windowHeight = window.innerHeight;
     
-    // Si el contenido es más corto que la ventana, forzar el footer al fondo
     if (bodyHeight < windowHeight) {
-      body.classList.add('short-content');
+      // Forzar el footer al fondo si el contenido es corto
+      footer.style.position = 'fixed';
+      footer.style.bottom = '0';
+      footer.style.left = '0';
+      footer.style.right = '0';
     } else {
-      body.classList.remove('short-content');
-    }
-    
-    // Verificar si hay contenido que se está ocultando detrás del footer
-    const lastElement = body.lastElementChild;
-    if (lastElement && lastElement !== footer) {
-      const lastElementRect = lastElement.getBoundingClientRect();
-      const footerRect = footer.getBoundingClientRect();
-      
-      if (lastElementRect.bottom > footerRect.top) {
-        // Agregar margen inferior al último elemento
-        lastElement.style.marginBottom = footer.offsetHeight + 20 + 'px';
-      }
+      // Contenido largo, footer normal
+      footer.style.position = 'relative';
     }
   }
   
@@ -249,12 +129,5 @@ document.addEventListener('DOMContentLoaded', function() {
   adjustFooter();
   window.addEventListener('resize', adjustFooter);
   window.addEventListener('load', adjustFooter);
-  
-  // También después de operaciones AJAX que puedan cambiar el contenido
-  if (typeof jQuery !== 'undefined') {
-    $(document).ajaxComplete(function() {
-      setTimeout(adjustFooter, 100);
-    });
-  }
 });
 </script>

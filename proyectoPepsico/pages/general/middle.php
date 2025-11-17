@@ -22,7 +22,7 @@ $paginas_por_rol = [
         'consulta.php', 'marcas.php', 'reportes.php', 'base_datos.php'
     ],
     'Mecánico' => [
-        'consulta.php'
+        'tareas.php', 'mantenimiento.php', 'repuestos.php'
     ],
     'Recepcionista' => [
         'consulta.php', 'base_datos.php'
@@ -57,7 +57,7 @@ function obtener_pagina_principal($rol) {
     $paginas_principales = [
         'Administrador' => 'gestion_usuarios.php',
         'Jefe de Taller' => 'consulta.php',
-        'Mecánico' => 'consulta.php',
+        'Mecánico' => 'tareas.php',
         'Recepcionista' => 'consulta.php',
         'Guardia' => 'consulta.php',
         'Supervisor' => 'reportes.php',

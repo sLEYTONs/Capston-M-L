@@ -151,7 +151,6 @@ class ConsultaVehiculos {
                                     <button class="btn-action btn-view" data-id="${data.ID}" title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </button>
-
                             `;
 
                             // Solo mostrar botón de asignar si está en estado "Ingresado" o "En espera"
@@ -164,7 +163,7 @@ class ConsultaVehiculos {
                             }
 
                             // Mostrar botón de seguimiento si está asignado o en reparación
-                            if (data.Estado === 'Asignado' || data.Estado === 'En reparación' || data.Estado === 'Completado') {
+                            if (data.Estado === 'Asignado' || data.Estado === 'En progreso' || data.Estado === 'Completado') {
                                 acciones += `
                                     <button class="btn-action btn-tracking" data-id="${data.ID}" title="Ver Seguimiento">
                                         <i class="fas fa-clipboard-list"></i>
@@ -315,6 +314,10 @@ class ConsultaVehiculos {
                                     <p><strong>Marca/Modelo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}</p>
                                     <p><strong>Color:</strong> ${vehiculo.Color}</p>
                                     <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
+                                    <p><strong>Chasis:</strong> ${vehiculo.Chasis || 'N/A'}</p>
+                                    <p><strong>Kilometraje:</strong> ${vehiculo.Kilometraje || 'N/A'}</p>
+                                    <p><strong>Combustible:</strong> ${vehiculo.Combustible || 'N/A'}</p>
+                                    <p><strong>Estado Ingreso:</strong> ${vehiculo.EstadoIngreso || 'N/A'}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Información del Conductor</h6>
@@ -559,7 +562,7 @@ class ConsultaVehiculos {
                     $select.empty().append('<option value="">Seleccionar mecánico...</option>');
                     
                     response.data.forEach(mecanico => {
-                        $select.append(`<option value="${mecanico.ID}">${mecanico.Nombre} - ${mecanico.Especialidad}</option>`);
+                        $select.append(`<option value="${mecanico.UsuarioID}">${mecanico.NombreUsuario}</option>`);
                     });
                 } else {
                     this.mostrarError('Error al cargar mecánicos: ' + response.message);
@@ -580,12 +583,10 @@ class ConsultaVehiculos {
     confirmarAsignacion() {
         const vehiculoID = $('#asignar-vehiculo-id').val();
         const mecanicoID = $('#asignar-mecanico').val();
-        const prioridad = $('#asignar-prioridad').val();
-        const descripcion = $('#asignar-descripcion').val();
         const observaciones = $('#asignar-observaciones').val();
 
-        if (!mecanicoID || !descripcion.trim()) {
-            this.mostrarError('Seleccione un mecánico y describa el trabajo a realizar');
+        if (!mecanicoID) {
+            this.mostrarError('Seleccione un mecánico');
             return;
         }
 
@@ -597,8 +598,6 @@ class ConsultaVehiculos {
             data: {
                 vehiculo_id: vehiculoID,
                 mecanico_id: mecanicoID,
-                prioridad: prioridad,
-                descripcion: descripcion,
                 observaciones: observaciones
             },
             dataType: 'json',
@@ -666,13 +665,15 @@ class ConsultaVehiculos {
     }
 
     mostrarInfoAsignacion(asignacion) {
+        if (!asignacion) {
+            $('#info-asignacion').html('<div class="alert alert-warning">No hay asignación activa para este vehículo.</div>');
+            return;
+        }
+
         const html = `
             <p><strong>Mecánico:</strong> ${asignacion.MecanicoNombre}</p>
-            <p><strong>Especialidad:</strong> ${asignacion.MecanicoEspecialidad}</p>
-            <p><strong>Prioridad:</strong> <span class="prioridad-${asignacion.Prioridad.toLowerCase()}">${asignacion.Prioridad}</span></p>
             <p><strong>Fecha Asignación:</strong> ${asignacion.FechaAsignacion}</p>
-            <p><strong>Descripción:</strong> ${asignacion.DescripcionTrabajo}</p>
-            ${asignacion.Observaciones ? `<p><strong>Observaciones:</strong> ${asignacion.Observaciones}</p>` : ''}
+            <p><strong>Observaciones:</strong> ${asignacion.Observaciones || 'Ninguna'}</p>
             <p><strong>Estado Actual:</strong> <span class="status-badge status-${asignacion.Estado.replace(' ', '')}">${asignacion.Estado}</span></p>
         `;
         $('#info-asignacion').html(html);
@@ -692,7 +693,6 @@ class ConsultaVehiculos {
                             <span class="avance-estado ${avance.Estado.toLowerCase().replace(' ', '')}">${avance.Estado}</span>
                         </div>
                         <div class="avance-descripcion">${avance.Descripcion}</div>
-                        ${avance.Observaciones ? `<div class="avance-observaciones"><small>Observaciones: ${avance.Observaciones}</small></div>` : ''}
                     </div>
                 `;
             });
@@ -706,7 +706,7 @@ class ConsultaVehiculos {
             'Ingresado': 'status-Ingresado',
             'En espera': 'status-Enespera',
             'Asignado': 'status-Asignado',
-            'En reparación': 'status-Enreparacion',
+            'En progreso': 'status-Enprogreso',
             'Completado': 'status-Completado'
         };
         return clases[estado] || 'status-unknown';
@@ -717,7 +717,7 @@ class ConsultaVehiculos {
             'Ingresado': 'Ingresado',
             'En espera': 'En espera',
             'Asignado': 'Asignado',
-            'En reparación': 'En reparación',
+            'En progreso': 'En progreso',
             'Completado': 'Completado'
         };
         return textos[estado] || 'Desconocido';

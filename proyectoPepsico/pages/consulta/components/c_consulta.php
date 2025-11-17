@@ -63,7 +63,7 @@
                 <form id="asignar-form">
                     <input type="hidden" id="asignar-vehiculo-id">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label for="asignar-mecanico" class="form-label">Seleccionar Mecánico *</label>
                                 <select class="form-select" id="asignar-mecanico" required>
@@ -72,27 +72,11 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="asignar-prioridad" class="form-label">Prioridad</label>
-                                <select class="form-select" id="asignar-prioridad">
-                                    <option value="Baja">Baja</option>
-                                    <option value="Media" selected>Media</option>
-                                    <option value="Alta">Alta</option>
-                                    <option value="Urgente">Urgente</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="asignar-descripcion" class="form-label">Descripción del Trabajo *</label>
-                        <textarea class="form-control" id="asignar-descripcion" rows="3" 
-                                  placeholder="Describa el trabajo a realizar..." required></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="asignar-observaciones" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="asignar-observaciones" rows="2" 
-                                  placeholder="Observaciones adicionales..."></textarea>
+                        <textarea class="form-control" id="asignar-observaciones" rows="3" 
+                                  placeholder="Observaciones para el mecánico..."></textarea>
                     </div>
                 </form>
             </div>

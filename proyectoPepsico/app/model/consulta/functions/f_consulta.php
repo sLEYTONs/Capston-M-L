@@ -29,6 +29,10 @@ function buscarVehiculos($filtros) {
                 PersonaContacto,
                 Observaciones,
                 Estado,
+                Chasis,
+                EstadoIngreso,
+                Kilometraje,
+                Combustible,
                 DATE_FORMAT(FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada
             FROM ingreso_vehiculos 
             WHERE 1=1";
@@ -107,6 +111,10 @@ function obtenerVehiculoPorID($id) {
                 PersonaContacto,
                 Observaciones,
                 Estado,
+                Chasis,
+                EstadoIngreso,
+                Kilometraje,
+                Combustible,
                 DATE_FORMAT(FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada
             FROM ingreso_vehiculos 
             WHERE ID = ?";
@@ -222,7 +230,10 @@ function obtenerMecanicosDisponibles() {
         return [];
     }
 
-    $query = "SELECT ID, Nombre, Especialidad FROM mecanicos WHERE Activo = 1 ORDER BY Nombre";
+    $query = "SELECT UsuarioID, NombreUsuario, Correo 
+              FROM usuarios 
+              WHERE Rol = 'Mecanico' AND Estado = 1 
+              ORDER BY NombreUsuario";
     $result = mysqli_query($conn, $query);
     $mecanicos = [];
 
@@ -234,7 +245,7 @@ function obtenerMecanicosDisponibles() {
     return $mecanicos;
 }
 
-function asignarMecanico($vehiculo_id, $mecanico_id, $prioridad, $descripcion, $observaciones) {
+function asignarMecanico($vehiculo_id, $mecanico_id, $observaciones) {
     $conn = conectar_Pepsico();
     if (!$conn) {
         return ['status' => 'error', 'message' => 'Error de conexión'];
@@ -251,10 +262,10 @@ function asignarMecanico($vehiculo_id, $mecanico_id, $prioridad, $descripcion, $
 
         // 2. Crear asignación
         $insertAsignacion = "INSERT INTO asignaciones_mecanico 
-                            (VehiculoID, MecanicoID, Prioridad, DescripcionTrabajo, Observaciones) 
-                            VALUES (?, ?, ?, ?, ?)";
+                            (VehiculoID, MecanicoID, Observaciones) 
+                            VALUES (?, ?, ?)";
         $stmt2 = mysqli_prepare($conn, $insertAsignacion);
-        mysqli_stmt_bind_param($stmt2, 'iisss', $vehiculo_id, $mecanico_id, $prioridad, $descripcion, $observaciones);
+        mysqli_stmt_bind_param($stmt2, 'iis', $vehiculo_id, $mecanico_id, $observaciones);
         mysqli_stmt_execute($stmt2);
 
         mysqli_commit($conn);
@@ -277,16 +288,13 @@ function obtenerAsignacionActiva($vehiculo_id) {
                 a.ID,
                 a.VehiculoID,
                 a.MecanicoID,
-                m.Nombre as MecanicoNombre,
-                m.Especialidad as MecanicoEspecialidad,
-                a.Prioridad,
-                a.DescripcionTrabajo,
+                u.NombreUsuario as MecanicoNombre,
                 a.Observaciones,
                 a.Estado,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
             FROM asignaciones_mecanico a
-            INNER JOIN mecanicos m ON a.MecanicoID = m.ID
-            WHERE a.VehiculoID = ? AND a.Estado != 'Completado'
+            INNER JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+            WHERE a.VehiculoID = ? 
             ORDER BY a.FechaAsignacion DESC LIMIT 1";
 
     $stmt = mysqli_prepare($conn, $query);
@@ -309,7 +317,6 @@ function obtenerAvancesMecanico($asignacion_id) {
 
     $query = "SELECT 
                 Descripcion,
-                Observaciones,
                 Estado,
                 DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance
             FROM avances_mecanico 
