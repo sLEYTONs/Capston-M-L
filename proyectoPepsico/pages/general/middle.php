@@ -31,7 +31,7 @@ $paginas_por_rol = [
         'control_ingreso.php'
     ],
     'Supervisor' => [
-        'consulta.php', 'reportes.php', 'base_datos.php'
+        'consulta.php'
     ],
     'Chofer' => [
         'ingreso_vehiculos.php'
@@ -59,8 +59,8 @@ function obtener_pagina_principal($rol) {
         'Jefe de Taller' => 'consulta.php',
         'Mecánico' => 'tareas.php',
         'Recepcionista' => 'consulta.php',
-        'Guardia' => 'consulta.php',
-        'Supervisor' => 'reportes.php',
+        'Guardia' => 'control_ingreso.php',
+        'Supervisor' => 'consulta.php',
         'Chofer' => 'ingreso_vehiculos.php'
     ];
     

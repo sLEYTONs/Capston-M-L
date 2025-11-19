@@ -156,10 +156,11 @@ hr {
     border-color: #667eea;
     box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
+
 /* Estilos específicos para asegurar que el formulario sea visible */
 .form-container {
     min-height: calc(100vh - 200px);
-    padding-bottom: 100px; /* Espacio extra para el footer */
+    padding-bottom: 100px;
 }
 
 .card {
@@ -193,12 +194,12 @@ hr {
 
 /* Ajustes para el footer en este módulo específico */
 .pc-content {
-    padding-bottom: 120px; /* Espacio extra para el footer */
+    padding-bottom: 120px;
 }
 
 /* Para contenido muy largo */
 .long-form-protection {
-    min-height: 800px; /* Altura mínima para formularios largos */
+    min-height: 800px;
 }
 
 /* Asegurar que los dropzones no se solapen */
@@ -215,10 +216,9 @@ hr {
     }
     
     .pc-content {
-        padding-bottom: 150px; /* Más espacio en móviles */
+        padding-bottom: 150px;
     }
 }
-
 
 /* ===== ESTILOS MEJORADOS PARA MODAL DE CONFIRMACIÓN ===== */
 
@@ -246,31 +246,48 @@ hr {
     }
 }
 
-/* Header del modal */
+/* Header del modal - CORREGIDO */
 .modal-header-confirm {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    padding: 40px 30px 30px;
-    text-align: center;
     position: relative;
+    padding: 30px 30px 20px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     border-bottom: none;
+    text-align: center;
 }
 
 .modal-header-confirm .close {
     position: absolute;
     top: 15px;
     right: 15px;
-    color: rgba(255, 255, 255, 0.8);
-    opacity: 1;
+    color: white;
+    opacity: 0.8;
     font-size: 1.5rem;
+    background: none;
+    border: none;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
     transition: all 0.3s ease;
 }
 
 .modal-header-confirm .close:hover {
-    color: white;
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
 }
 
-/* Círculo del icono */
+.modal-header-confirm .close span {
+    color: white;
+    font-weight: 300;
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+/* Círculo del icono - CORREGIDO */
 .icon-box {
     width: 100px;
     height: 100px;
@@ -299,8 +316,20 @@ hr {
     font-size: 3rem;
     color: white;
     animation: iconCheck 0.6s ease;
+    background: transparent !important;
 }
 
+/* Eliminar cualquier fondo del icono FontAwesome */
+.fa-check:before {
+    background: transparent !important;
+}
+
+/* Asegurar que no haya cuadrados negros */
+.icon-box * {
+    background: transparent !important;
+}
+
+/* Animación mejorada para el icono */
 @keyframes iconCheck {
     0% {
         transform: scale(0);
@@ -529,4 +558,138 @@ hr {
     padding: 2px 8px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
+}
+
+/* Estilos para los inputs de archivo personalizados */
+.custom-file-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Lista de archivos seleccionados */
+#lista-documentos, #lista-fotos {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#lista-documentos .list-group-item, 
+#lista-fotos .list-group-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+#lista-documentos .btn, 
+#lista-fotos .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* ===== ESTILOS PARA MENSAJES DE ERROR DE DUPLICADOS ===== */
+
+/* Estilos mejorados para mensajes de error de duplicados */
+.alert-warning {
+    border-left: 4px solid #ffc107;
+    background: #fffbf0;
+    border-radius: 8px;
+}
+
+.alert-heading {
+    color: #856404;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.swal2-popup .swal2-content {
+    text-align: left !important;
+}
+
+.swal2-popup .alert {
+    margin-bottom: 0;
+}
+
+/* Estilos para las entradas duplicadas */
+.duplicated-entries {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.duplicate-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef !important;
+}
+
+.duplicate-details {
+    background: white;
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.duplicate-details div {
+    margin-bottom: 2px;
+}
+
+/* Mejora visual para campos con error de duplicado */
+.is-invalid.duplicated-field {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Animación para resaltar campos duplicados */
+@keyframes highlightDuplicate {
+    0% { 
+        background-color: #f8d7da; 
+        border-color: #dc3545;
+    }
+    50% { 
+        background-color: #f8d7da;
+        border-color: #dc3545;
+    }
+    100% { 
+        background-color: transparent;
+        border-color: #ced4da;
+    }
+}
+
+.highlight-duplicate {
+    animation: highlightDuplicate 2s ease-in-out;
+}
+
+/* Estilos para lista de errores */
+.error-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.error-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.error-list li:last-child {
+    border-bottom: none;
+}
+
+/* Mejora para SweetAlert personalizado */
+.swal2-html-container {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.swal2-popup {
+    border-radius: 12px;
+}
+
+/* Responsive para la alerta */
+@media (max-width: 768px) {
+    .swal2-popup {
+        width: 95% !important;
+        margin: 20px auto;
+    }
 }

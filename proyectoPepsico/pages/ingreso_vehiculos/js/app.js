@@ -121,6 +121,145 @@ $(document).ready(function() {
         };
     }
 
+    // Funciones de normalización y validación mejoradas
+    function normalizarTexto(texto) {
+        return texto.trim().replace(/\s+/g, ' ');
+    }
+
+    function capitalizarTexto(texto) {
+        return texto.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    }
+
+    function normalizarPlaca(placa) {
+        return placa.toUpperCase().replace(/\s/g, '');
+    }
+
+    function normalizarChasis(chasis) {
+        return chasis.toUpperCase().replace(/\s/g, '');
+    }
+
+    function normalizarCedula(cedula) {
+        return cedula.replace(/\D/g, '');
+    }
+
+    function normalizarTelefono(telefono) {
+        return telefono.replace(/\D/g, '');
+    }
+
+    function normalizarLicencia(licencia) {
+        return licencia.toUpperCase().replace(/\s/g, '');
+    }
+
+    // Validar nombre (solo letras y espacios)
+    function validarNombre(nombre) {
+        return /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre);
+    }
+
+    // Validar cédula (solo números, entre 7 y 15)
+    function validarCedula(cedula) {
+        return /^\d{7,15}$/.test(cedula);
+    }
+
+    // Validar teléfono (solo números, entre 8 y 15)
+    function validarTelefono(telefono) {
+        return telefono === '' || /^\d{8,15}$/.test(telefono);
+    }
+
+    // Validar licencia (solo letras, números y espacios)
+    function validarLicencia(licencia) {
+        return licencia === '' || /^[a-zA-Z0-9\s]+$/.test(licencia);
+    }
+
+    // Verificar duplicados en tiempo real
+    function verificarDuplicados() {
+        const placa = $('#placa').val();
+        const chasis = $('#chasis').val();
+        const cedula = $('#conductor_cedula').val();
+        const licencia = $('#licencia').val();
+        
+        return {
+            placaValida: validarPatenteChilena(placa).valida,
+            chasisValido: chasis === '' || chasis.length >= 5,
+            cedulaValida: validarCedula(cedula),
+            licenciaValida: licencia === '' || validarLicencia(licencia)
+        };
+    }
+
+    // Normalizar y validar campos en tiempo real
+    $('#placa').on('blur', function() {
+        let valor = normalizarPlaca($(this).val());
+        $(this).val(valor);
+        validarCampoPlaca();
+    });
+
+    $('#chasis').on('blur', function() {
+        let valor = normalizarChasis($(this).val());
+        $(this).val(valor);
+        
+        if (valor !== '' && !verificarDuplicados().chasisValido) {
+            $(this).addClass('is-invalid');
+            $(this).removeClass('is-valid');
+        } else if (valor !== '') {
+            $(this).removeClass('is-invalid');
+            $(this).addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    $('#conductor_nombre').on('blur', function() {
+        let valor = normalizarTexto($(this).val());
+        valor = capitalizarTexto(valor);
+        $(this).val(valor);
+        
+        if (!validarNombre(valor)) {
+            $(this).addClass('is-invalid');
+            $(this).removeClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).addClass('is-valid');
+        }
+    });
+
+    $('#conductor_cedula').on('blur', function() {
+        let valor = normalizarCedula($(this).val());
+        $(this).val(valor);
+        
+        if (!validarCedula(valor)) {
+            $(this).addClass('is-invalid');
+            $(this).removeClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).addClass('is-valid');
+        }
+    });
+
+    $('#conductor_telefono').on('blur', function() {
+        let valor = normalizarTelefono($(this).val());
+        $(this).val(valor);
+        
+        if (!validarTelefono(valor)) {
+            $(this).addClass('is-invalid');
+            $(this).removeClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).addClass('is-valid');
+        }
+    });
+
+    $('#licencia').on('blur', function() {
+        let valor = normalizarLicencia($(this).val());
+        $(this).val(valor);
+        
+        if (!validarLicencia(valor)) {
+            $(this).addClass('is-invalid');
+            $(this).removeClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).addClass('is-valid');
+        }
+    });
+
     // Formatear patente en tiempo real
     $('#placa').on('input', function() {
         let valor = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -202,6 +341,30 @@ $(document).ready(function() {
         }
     });
 
+    // Validación antes del envío del formulario
+    function validarFormularioCompleto() {
+        const duplicados = verificarDuplicados();
+        
+        if (!duplicados.placaValida) {
+            mostrarError('Placa inválida', 'Por favor ingrese una placa válida');
+            return false;
+        }
+        
+        if (!duplicados.cedulaValida) {
+            mostrarError('Cédula inválida', 'La cédula debe contener entre 7 y 15 dígitos');
+            return false;
+        }
+        
+        // Validar que no haya caracteres especiales en nombres
+        const conductorNombre = $('#conductor_nombre').val();
+        if (!validarNombre(conductorNombre)) {
+            mostrarError('Nombre inválido', 'El nombre solo puede contener letras y espacios');
+            return false;
+        }
+        
+        return true;
+    }
+
     // EVENTO PRINCIPAL DEL FORMULARIO
     $('#form-ingreso-vehiculo').on('submit', function(e) {
         console.log('🔔 Submit del formulario capturado');
@@ -211,6 +374,11 @@ $(document).ready(function() {
         if (!validarCampoPlaca()) {
             $('#placa').focus();
             mostrarError('Error en la patente', 'Por favor, ingrese una patente válida');
+            return;
+        }
+
+        // Validación adicional antes del envío
+        if (!validarFormularioCompleto()) {
             return;
         }
 
@@ -240,56 +408,207 @@ $(document).ready(function() {
         registrarVehiculo();
     });
 
-    // Función para mostrar errores
-    function mostrarError(titulo, mensaje) {
+    // Función mejorada para mostrar errores con información detallada de duplicados
+    function mostrarError(titulo, mensaje, camposDuplicados = [], datosDuplicados = {}) {
+        let htmlContent = `
+            <div class="text-left">
+                <h6 class="mb-3">${titulo}</h6>
+                <p class="mb-3">${mensaje}</p>
+        `;
+        
+        if (camposDuplicados.length > 0) {
+            htmlContent += `
+                <div class="alert alert-warning mt-3">
+                    <h6 class="alert-heading mb-2">📋 Entradas duplicadas encontradas:</h6>
+                    <div class="duplicated-entries">
+            `;
+            
+            const camposInfo = {
+                'placa': 'Placa del vehículo',
+                'chasis': 'Número de chasis', 
+                'cedula': 'Cédula del conductor',
+                'licencia': 'Número de licencia'
+            };
+            
+            camposDuplicados.forEach(campo => {
+                const info = datosDuplicados[campo];
+                htmlContent += `<div class="duplicate-item mb-3 p-2 border rounded">`;
+                htmlContent += `<strong>${camposInfo[campo]}</strong>`;
+                
+                if (info) {
+                    htmlContent += `<div class="duplicate-details mt-1 small text-muted">`;
+                    
+                    switch(campo) {
+                        case 'placa':
+                            htmlContent += `
+                                <div>🚗 <strong>Vehículo existente:</strong> ${info.Placa} - ${info.Marca} ${info.Modelo}</div>
+                                <div>👤 Conductor: ${info.ConductorNombre}</div>
+                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
+                            `;
+                            break;
+                        case 'chasis':
+                            htmlContent += `
+                                <div>🔧 <strong>Vehículo existente:</strong> ${info.Placa} - ${info.Marca} ${info.Modelo}</div>
+                                <div>👤 Conductor: ${info.ConductorNombre}</div>
+                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
+                            `;
+                            break;
+                        case 'cedula':
+                            htmlContent += `
+                                <div>👤 <strong>Conductor existente:</strong> ${info.ConductorNombre}</div>
+                                <div>🆔 Cédula: ${info.ConductorCedula}</div>
+                                <div>🚗 Vehículo: ${info.Placa}</div>
+                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
+                            `;
+                            break;
+                        case 'licencia':
+                            htmlContent += `
+                                <div>📜 <strong>Conductor existente:</strong> ${info.ConductorNombre}</div>
+                                <div>🆔 Licencia: ${info.Licencia}</div>
+                                <div>🚗 Vehículo: ${info.Placa}</div>
+                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
+                            `;
+                            break;
+                    }
+                    
+                    htmlContent += `</div>`;
+                }
+                
+                htmlContent += `</div>`;
+            });
+            
+            htmlContent += `
+                    </div>
+                    <hr>
+                    <p class="mb-0 small">⚠️ Los campos marcados han sido limpiados automáticamente. Por favor, ingrese valores únicos.</p>
+                </div>
+            `;
+        }
+        
+        htmlContent += `</div>`;
+        
         Swal.fire({
             icon: 'error',
             title: titulo,
-            text: mensaje,
-            timer: 5000
+            html: htmlContent,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#dc3545',
+            width: '600px',
+            focusConfirm: false,
+            timer: camposDuplicados.length > 0 ? 15000 : 5000
+        }).then((result) => {
+            // Si hay campos duplicados, limpiarlos y enfocar el primero
+            if (camposDuplicados.length > 0) {
+                limpiarCamposDuplicados(camposDuplicados);
+            }
         });
+    }
+
+    // Función para formatear fecha
+    function formatFecha(fechaString) {
+        if (!fechaString) return 'Fecha no disponible';
+        
+        try {
+            const fecha = new Date(fechaString);
+            return fecha.toLocaleDateString('es-CL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return fechaString;
+        }
+    }
+
+    // Función para limpiar campos duplicados
+    function limpiarCamposDuplicados(camposDuplicados) {
+        console.log('🧹 Limpiando campos duplicados:', camposDuplicados);
+        
+        const mapeoCampos = {
+            'placa': '#placa',
+            'chasis': '#chasis',
+            'cedula': '#conductor_cedula', 
+            'licencia': '#licencia'
+        };
+        
+        // Limpiar todos los campos duplicados
+        camposDuplicados.forEach(campo => {
+            const selector = mapeoCampos[campo];
+            if (selector) {
+                $(selector).val('')
+                    .removeClass('is-valid is-invalid')
+                    .addClass('is-invalid')
+                    .addClass('highlight-duplicate');
+                
+                // Agregar mensaje de error específico
+                const mensajeError = `Este valor ya existe en el sistema. Por favor ingrese uno diferente.`;
+                $(selector).next('.invalid-feedback').text(mensajeError);
+                
+                // Remover la clase de highlight después de la animación
+                setTimeout(() => {
+                    $(selector).removeClass('highlight-duplicate');
+                }, 2000);
+            }
+        });
+        
+        // Enfocar el primer campo duplicado
+        if (camposDuplicados.length > 0) {
+            const primerCampo = mapeoCampos[camposDuplicados[0]];
+            if (primerCampo) {
+                setTimeout(() => {
+                    $(primerCampo).focus();
+                }, 500);
+            }
+        }
     }
 
     // Función principal para registrar el vehículo
     function registrarVehiculo() {
+        console.log('🔔 Iniciando registro de vehículo...');
+        
+        // Validación adicional antes del envío
+        if (!validarFormularioCompleto()) {
+            return;
+        }
+
         // Deshabilitar botón
         $('#btn-registrar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
 
-        // Preparar FormData
+        // Preparar FormData con datos normalizados
         const formData = new FormData();
         
-        // OBTENER TODOS LOS CAMPOS DEL FORMULARIO DE FORMA MANUAL
+        // OBTENER Y NORMALIZAR TODOS LOS CAMPOS
         const camposFormulario = {
-            placa: $('#placa').val(),
+            placa: normalizarPlaca($('#placa').val()),
             tipo_vehiculo: $('#tipo_vehiculo').val(),
-            marca: $('#marca').val(),
-            modelo: $('#modelo').val(),
-            chasis: $('#chasis').val(),
-            color: $('#color').val(),
+            marca: normalizarTexto($('#marca').val()),
+            modelo: normalizarTexto($('#modelo').val()),
+            chasis: normalizarChasis($('#chasis').val()),
+            color: normalizarTexto($('#color').val()),
             anio: $('#anio').val(),
-            conductor_nombre: $('#conductor_nombre').val(),
-            conductor_cedula: $('#conductor_cedula').val(),
-            conductor_telefono: $('#conductor_telefono').val(),
-            licencia: $('#licencia').val(),
+            conductor_nombre: capitalizarTexto(normalizarTexto($('#conductor_nombre').val())),
+            conductor_cedula: normalizarCedula($('#conductor_cedula').val()),
+            conductor_telefono: normalizarTelefono($('#conductor_telefono').val()),
+            licencia: normalizarLicencia($('#licencia').val()),
             empresa_codigo: $('#empresa_codigo').val(),
             empresa_nombre: $('#empresa_nombre').val(),
             proposito: $('#proposito').val(),
             area: $('#area').val(),
-            persona_contacto: $('#persona_contacto').val(),
-            observaciones: $('#observaciones').val(),
+            persona_contacto: normalizarTexto($('#persona_contacto').val()),
+            observaciones: normalizarTexto($('#observaciones').val()),
             estado_ingreso: $('#estado_ingreso').val(),
             kilometraje: $('#kilometraje').val(),
             combustible: $('#combustible').val(),
-            usuario_id: $('#usuario_id').val()
+            usuario_id: $('#usuario_id').val() || 1
         };
 
-        // DEBUG: Mostrar el valor del color
-        console.log('🎨 Valor del campo color:', camposFormulario.color);
-        console.log('📝 Tipo del campo color:', typeof camposFormulario.color);
+        console.log('📝 Datos normalizados:', camposFormulario);
 
         // Agregar campos manualmente al FormData
         Object.keys(camposFormulario).forEach(key => {
-            if (camposFormulario[key] !== undefined && camposFormulario[key] !== null) {
+            if (camposFormulario[key] !== undefined && camposFormulario[key] !== null && camposFormulario[key] !== '') {
                 formData.append(key, camposFormulario[key]);
             }
         });
@@ -349,38 +668,48 @@ $(document).ready(function() {
                     
                     // Limpiar formulario
                     $('#form-ingreso-vehiculo')[0].reset();
-                $('#form-ingreso-vehiculo').removeClass('was-validated');
-                $('.custom-file-label').html('Seleccionar archivos...');
-                $('#lista-documentos, #lista-fotos').empty();
-                $('.is-valid').removeClass('is-valid');
+                    $('#form-ingreso-vehiculo').removeClass('was-validated');
+                    $('.custom-file-label').html('Seleccionar archivos...');
+                    $('#lista-documentos, #lista-fotos').empty();
+                    $('.is-valid').removeClass('is-valid');
+                    
+                    console.log('✅ Vehículo registrado exitosamente');
+                } else {
+                    // Verificar si hay campos duplicados
+                    if (response.duplicated_fields && response.duplicated_fields.length > 0) {
+                        mostrarError(
+                            'Datos duplicados encontrados', 
+                            response.message, 
+                            response.duplicated_fields, 
+                            response.duplicated_data
+                        );
+                    } else {
+                        mostrarError('Error al registrar', response.message || 'Error desconocido');
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('❌ Error en AJAX:', error);
+                console.error('📊 Estado:', status);
                 
-                console.log('✅ Vehículo registrado exitosamente');
-            } else {
-                mostrarError('Error al registrar', response.message || 'Error desconocido');
+                // Mostrar la respuesta del servidor para debugging
+                if (xhr.responseText) {
+                    console.error('📄 Respuesta del servidor:', xhr.responseText);
+                }
+                
+                let errorMsg = 'Error de conexión con el servidor';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.statusText) {
+                    errorMsg = xhr.statusText;
+                }
+                
+                mostrarError('Error de conexión', errorMsg);
+            },
+            complete: function() {
+                $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('❌ Error en AJAX:', error);
-            console.error('📊 Estado:', status);
-            
-            // Mostrar la respuesta del servidor para debugging
-            if (xhr.responseText) {
-                console.error('📄 Respuesta del servidor:', xhr.responseText);
-            }
-            
-            let errorMsg = 'Error de conexión con el servidor';
-            
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg = xhr.responseJSON.message;
-            } else if (xhr.statusText) {
-                errorMsg = xhr.statusText;
-            }
-            
-            mostrarError('Error de conexión', errorMsg);
-        },
-        complete: function() {
-            $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
-        }
         });
     }
 
@@ -437,7 +766,6 @@ $(document).ready(function() {
 
     // También manejar el evento hidden.bs.modal para asegurar el cierre
     $('#modal-exito').on('hidden.bs.modal', function() {
-        // Código adicional que quieras ejecutar después de cerrar el modal
         console.log('Modal cerrado correctamente');
     });
 

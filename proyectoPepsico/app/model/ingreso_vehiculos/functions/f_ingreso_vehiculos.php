@@ -89,7 +89,8 @@ function placaExiste($placa) {
     }
     
     $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
-            WHERE Placa = ? AND Estado = 'Ingresado'";
+            WHERE UPPER(REPLACE(Placa, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -109,6 +110,39 @@ function placaExiste($placa) {
 }
 
 /**
+ * Obtiene información del vehículo con la placa duplicada
+ */
+function obtenerInfoPlacaDuplicada($placa) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT Placa, Marca, Modelo, ConductorNombre, FechaIngreso 
+            FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Placa, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado' 
+            LIMIT 1";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $placa);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row;
+}
+
+/**
  * Verifica si un chasis ya está registrado (solo si no está vacío)
  */
 function chasisExiste($chasis) {
@@ -123,7 +157,8 @@ function chasisExiste($chasis) {
     }
     
     $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
-            WHERE Chasis = ? AND Estado = 'active'";
+            WHERE UPPER(REPLACE(Chasis, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -140,6 +175,183 @@ function chasisExiste($chasis) {
     $conn->close();
     
     return $row['total'] > 0;
+}
+
+/**
+ * Obtiene información del vehículo con el chasis duplicado
+ */
+function obtenerInfoChasisDuplicado($chasis) {
+    if (empty($chasis)) {
+        return null;
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT Placa, Marca, Modelo, ConductorNombre, FechaIngreso 
+            FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Chasis, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado' 
+            LIMIT 1";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $chasis);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row;
+}
+
+/**
+ * Verifica si una cédula ya está registrada
+ */
+function cedulaExiste($cedula) {
+    if (empty($cedula) || $cedula === '') {
+        return false; // No validar cédulas vacías
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE REPLACE(ConductorCedula, ' ', '') = REPLACE(?, ' ', '') 
+            AND Estado = 'Ingresado'";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $cedula);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Obtiene información del conductor con cédula duplicada
+ */
+function obtenerInfoCedulaDuplicada($cedula) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT ConductorNombre, ConductorCedula, Placa, FechaIngreso 
+            FROM ingreso_vehiculos 
+            WHERE REPLACE(ConductorCedula, ' ', '') = REPLACE(?, ' ', '') 
+            AND Estado = 'Ingresado' 
+            LIMIT 1";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $cedula);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row;
+}
+
+/**
+ * Verifica si una licencia ya está registrada (solo si no está vacía)
+ */
+function licenciaExiste($licencia) {
+    if (empty($licencia) || $licencia === '') {
+        return false; // No validar licencias vacías
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Licencia, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $licencia);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Obtiene información del conductor con licencia duplicada
+ */
+function obtenerInfoLicenciaDuplicada($licencia) {
+    if (empty($licencia)) {
+        return null;
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT ConductorNombre, Licencia, Placa, FechaIngreso 
+            FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Licencia, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado' 
+            LIMIT 1";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $licencia);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row;
 }
 
 /**

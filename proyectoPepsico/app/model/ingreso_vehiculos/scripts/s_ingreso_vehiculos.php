@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         switch ($action) {
             case 'registrar_ingreso':
-                $response = ['success' => false, 'message' => ''];
+                $response = ['success' => false, 'message' => '', 'duplicated_fields' => [], 'duplicated_data' => []];
                 
                 // Validaciones básicas
                 $campos_obligatorios = [
@@ -50,36 +50,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 
-                // Verificar si la placa ya existe
-                if (placaExiste($_POST['placa'])) {
-                    $response['message'] = 'La placa ' . $_POST['placa'] . ' ya está registrada en el sistema';
+                // Validación adicional de formato de cédula
+                $cedula = trim($_POST['conductor_cedula']);
+                if (!preg_match('/^\d{7,15}$/', $cedula)) {
+                    $response['message'] = 'La cédula debe contener solo números y tener entre 7 y 15 dígitos';
                     echo json_encode($response);
                     exit;
                 }
                 
-                // NUEVA VALIDACIÓN: Verificar si el chasis ya existe (solo si no está vacío)
-                $chasis = trim($_POST['chasis'] ?? '');
-                if (!empty($chasis)) {
-                    if (chasisExiste($chasis)) {
-                        $response['message'] = 'El chasis ' . $chasis . ' ya está registrado en el sistema';
-                        echo json_encode($response);
-                        exit;
+                // Validación de formato de nombre
+                $nombreConductor = trim($_POST['conductor_nombre']);
+                if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/', $nombreConductor)) {
+                    $response['message'] = 'El nombre del conductor solo puede contener letras y espacios';
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // Validación de teléfono (si se proporciona)
+                $telefono = trim($_POST['conductor_telefono'] ?? '');
+                if (!empty($telefono) && !preg_match('/^\d{8,15}$/', $telefono)) {
+                    $response['message'] = 'El teléfono debe contener solo números y tener entre 8 y 15 dígitos';
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // NORMALIZAR DATOS PARA EVITAR DUPLICADOS POR FORMATO
+                $placa_normalizada = strtoupper(trim($_POST['placa']));
+                $chasis_normalizado = !empty($_POST['chasis']) ? strtoupper(trim($_POST['chasis'])) : '';
+                $cedula_normalizada = trim($_POST['conductor_cedula']);
+                $licencia_normalizada = !empty($_POST['licencia']) ? strtoupper(trim($_POST['licencia'])) : '';
+                
+                // DEBUG: Mostrar valores normalizados
+                error_log("DEBUG - Placa normalizada: " . $placa_normalizada);
+                error_log("DEBUG - Chasis normalizado: " . $chasis_normalizado);
+                error_log("DEBUG - Cédula normalizada: " . $cedula_normalizada);
+                error_log("DEBUG - Licencia normalizada: " . $licencia_normalizada);
+                
+                // Verificar duplicados y recolectar campos duplicados
+                $campos_duplicados = [];
+                $datos_duplicados = [];
+                
+                // Verificar si la placa ya existe
+                if (placaExiste($placa_normalizada)) {
+                    error_log("DEBUG - Placa duplicada encontrada: " . $placa_normalizada);
+                    $campos_duplicados[] = 'placa';
+                    $datos_duplicados['placa'] = obtenerInfoPlacaDuplicada($placa_normalizada);
+                }
+                
+                // Verificar si el chasis ya existe (solo si no está vacío)
+                if (!empty($chasis_normalizado)) {
+                    if (chasisExiste($chasis_normalizado)) {
+                        error_log("DEBUG - Chasis duplicado encontrado: " . $chasis_normalizado);
+                        $campos_duplicados[] = 'chasis';
+                        $datos_duplicados['chasis'] = obtenerInfoChasisDuplicado($chasis_normalizado);
                     }
+                }
+                
+                // Verificar si la cédula ya existe
+                if (cedulaExiste($cedula_normalizada)) {
+                    error_log("DEBUG - Cédula duplicada encontrada: " . $cedula_normalizada);
+                    $campos_duplicados[] = 'cedula';
+                    $datos_duplicados['cedula'] = obtenerInfoCedulaDuplicada($cedula_normalizada);
+                }
+                
+                // Verificar si la licencia ya existe (solo si no está vacía)
+                if (!empty($licencia_normalizada)) {
+                    if (licenciaExiste($licencia_normalizada)) {
+                        error_log("DEBUG - Licencia duplicada encontrada: " . $licencia_normalizada);
+                        $campos_duplicados[] = 'licencia';
+                        $datos_duplicados['licencia'] = obtenerInfoLicenciaDuplicada($licencia_normalizada);
+                    }
+                }
+                
+                // DEBUG: Mostrar resultados de validación
+                error_log("DEBUG - Campos duplicados encontrados: " . implode(', ', $campos_duplicados));
+                
+                // Si hay campos duplicados, retornar error específico
+                if (!empty($campos_duplicados)) {
+                    $response['duplicated_fields'] = $campos_duplicados;
+                    $response['duplicated_data'] = $datos_duplicados;
+                    
+                    $mensajes_campos = [
+                        'placa' => 'La placa ' . $placa_normalizada . ' ya está registrada en el sistema',
+                        'chasis' => 'El chasis ' . $chasis_normalizado . ' ya está registrado en el sistema',
+                        'cedula' => 'La cédula ' . $cedula_normalizada . ' ya está registrada en el sistema',
+                        'licencia' => 'La licencia ' . $licencia_normalizada . ' ya está registrada en el sistema'
+                    ];
+                    
+                    $mensajes = [];
+                    foreach ($campos_duplicados as $campo) {
+                        $mensajes[] = $mensajes_campos[$campo];
+                    }
+                    
+                    $response['message'] = implode('. ', $mensajes);
+                    echo json_encode($response);
+                    exit;
                 }
                 
                 // Preparar datos
                 $datos = [
-                    'placa' => trim($_POST['placa']),
+                    'placa' => $placa_normalizada,
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'chasis' => $chasis,
+                    'chasis' => $chasis_normalizado,
                     'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
-                    'conductor_cedula' => trim($_POST['conductor_cedula']),
+                    'conductor_cedula' => $cedula_normalizada,
                     'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
-                    'licencia' => $_POST['licencia'] ?? '',
+                    'licencia' => $licencia_normalizada,
                     'empresa_codigo' => trim($_POST['empresa_codigo']),
                     'empresa_nombre' => trim($_POST['empresa_nombre']),
                     'proposito' => trim($_POST['proposito']),
@@ -90,9 +170,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'kilometraje' => $_POST['kilometraje'] ?? '',
                     'combustible' => trim($_POST['combustible']),
                     'usuario_id' => intval($_POST['usuario_id'] ?? 1),
-                    'documentos' => $_FILES['documentos'] ?? [],
-                    'fotos' => $_FILES['fotos'] ?? []
+                    'documentos' => [],
+                    'fotos' => []
                 ];
+                
+                // Procesar archivos subidos
+                if (!empty($_FILES['documentos'])) {
+                    foreach ($_FILES['documentos']['tmp_name'] as $key => $tmp_name) {
+                        if ($_FILES['documentos']['error'][$key] === UPLOAD_ERR_OK) {
+                            $archivo = [
+                                'name' => $_FILES['documentos']['name'][$key],
+                                'type' => $_FILES['documentos']['type'][$key],
+                                'tmp_name' => $tmp_name,
+                                'error' => $_FILES['documentos']['error'][$key],
+                                'size' => $_FILES['documentos']['size'][$key]
+                            ];
+                            $resultado = subirArchivo($archivo, 'documento');
+                            if ($resultado['success']) {
+                                $datos['documentos'][] = $resultado;
+                            }
+                        }
+                    }
+                }
+                
+                if (!empty($_FILES['fotos'])) {
+                    foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+                        if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                            $archivo = [
+                                'name' => $_FILES['fotos']['name'][$key],
+                                'type' => $_FILES['fotos']['type'][$key],
+                                'tmp_name' => $tmp_name,
+                                'error' => $_FILES['fotos']['error'][$key],
+                                'size' => $_FILES['fotos']['size'][$key]
+                            ];
+                            $resultado = subirArchivo($archivo, 'foto');
+                            if ($resultado['success']) {
+                                $datos['fotos'][] = $resultado;
+                            }
+                        }
+                    }
+                }
                 
                 // Registrar ingreso
                 $ingreso_id = registrarIngresoVehiculo($datos);
@@ -121,6 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
     } catch (Exception $e) {
+        error_log("ERROR en s_ingreso_vehiculos: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'message' => 'Error: ' . $e->getMessage()

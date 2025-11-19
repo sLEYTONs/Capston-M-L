@@ -7,6 +7,9 @@
             </div>
             <div class="card-body">
                 <form id="form-ingreso-vehiculo" enctype="multipart/form-data">
+                    <!-- Campo oculto para usuario_id -->
+                    <input type="hidden" id="usuario_id" name="usuario_id" value="<?php echo $usuario_id ?? 1; ?>">
+                    
                     <!-- Información del Vehículo -->
                     <div class="row mb-4">
                         <div class="col-12">
@@ -210,28 +213,26 @@
                         
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Subir Documentos (PDF, Word, Excel)</label>
-                                <div id="dropzone-documentos" class="dropzone">
-                                    <div class="dz-message">
-                                        <i class="fas fa-file-upload fa-2x"></i>
-                                        <br>
-                                        Arrastre documentos aquí o haga clic para seleccionar
-                                    </div>
+                                <label for="documentos">Subir Documentos (PDF, Word, Excel)</label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="documentos" name="documentos[]" multiple 
+                                           accept=".pdf,.doc,.docx,.xls,.xlsx,.txt">
+                                    <label class="custom-file-label" for="documentos">Seleccionar archivos...</label>
                                 </div>
+                                <div id="lista-documentos" class="mt-2"></div>
                                 <small class="form-text text-muted">Máximo 5 documentos, 10MB cada uno</small>
                             </div>
                         </div>
                         
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Subir Fotos del Vehículo (JPG, PNG)</label>
-                                <div id="dropzone-fotos" class="dropzone">
-                                    <div class="dz-message">
-                                        <i class="fas fa-camera fa-2x"></i>
-                                        <br>
-                                        Arrastre fotos aquí o haga clic para seleccionar
-                                    </div>
+                                <label for="fotos">Subir Fotos del Vehículo (JPG, PNG)</label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="fotos" name="fotos[]" multiple 
+                                           accept=".jpg,.jpeg,.png,.gif,.webp">
+                                    <label class="custom-file-label" for="fotos">Seleccionar archivos...</label>
                                 </div>
+                                <div id="lista-fotos" class="mt-2"></div>
                                 <small class="form-text text-muted">Máximo 10 fotos, 5MB cada una</small>
                             </div>
                         </div>
@@ -326,6 +327,4 @@
             </div>
         </div>
     </div>
-</div>
-
 </div>
