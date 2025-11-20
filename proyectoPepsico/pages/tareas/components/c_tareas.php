@@ -117,7 +117,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="avance-form">
+                <form id="avance-form" enctype="multipart/form-data">
                     <input type="hidden" id="avance-asignacion-id">
                     <input type="hidden" id="avance-vehiculo-id">
                     
@@ -134,11 +134,13 @@
                                     <p><strong>Placa:</strong> <span id="info-placa"></span></p>
                                     <p><strong>Vehículo:</strong> <span id="info-vehiculo"></span></p>
                                     <p><strong>Color:</strong> <span id="info-color"></span></p>
+                                    <p><strong>Año:</strong> <span id="info-anio"></span></p>
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Conductor:</strong> <span id="info-conductor"></span></p>
                                     <p><strong>Empresa:</strong> <span id="info-empresa"></span></p>
                                     <p><strong>Estado:</strong> <span id="info-estado"></span></p>
+                                    <p><strong>Combustible:</strong> <span id="info-combustible"></span></p>
                                 </div>
                             </div>
                         </div>
@@ -150,13 +152,35 @@
                         <textarea class="form-control" id="avance-descripcion" rows="4" 
                                   placeholder="Describe el trabajo realizado, repuestos utilizados, horas trabajadas, etc..." required></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label for="avance-estado" class="form-label">Estado del Trabajo</label>
-                        <select class="form-select" id="avance-estado">
-                            <option value="En progreso">En progreso</option>
-                            <option value="Completado">Completado</option>
-                        </select>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="avance-estado" class="form-label">Estado del Trabajo</label>
+                                <select class="form-select" id="avance-estado">
+                                    <option value="En progreso">En progreso</option>
+                                    <option value="Completado">Completado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="avance-fotos" class="form-label">Subir Fotos del Trabajo</label>
+                                <input type="file" class="form-control" id="avance-fotos" name="avance_fotos[]" 
+                                       multiple accept=".jpg,.jpeg,.png,.gif,.webp">
+                                <small class="form-text text-muted">Máximo 5 fotos, 5MB cada una</small>
+                            </div>
+                        </div>
                     </div>
+                    
+                    <!-- Vista previa de fotos -->
+                    <div class="mb-3" id="fotos-preview-container" style="display: none;">
+                        <label class="form-label">Vista Previa de Fotos</label>
+                        <div class="row g-2" id="fotos-preview">
+                            <!-- Las fotos seleccionadas aparecerán aquí -->
+                        </div>
+                    </div>
+                    
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Al marcar como "Completado", la tarea se dará por finalizada.
@@ -187,6 +211,52 @@
             <div class="modal-body">
                 <div id="historial-avances">
                     <!-- Los avances se cargarán aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Información Completa del Vehículo -->
+<div class="modal fade" id="infoVehiculoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Información Completa - <span id="modal-placa-info"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="info-vehiculo-completa">
+                    <!-- La información se cargará aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Fotos del Vehículo -->
+<div class="modal fade" id="fotosVehiculoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-images me-2"></i>
+                    Fotos del Vehículo - <span id="modal-placa-fotos"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="galeria-fotos-vehiculo">
+                    <!-- Las fotos se cargarán aquí -->
                 </div>
             </div>
             <div class="modal-footer">

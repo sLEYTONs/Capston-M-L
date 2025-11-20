@@ -13,6 +13,198 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         switch ($action) {
+            case 'buscar_ingreso_pendiente':
+                $placa = $_POST['placa'] ?? '';
+                
+                if (empty($placa)) {
+                    echo json_encode(['success' => false, 'message' => 'Placa requerida']);
+                    exit;
+                }
+                
+                $vehiculo = buscarIngresoPendiente($placa);
+                
+                if ($vehiculo) {
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Vehículo encontrado',
+                        'data' => $vehiculo
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'No se encontró un ingreso pendiente con esta placa'
+                    ]);
+                }
+                break;
+                
+            case 'actualizar_ingreso':
+                $response = ['success' => false, 'message' => ''];
+                
+                // Validaciones básicas
+                $campos_obligatorios = [
+                    'ingreso_id', 'placa', 'tipo_vehiculo', 'marca', 'modelo', 
+                    'conductor_nombre', 'conductor_cedula', 
+                    'empresa_codigo', 'empresa_nombre', 
+                    'proposito', 'estado_ingreso', 'combustible'
+                ];
+                
+                $campos_faltantes = [];
+                foreach ($campos_obligatorios as $campo) {
+                    if (empty($_POST[$campo])) {
+                        $campos_faltantes[] = $campo;
+                    }
+                }
+                
+                if (!empty($campos_faltantes)) {
+                    $response['message'] = 'Campos obligatorios faltantes: ' . implode(', ', $campos_faltantes);
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // Validación adicional de formato de cédula
+                $cedula = trim($_POST['conductor_cedula']);
+                if (!preg_match('/^\d{7,15}$/', $cedula)) {
+                    $response['message'] = 'La cédula debe contener solo números y tener entre 7 y 15 dígitos';
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // Validación de formato de nombre
+                $nombreConductor = trim($_POST['conductor_nombre']);
+                if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/', $nombreConductor)) {
+                    $response['message'] = 'El nombre del conductor solo puede contener letras y espacios';
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // Validación de teléfono (si se proporciona)
+                $telefono = trim($_POST['conductor_telefono'] ?? '');
+                if (!empty($telefono) && !preg_match('/^\d{8,15}$/', $telefono)) {
+                    $response['message'] = 'El teléfono debe contener solo números y tener entre 8 y 15 dígitos';
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // NORMALIZAR DATOS
+                $placa_normalizada = strtoupper(trim($_POST['placa']));
+                $chasis_normalizado = !empty($_POST['chasis']) ? strtoupper(trim($_POST['chasis'])) : '';
+                $cedula_normalizada = trim($_POST['conductor_cedula']);
+                $licencia_normalizada = !empty($_POST['licencia']) ? strtoupper(trim($_POST['licencia'])) : '';
+                
+                // Verificar duplicados (excluyendo el registro actual)
+                $campos_duplicados = [];
+                $datos_duplicados = [];
+                
+                // Verificar si la placa ya existe en otro registro
+                if (placaExisteEnOtroRegistro($placa_normalizada, $_POST['ingreso_id'])) {
+                    $campos_duplicados[] = 'placa';
+                    $datos_duplicados['placa'] = obtenerInfoPlacaDuplicada($placa_normalizada);
+                }
+                
+                // Verificar si el chasis ya existe en otro registro (solo si no está vacío)
+                if (!empty($chasis_normalizado)) {
+                    if (chasisExisteEnOtroRegistro($chasis_normalizado, $_POST['ingreso_id'])) {
+                        $campos_duplicados[] = 'chasis';
+                        $datos_duplicados['chasis'] = obtenerInfoChasisDuplicado($chasis_normalizado);
+                    }
+                }
+                
+                // Verificar si la cédula ya existe en otro registro
+                if (cedulaExisteEnOtroRegistro($cedula_normalizada, $_POST['ingreso_id'])) {
+                    $campos_duplicados[] = 'cedula';
+                    $datos_duplicados['cedula'] = obtenerInfoCedulaDuplicada($cedula_normalizada);
+                }
+                
+                // Verificar si la licencia ya existe en otro registro (solo si no está vacía)
+                if (!empty($licencia_normalizada)) {
+                    if (licenciaExisteEnOtroRegistro($licencia_normalizada, $_POST['ingreso_id'])) {
+                        $campos_duplicados[] = 'licencia';
+                        $datos_duplicados['licencia'] = obtenerInfoLicenciaDuplicada($licencia_normalizada);
+                    }
+                }
+                
+                // Si hay campos duplicados, retornar error específico
+                if (!empty($campos_duplicados)) {
+                    $response['duplicated_fields'] = $campos_duplicados;
+                    $response['duplicated_data'] = $datos_duplicados;
+                    
+                    $mensajes_campos = [
+                        'placa' => 'La placa ' . $placa_normalizada . ' ya está registrada en otro vehículo',
+                        'chasis' => 'El chasis ' . $chasis_normalizado . ' ya está registrado en otro vehículo',
+                        'cedula' => 'La cédula ' . $cedula_normalizada . ' ya está registrada en otro conductor',
+                        'licencia' => 'La licencia ' . $licencia_normalizada . ' ya está registrada en otro conductor'
+                    ];
+                    
+                    $mensajes = [];
+                    foreach ($campos_duplicados as $campo) {
+                        $mensajes[] = $mensajes_campos[$campo];
+                    }
+                    
+                    $response['message'] = implode('. ', $mensajes);
+                    echo json_encode($response);
+                    exit;
+                }
+                
+                // Preparar datos
+                $datos = [
+                    'ingreso_id' => intval($_POST['ingreso_id']),
+                    'placa' => $placa_normalizada,
+                    'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
+                    'marca' => trim($_POST['marca']),
+                    'modelo' => trim($_POST['modelo']),
+                    'chasis' => $chasis_normalizado,
+                    'color' => trim($_POST['color'] ?? ''),
+                    'anio' => $_POST['anio'] ?? '',
+                    'conductor_nombre' => trim($_POST['conductor_nombre']),
+                    'conductor_cedula' => $cedula_normalizada,
+                    'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
+                    'licencia' => $licencia_normalizada,
+                    'empresa_codigo' => trim($_POST['empresa_codigo']),
+                    'empresa_nombre' => trim($_POST['empresa_nombre']),
+                    'proposito' => trim($_POST['proposito']),
+                    'area' => $_POST['area'] ?? '',
+                    'persona_contacto' => $_POST['persona_contacto'] ?? '',
+                    'observaciones' => $_POST['observaciones'] ?? '',
+                    'estado_ingreso' => trim($_POST['estado_ingreso']),
+                    'kilometraje' => $_POST['kilometraje'] ?? '',
+                    'combustible' => trim($_POST['combustible']),
+                    'usuario_id' => intval($_POST['usuario_id'] ?? 1),
+                    'documentos' => []
+                ];
+                
+                // Procesar archivos subidos
+                if (!empty($_FILES['documentos'])) {
+                    foreach ($_FILES['documentos']['tmp_name'] as $key => $tmp_name) {
+                        if ($_FILES['documentos']['error'][$key] === UPLOAD_ERR_OK) {
+                            $archivo = [
+                                'name' => $_FILES['documentos']['name'][$key],
+                                'type' => $_FILES['documentos']['type'][$key],
+                                'tmp_name' => $tmp_name,
+                                'error' => $_FILES['documentos']['error'][$key],
+                                'size' => $_FILES['documentos']['size'][$key]
+                            ];
+                            $resultado = subirArchivo($archivo, 'documento');
+                            if ($resultado['success']) {
+                                $datos['documentos'][] = $resultado;
+                            }
+                        }
+                    }
+                }
+                
+                // Actualizar registro
+                $ingreso_id = actualizarIngresoVehiculo($datos);
+                
+                if ($ingreso_id) {
+                    $response['success'] = true;
+                    $response['message'] = "Registro actualizado exitosamente. ID: {$ingreso_id}";
+                    $response['ingreso_id'] = $ingreso_id;
+                } else {
+                    $response['message'] = 'Error al actualizar el registro';
+                }
+                
+                echo json_encode($response);
+                break;
+
             case 'registrar_ingreso':
                 $response = ['success' => false, 'message' => '', 'duplicated_fields' => [], 'duplicated_data' => []];
                 
@@ -215,14 +407,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ingreso_id = registrarIngresoVehiculo($datos);
                 
                 if ($ingreso_id) {
-                    // Obtener roles para notificación
-                    $roles_notificar = obtenerRolesParaNotificacion($datos['proposito']);
-                    $mensaje_notificacion = "Nuevo ingreso de vehículo: {$datos['placa']} - {$datos['marca']} {$datos['modelo']} - Conductor: {$datos['conductor_nombre']}";
-                    guardarNotificacion($ingreso_id, $roles_notificar, $mensaje_notificacion);
+                    // ✅ LAS NOTIFICACIONES SE ENVÍAN AUTOMÁTICAMENTE DENTRO DE registrarIngresoVehiculo()
                     
                     $response['success'] = true;
                     $response['message'] = "Vehículo registrado exitosamente. ID: {$ingreso_id}";
                     $response['ingreso_id'] = $ingreso_id;
+                    
+                    // Log para debugging
+                    error_log("✅ Ingreso registrado exitosamente. ID: {$ingreso_id}. Notificaciones enviadas automáticamente.");
                 } else {
                     $response['message'] = 'Error al registrar el vehículo en la base de datos';
                 }

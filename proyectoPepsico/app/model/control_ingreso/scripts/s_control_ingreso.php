@@ -14,15 +14,14 @@ $action = $_POST['action'] ?? '';
 try {
     switch ($action) {
         case 'buscarVehiculo':
-            $tipo = $_POST['tipo'] ?? '';
-            $valor = $_POST['valor'] ?? '';
+            $placa = $_POST['placa'] ?? '';
             
-            if (empty($tipo) || empty($valor)) {
-                echo json_encode(['success' => false, 'message' => 'Datos de búsqueda incompletos']);
+            if (empty($placa)) {
+                echo json_encode(['success' => false, 'message' => 'Placa requerida']);
                 exit();
             }
             
-            $vehiculo = buscarVehiculo($tipo, $valor);
+            $vehiculo = buscarVehiculo($placa);
             if ($vehiculo) {
                 echo json_encode(['success' => true, 'data' => $vehiculo]);
             } else {
@@ -56,18 +55,60 @@ try {
             echo json_encode(['success' => $resultado, 'message' => $resultado ? 'Novedad reportada' : 'Error al reportar']);
             break;
             
-        case 'guardarFoto':
+        case 'registrarIngresoBasico':
             $placa = $_POST['placa'] ?? '';
-            $foto = $_POST['foto'] ?? '';
             $usuario_id = $_SESSION['usuario']['id'];
             
-            if (empty($placa) || empty($foto)) {
+            if (empty($placa)) {
+                echo json_encode(['success' => false, 'message' => 'Placa requerida']);
+                exit();
+            }
+            
+            $resultado = registrarIngresoBasico($placa, $usuario_id);
+            echo json_encode($resultado);
+            break;
+            
+        case 'registrarSalida':
+            $placa = $_POST['placa'] ?? '';
+            $usuario_id = $_SESSION['usuario']['id'];
+            
+            if (empty($placa)) {
+                echo json_encode(['success' => false, 'message' => 'Placa requerida']);
+                exit();
+            }
+            
+            $resultado = registrarSalidaVehiculo($placa, $usuario_id);
+            echo json_encode($resultado);
+            break;
+            
+        case 'guardarFotos':
+            $placa = $_POST['placa'] ?? '';
+            $fotos = json_decode($_POST['fotos'], true) ?? [];
+            $usuario_id = $_SESSION['usuario']['id'];
+            
+            if (empty($placa) || empty($fotos)) {
                 echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
                 exit();
             }
             
-            $resultado = guardarFotoVehiculo($placa, $foto, $usuario_id);
-            echo json_encode(['success' => $resultado, 'message' => $resultado ? 'Foto guardada' : 'Error al guardar foto']);
+            $resultado = guardarFotosVehiculo($placa, $fotos, $usuario_id);
+            echo json_encode(['success' => $resultado, 'message' => $resultado ? 'Fotos guardadas' : 'Error al guardar fotos']);
+            break;
+            
+        case 'verificarEstado':
+            $placa = $_POST['placa'] ?? '';
+            
+            if (empty($placa)) {
+                echo json_encode(['success' => false, 'message' => 'Placa requerida']);
+                exit();
+            }
+            
+            $vehiculo = verificarEstadoVehiculo($placa);
+            if ($vehiculo) {
+                echo json_encode(['success' => true, 'data' => $vehiculo]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Vehículo no encontrado o ya salió']);
+            }
             break;
             
         default:

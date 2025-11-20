@@ -1,7 +1,7 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Mecánico', 'Administrador'];
+$roles_permitidos = ['Administrador'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
@@ -17,10 +17,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <title>Mantenimiento - Taller PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
-    
+
     <?php include 'general/head.php'; ?>
     <link rel="stylesheet" href="mantenimiento/css/mantenimiento.css">
 </head>
@@ -40,7 +37,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                             <h5 class="mb-1">Programación de Mantenimiento</h5>
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
+                                    <li class="breadcrumb-item"><a href="#">Inicio</a></li>
                                     <li class="breadcrumb-item active" aria-current="page">Mantenimiento</li>
                                 </ol>
                             </nav>
@@ -58,12 +55,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
-    
-    <!-- DataTables JavaScript -->
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
     
     <script src="mantenimiento/js/app.js"></script>
 </body>

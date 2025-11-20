@@ -2,19 +2,15 @@
 require_once '../../../config/conexion.php';
 
 /**
- * Busca un vehículo por placa o cédula del conductor
+ * Busca un vehículo por placa
  */
-function buscarVehiculo($tipo, $valor) {
+function buscarVehiculo($placa) {
     $conn = conectar_Pepsico();
     
-    if ($tipo === 'placa') {
-        $sql = "SELECT * FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'active'";
-    } else {
-        $sql = "SELECT * FROM ingreso_vehiculos WHERE ConductorCedula = ? AND Estado = 'active'";
-    }
+    $sql = "SELECT * FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $valor);
+    $stmt->bind_param("s", $placa);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -33,13 +29,13 @@ function obtenerEstadisticasPatio() {
     $conn = conectar_Pepsico();
     
     // Vehículos activos
-    $sql1 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Estado = 'active'";
+    $sql1 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Estado = 'Ingresado'";
     $result1 = $conn->query($sql1);
     $vehiculosActivos = $result1->fetch_assoc()['total'];
     
     // Ingresos de hoy
     $sql2 = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
-             WHERE DATE(FechaIngreso) = CURDATE() AND Estado = 'active'";
+             WHERE DATE(FechaIngreso) = CURDATE()";
     $result2 = $conn->query($sql2);
     $ingresosHoy = $result2->fetch_assoc()['total'];
     
@@ -114,13 +110,105 @@ function obtenerNovedadesRecientes() {
 }
 
 /**
- * Guarda foto del vehículo
+ * Registra ingreso básico de vehículo (solo guardia)
  */
-function guardarFotoVehiculo($placa, $fotoData, $usuario_id) {
+function registrarIngresoBasico($placa, $usuario_id) {
+    $conn = conectar_Pepsico();
+    
+    // Verificar si ya existe un registro activo con esa placa
+    $sqlCheck = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+    $stmtCheck = $conn->prepare($sqlCheck);
+    $stmtCheck->bind_param("s", $placa);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
+    $row = $resultCheck->fetch_assoc();
+    
+    if ($row['total'] > 0) {
+        $stmtCheck->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'Ya existe un vehículo activo con esta placa'];
+    }
+    $stmtCheck->close();
+    
+    // Insertar registro básico
+    $sql = "INSERT INTO ingreso_vehiculos (
+        Placa, 
+        TipoVehiculo, 
+        Marca, 
+        Modelo, 
+        ConductorNombre, 
+        ConductorCedula, 
+        EmpresaCodigo, 
+        EmpresaNombre, 
+        Proposito, 
+        Estado, 
+        EstadoIngreso, 
+        Combustible, 
+        UsuarioRegistro
+    ) VALUES (?, 'Por definir', 'Por definir', 'Por definir', 'Por completar', 'Por completar', 'PENDIENTE', 'PENDIENTE', 'PENDIENTE', 'Ingresado', 'Bueno', '1/2', ?)";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("si", $placa, $usuario_id);
+    $result = $stmt->execute();
+    
+    $nuevo_id = $conn->insert_id;
+    
+    $stmt->close();
+    $conn->close();
+    
+    return [
+        'success' => $result,
+        'message' => $result ? 'Ingreso registrado correctamente' : 'Error al registrar ingreso',
+        'id' => $nuevo_id
+    ];
+}
+
+/**
+ * Registra salida de vehículo (solo guardia)
+ */
+function registrarSalidaVehiculo($placa, $usuario_id) {
+    $conn = conectar_Pepsico();
+    
+    // Verificar si existe un vehículo activo con esa placa
+    $sqlCheck = "SELECT ID FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+    $stmtCheck = $conn->prepare($sqlCheck);
+    $stmtCheck->bind_param("s", $placa);
+    $stmtCheck->execute();
+    $resultCheck = $stmtCheck->get_result();
+    
+    if ($resultCheck->num_rows === 0) {
+        $stmtCheck->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'No se encontró vehículo activo con esta placa'];
+    }
+    
+    $vehiculo = $resultCheck->fetch_assoc();
+    $stmtCheck->close();
+    
+    // Actualizar estado a "Completado" (que representa la salida)
+    $sql = "UPDATE ingreso_vehiculos SET Estado = 'Completado', FechaSalida = NOW() WHERE ID = ?";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $vehiculo['ID']);
+    $result = $stmt->execute();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return [
+        'success' => $result,
+        'message' => $result ? 'Salida registrada correctamente' : 'Error al registrar salida'
+    ];
+}
+
+/**
+ * Guarda fotos del vehículo
+ */
+function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
     $conn = conectar_Pepsico();
     
     // Primero obtenemos las fotos actuales
-    $sqlSelect = "SELECT Fotos FROM ingreso_vehiculos WHERE Placa = ?";
+    $sqlSelect = "SELECT Fotos FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
     $stmtSelect = $conn->prepare($sqlSelect);
     $stmtSelect->bind_param("s", $placa);
     $stmtSelect->execute();
@@ -132,20 +220,22 @@ function guardarFotoVehiculo($placa, $fotoData, $usuario_id) {
         $fotosActuales = json_decode($row['Fotos'], true) ?? [];
     }
     
-    // Agregar nueva foto
-    $nuevaFoto = [
-        'foto' => $fotoData,
-        'fecha' => date('Y-m-d H:i:s'),
-        'usuario' => $usuario_id,
-        'tipo' => 'registro_guardia'
-    ];
-    
-    $fotosActuales[] = $nuevaFoto;
+    // Agregar nuevas fotos
+    foreach ($fotosData as $foto) {
+        $nuevaFoto = [
+            'foto' => $foto['data'],
+            'fecha' => date('Y-m-d H:i:s'),
+            'usuario' => $usuario_id,
+            'tipo' => $foto['tipo'],
+            'angulo' => $foto['angulo']
+        ];
+        $fotosActuales[] = $nuevaFoto;
+    }
     
     // Actualizar en base de datos
     $fotosJson = json_encode($fotosActuales);
     
-    $sqlUpdate = "UPDATE ingreso_vehiculos SET Fotos = ? WHERE Placa = ?";
+    $sqlUpdate = "UPDATE ingreso_vehiculos SET Fotos = ? WHERE Placa = ? AND Estado = 'Ingresado'";
     $stmtUpdate = $conn->prepare($sqlUpdate);
     $stmtUpdate->bind_param("ss", $fotosJson, $placa);
     $result = $stmtUpdate->execute();
@@ -158,114 +248,25 @@ function guardarFotoVehiculo($placa, $fotoData, $usuario_id) {
 }
 
 /**
- * Registra ingreso de vehículo
+ * Verifica estado del vehículo
  */
-function registrarIngresoVehiculo($datos) {
+function verificarEstadoVehiculo($placa) {
     $conn = conectar_Pepsico();
     
-    $sql = "INSERT INTO ingreso_vehiculos (
-        Placa, TipoVehiculo, Marca, Modelo, Color, Anio, 
-        ConductorNombre, ConductorCedula, ConductorTelefono, Licencia,
-        EmpresaCodigo, EmpresaNombre, Proposito, Area, PersonaContacto,
-        Observaciones, EstadoIngreso, Kilometraje, Combustible, Documentos,
-        UsuarioRegistro
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param(
-        "sssssisssssssssssissi",
-        $datos['placa'],
-        $datos['tipo_vehiculo'],
-        $datos['marca'],
-        $datos['modelo'],
-        $datos['color'],
-        $datos['anio'],
-        $datos['conductor_nombre'],
-        $datos['conductor_cedula'],
-        $datos['conductor_telefono'],
-        $datos['licencia'],
-        $datos['empresa_codigo'],
-        $datos['empresa_nombre'],
-        $datos['proposito'],
-        $datos['area'],
-        $datos['persona_contacto'],
-        $datos['observaciones'],
-        $datos['estado_ingreso'],
-        $datos['kilometraje'],
-        $datos['combustible'],
-        $datos['documentos'],
-        $datos['usuario_registro']
-    );
-    
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
-}
-
-/**
- * Registra salida de vehículo
- */
-function registrarSalidaVehiculo($placa, $usuario_id) {
-    $conn = conectar_Pepsico();
-    
-    $sql = "UPDATE ingreso_vehiculos SET Estado = 'inactive', FechaSalida = NOW() WHERE Placa = ? AND Estado = 'active'";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $placa);
-    $result = $stmt->execute();
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $result;
-}
-
-/**
- * Obtiene historial de ingresos recientes
- */
-function obtenerIngresosRecientes() {
-    $conn = conectar_Pepsico();
-    
-    $sql = "SELECT Placa, ConductorNombre, EmpresaNombre, Proposito, FechaIngreso 
+    $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, EmpresaNombre 
             FROM ingreso_vehiculos 
-            WHERE Estado = 'active' 
-            ORDER BY FechaIngreso DESC 
-            LIMIT 5";
-    
-    $result = $conn->query($sql);
-    $ingresos = [];
-    
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $ingresos[] = $row;
-        }
-    }
-    
-    $conn->close();
-    
-    return $ingresos;
-}
-
-/**
- * Verifica si un vehículo ya está registrado y activo
- */
-function verificarVehiculoActivo($placa) {
-    $conn = conectar_Pepsico();
-    
-    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'active'";
+            WHERE Placa = ? AND Estado = 'Ingresado'";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $placa);
     $stmt->execute();
     $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
+    
+    $vehiculo = $result->fetch_assoc();
     
     $stmt->close();
     $conn->close();
     
-    return $row['total'] > 0;
+    return $vehiculo;
 }
 ?>

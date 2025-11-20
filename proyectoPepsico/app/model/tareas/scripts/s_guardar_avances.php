@@ -21,7 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $resultado = registrarAvance($asignacion_id, $descripcion, $estado);
+        // Procesar fotos si se enviaron
+        $fotos = [];
+        if (!empty($_FILES['avance_fotos'])) {
+            $fotos = $_FILES['avance_fotos'];
+        }
+
+        $resultado = registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos);
         echo json_encode($resultado);
     } catch (Exception $e) {
         echo json_encode([

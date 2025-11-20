@@ -1,87 +1,136 @@
-/* Estilos específicos para el módulo de Control de Ingreso */
+/* Estilos específicos para el módulo de Control de Ingreso - VERSIÓN GUARDIA */
 .guardia-card {
     border: none;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     margin-bottom: 1rem;
+    border: 1px solid #e9ecef;
 }
 
 .guardia-card .card-header {
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: 12px 12px 0 0 !important;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
+    padding: 1rem 1.25rem;
 }
 
 .section-title {
     color: #004B93;
-    font-weight: 600;
-    border-bottom: 2px solid #004B93;
-    padding-bottom: 5px;
+    font-weight: 700;
+    border-bottom: 3px solid #004B93;
+    padding-bottom: 8px;
     margin-bottom: 15px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     text-transform: uppercase;
 }
 
-.stat-box {
-    padding: 15px;
-    background: #f8f9fa;
+/* Botones de acción principales */
+.btn-action {
+    padding: 12px 16px;
+    font-weight: 600;
     border-radius: 8px;
-    border-left: 4px solid #004B93;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
 }
 
-.stat-box h3 {
-    margin: 0;
-    color: #004B93;
-    font-weight: bold;
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.stat-box small {
-    color: #6c757d;
-    font-size: 0.8rem;
+.btn-action:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Badges para estados */
-.badge-estado-bueno { background-color: #28a745; }
-.badge-estado-regular { background-color: #ffc107; color: #000; }
-.badge-estado-malo { background-color: #fd7e14; }
-.badge-estado-accidentado { background-color: #dc3545; }
+/* Grupo de botones de operación */
+.btn-group .btn {
+    padding: 10px 16px;
+    font-weight: 600;
+}
+
+.btn-check:checked + .btn {
+    border-width: 2px;
+    font-weight: 700;
+}
 
 /* Cámara y fotos */
 .camera-container {
-    border: 2px dashed #dee2e6;
+    border: 2px solid #dee2e6;
     border-radius: 8px;
-    padding: 10px;
-    background: #f8f9fa;
+    padding: 15px;
+    background: #000;
     min-height: 300px;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
-.foto-preview {
+.camera-container video {
+    border-radius: 4px;
     max-width: 100%;
+    max-height: 300px;
+}
+
+.foto-preview-container {
+    border: 2px dashed #dee2e6;
     border-radius: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.foto-miniatura {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
     border: 2px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.foto-miniatura:hover {
+    border-color: #004B93;
+    transform: scale(1.05);
+}
+
+.badge-foto-tipo {
+    font-size: 0.6rem;
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    background: rgba(0,0,0,0.7);
 }
 
 /* Lista de novedades */
 .novedades-list {
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
 }
 
 .novedad-item {
-    padding: 10px;
+    padding: 12px 15px;
     border-left: 4px solid #ffc107;
-    background: #fff9e6;
+    background: #fff;
     margin-bottom: 8px;
-    border-radius: 4px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
 }
 
-.novedad-item.critica { border-left-color: #dc3545; background: #ffe6e6; }
-.novedad-item.alta { border-left-color: #fd7e14; background: #fff0e6; }
-.novedad-item.media { border-left-color: #ffc107; background: #fff9e6; }
-.novedad-item.baja { border-left-color: #28a745; background: #e6ffe6; }
+.novedad-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.novedad-item.critica { border-left-color: #dc3545; background: #fff5f5; }
+.novedad-item.alta { border-left-color: #fd7e14; background: #fffaf5; }
+.novedad-item.media { border-left-color: #ffc107; background: #fffdf5; }
+.novedad-item.baja { border-left-color: #28a745; background: #f5fff5; }
 
 .novedad-tipo {
     font-weight: bold;
@@ -92,6 +141,7 @@
 .novedad-descripcion {
     font-size: 0.8rem;
     margin: 5px 0;
+    color: #495057;
 }
 
 .novedad-fecha {
@@ -99,20 +149,43 @@
     color: #6c757d;
 }
 
-/* Botones de acción */
-.btn-action {
-    min-width: 120px;
-    margin: 2px;
+/* Estados operativos */
+.estado-operacion {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.operacion-ingreso { color: #28a745; }
+.operacion-salida { color: #fd7e14; }
+
+/* Galería de fotos */
+.galeria-fotos {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 100px;
+}
+
+.foto-vacia {
+    text-align: center;
+    color: #6c757d;
+    padding: 20px;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .section-title {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
     
-    .stat-box {
-        padding: 10px;
+    .btn-action {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .camera-container,
+    .foto-preview-container {
+        min-height: 250px;
     }
     
     .guardia-card .card-body {
@@ -130,19 +203,29 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Estados de búsqueda */
+/* Estados de carga */
 .search-loading {
     opacity: 0.6;
     pointer-events: none;
+    position: relative;
 }
 
-.no-results {
-    text-align: center;
-    padding: 2rem;
-    color: #6c757d;
+.search-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.no-results i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+/* Alertas específicas */
+.alert-operacion {
+    border-left: 4px solid #004B93;
+    background: #f0f8ff;
 }

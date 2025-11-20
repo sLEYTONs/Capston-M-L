@@ -22,7 +22,7 @@ $paginas_por_rol = [
         'consulta.php', 'marcas.php', 'reportes.php', 'base_datos.php'
     ],
     'Mecánico' => [
-        'tareas.php', 'mantenimiento.php', 'repuestos.php'
+        'tareas.php'
     ],
     'Recepcionista' => [
         'consulta.php', 'base_datos.php'

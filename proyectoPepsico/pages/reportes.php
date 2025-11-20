@@ -3,7 +3,6 @@ include 'general/middle.php';
 
 $roles_permitidos = ['Administrador', 'Jefe de Taller', 'Recepcionista'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
-    // En lugar de redirigir a index.php, redirige a la página principal del usuario
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
     exit();
@@ -12,7 +11,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
 
 <!DOCTYPE html>
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Reportes - PepsiCo</title>

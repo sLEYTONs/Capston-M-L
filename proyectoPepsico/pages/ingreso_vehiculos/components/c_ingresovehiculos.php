@@ -2,13 +2,39 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5>Registro de Ingreso de Vehículo</h5>
-                <small>Complete todos los campos obligatorios (*) para registrar el ingreso del vehículo</small>
+                <h5>Completar Registro de Ingreso de Vehículo</h5>
+                <small>Ingrese la placa para cargar el registro del guardia y complete la información faltante</small>
             </div>
             <div class="card-body">
-                <form id="form-ingreso-vehiculo" enctype="multipart/form-data">
+                <!-- Buscador de Placa -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title"><i class="fas fa-search me-2"></i>Buscar Vehículo por Placa</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control text-uppercase" id="buscadorPlaca" 
+                                           placeholder="Ingrese la placa (ej: ABCD60)" maxlength="10">
+                                    <button class="btn btn-primary" type="button" id="btnBuscarPlaca">
+                                        <i class="fas fa-search"></i> Buscar
+                                    </button>
+                                </div>
+                                <small class="text-muted">Ingrese la placa que registró el guardia en la entrada</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="infoPrecarga" class="alert alert-info" style="display: none;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="textoInfoPrecarga">Se cargarán los datos registrados por el guardia</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-ingreso-vehiculo" enctype="multipart/form-data" style="display: none;">
                     <!-- Campo oculto para usuario_id -->
                     <input type="hidden" id="usuario_id" name="usuario_id" value="<?php echo $usuario_id ?? 1; ?>">
+                    <input type="hidden" id="ingreso_id" name="ingreso_id" value="">
                     
                     <!-- Información del Vehículo -->
                     <div class="row mb-4">
@@ -20,9 +46,9 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="placa">Placa *</label>
-                                <input type="text" class="form-control" id="placa" name="placa" required placeholder="ej: ABCD12"
-                                       pattern="[A-Z0-9]{6,8}" title="Formato de placa válido (ej: ABC123 o AB123CD)">
-                                <div class="invalid-feedback">Ingrese una placa válida</div>
+                                <input type="text" class="form-control" id="placa" name="placa" required 
+                                       readonly style="background-color: #e9ecef;">
+                                <div class="invalid-feedback">Placa requerida</div>
                             </div>
                         </div>
                         
@@ -62,9 +88,7 @@
                                 <input type="text" class="form-control" id="modelo" name="modelo" required>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="row mb-4">
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="color">Color</label>
@@ -88,19 +112,6 @@
                                        min="0" placeholder="Km actual">
                             </div>
                         </div>
-                        
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="combustible">Nivel de Combustible</label>
-                                <select class="form-control" id="combustible" name="combustible">
-                                    <option value="Lleno">Lleno</option>
-                                    <option value="3/4">3/4</option>
-                                    <option value="1/2">1/2</option>
-                                    <option value="1/4">1/4</option>
-                                    <option value="Reserva">Reserva</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- Información del Conductor -->
@@ -113,8 +124,7 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="conductor_nombre">Nombre del Conductor *</label>
-                                <input type="text" class="form-control" id="conductor_nombre" name="conductor_nombre" 
-                                    value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>" required>
+                                <input type="text" class="form-control" id="conductor_nombre" name="conductor_nombre" required>
                             </div>
                         </div>
                         
@@ -177,6 +187,19 @@
                         
                         <div class="col-md-4">
                             <div class="form-group">
+                                <label for="combustible">Nivel de Combustible *</label>
+                                <select class="form-control" id="combustible" name="combustible" required>
+                                    <option value="Lleno">Lleno</option>
+                                    <option value="3/4">3/4</option>
+                                    <option value="1/2">1/2</option>
+                                    <option value="1/4">1/4</option>
+                                    <option value="Reserva">Reserva</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-group">
                                 <label for="proposito">Propósito de la Visita *</label>
                                 <select class="form-control" id="proposito" name="proposito" required>
                                     <option value="">Seleccionar...</option>
@@ -189,7 +212,9 @@
                                 </select>
                             </div>
                         </div>
-                        
+                    </div>
+
+                    <div class="row mb-4">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="area">Área de Trabajo</label>
@@ -202,12 +227,20 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="persona_contacto">Persona de Contacto en Taller</label>
+                                <input type="text" class="form-control" id="persona_contacto" name="persona_contacto" 
+                                       placeholder="Nombre del mecánico o responsable">
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Documentación y Fotos -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <h6 class="section-title">Documentación y Fotos</h6>
+                            <h6 class="section-title">Documentación Adicional</h6>
                             <hr>
                         </div>
                         
@@ -225,15 +258,12 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="fotos">Subir Fotos del Vehículo (JPG, PNG)</label>
-                                <div class="custom-file">
-                                    <input type="file" class="custom-file-input" id="fotos" name="fotos[]" multiple 
-                                           accept=".jpg,.jpeg,.png,.gif,.webp">
-                                    <label class="custom-file-label" for="fotos">Seleccionar archivos...</label>
-                                </div>
-                                <div id="lista-fotos" class="mt-2"></div>
-                                <small class="form-text text-muted">Máximo 10 fotos, 5MB cada una</small>
+                            <div class="alert alert-warning">
+                                <small>
+                                    <i class="fas fa-camera me-1"></i>
+                                    <strong>Fotos del vehículo:</strong> Ya fueron tomadas por el guardia al ingreso.
+                                    Puede verlas en el sistema de control de acceso.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -249,29 +279,28 @@
                         </div>
                     </div>
                     
-                    <!-- Persona de Contacto -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="persona_contacto">Persona de Contacto en Taller</label>
-                                <input type="text" class="form-control" id="persona_contacto" name="persona_contacto" 
-                                       placeholder="Nombre del mecánico o responsable">
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Botones -->
                     <div class="row">
                         <div class="col-12">
                             <button type="submit" class="btn btn-primary btn-lg" id="btn-registrar">
-                                <i class="fas fa-car"></i> Registrar Ingreso de Vehículo
+                                <i class="fas fa-save"></i> Completar Registro
                             </button>
-                            <button type="reset" class="btn btn-secondary btn-lg">
-                                <i class="fas fa-undo"></i> Limpiar Formulario
+                            <button type="button" class="btn btn-secondary btn-lg" id="btn-limpiar">
+                                <i class="fas fa-undo"></i> Limpiar
                             </button>
                         </div>
                     </div>
                 </form>
+
+                <!-- Mensaje cuando no se encuentra el vehículo -->
+                <div id="mensaje-no-encontrado" class="alert alert-warning text-center" style="display: none;">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>Vehículo no encontrado</h5>
+                    <p>No se encontró un registro de ingreso con la placa ingresada.</p>
+                    <p class="mb-0">
+                        <small>Verifique que la placa sea correcta o consulte con el guardia de acceso.</small>
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -281,7 +310,6 @@
 <div class="modal fade" id="modal-exito" tabindex="-1" role="dialog" aria-labelledby="modalExitoLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-confirm" role="document">
         <div class="modal-content">
-            <!-- Header con gradiente -->
             <div class="modal-header-confirm">
                 <div class="icon-box">
                     <i class="fas fa-check"></i>
@@ -291,23 +319,20 @@
                 </button>
             </div>
             
-            <!-- Contenido principal -->
             <div class="modal-body-confirm text-center">
-                <h4 class="modal-title-confirm">¡Registro Exitoso!</h4>
+                <h4 class="modal-title-confirm">¡Registro Completado!</h4>
                 <p class="modal-message" id="mensaje-exito">
-                    El vehículo ha sido registrado correctamente en el sistema. 
-                    Se ha generado el ID de ingreso y notificado a los responsables correspondientes.
+                    La información del vehículo ha sido completada correctamente.
                 </p>
                 
-                <!-- Información adicional -->
                 <div class="success-details">
                     <div class="detail-item">
                         <i class="fas fa-car"></i>
-                        <span>Vehículo registrado en la base de datos</span>
+                        <span>Información del vehículo actualizada</span>
                     </div>
                     <div class="detail-item">
                         <i class="fas fa-bell"></i>
-                        <span>Notificaciones enviadas</span>
+                        <span>Notificaciones enviadas al taller</span>
                     </div>
                     <div class="detail-item">
                         <i class="fas fa-clock"></i>
@@ -316,7 +341,6 @@
                 </div>
             </div>
             
-            <!-- Footer con acciones -->
             <div class="modal-footer-confirm">
                 <button type="button" class="btn btn-success btn-continue" data-dismiss="modal">
                     <i class="fas fa-check-circle"></i> Continuar

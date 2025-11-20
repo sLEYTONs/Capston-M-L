@@ -1,5 +1,288 @@
 <?php
 require_once '../../../config/conexion.php';
+require_once '../../../../pages/general/funciones_notificaciones.php';
+
+/**
+ * Busca un ingreso pendiente por placa (registrado por guardia)
+ */
+function buscarIngresoPendiente($placa) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT * FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Placa, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("s", $placa);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $vehiculo = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $vehiculo;
+}
+
+/**
+ * Actualiza un registro de ingreso existente
+ */
+function actualizarIngresoVehiculo($datos) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+
+    // Primero obtener las fotos existentes para no perderlas
+    $sql_select = "SELECT Fotos FROM ingreso_vehiculos WHERE ID = ?";
+    $stmt_select = $conn->prepare($sql_select);
+    $stmt_select->bind_param("i", $datos['ingreso_id']);
+    $stmt_select->execute();
+    $result_select = $stmt_select->get_result();
+    $row = $result_select->fetch_assoc();
+    $fotos_existentes = $row['Fotos'];
+    $stmt_select->close();
+
+    $sql = "UPDATE ingreso_vehiculos SET
+        TipoVehiculo = ?,
+        Marca = ?,
+        Modelo = ?,
+        Chasis = ?,
+        Color = ?,
+        Anio = ?,
+        ConductorNombre = ?,
+        ConductorCedula = ?,
+        ConductorTelefono = ?,
+        Licencia = ?,
+        EmpresaCodigo = ?,
+        EmpresaNombre = ?,
+        Proposito = ?,
+        Area = ?,
+        PersonaContacto = ?,
+        Observaciones = ?,
+        EstadoIngreso = ?,
+        Kilometraje = ?,
+        Combustible = ?,
+        Documentos = ?,
+        Fotos = ?,
+        UsuarioRegistro = ?,
+        FechaRegistro = NOW()
+    WHERE ID = ? AND Estado = 'Ingresado'";
+    
+    $stmt = $conn->prepare($sql);
+    
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    // Convertir arrays a JSON para almacenar
+    $documentos_json = !empty($datos['documentos']) ? json_encode($datos['documentos']) : NULL;
+    
+    // Mantener las fotos existentes (tomadas por el guardia)
+    $fotos_json = $fotos_existentes;
+    
+    // Manejar valores NULL
+    $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
+    $kilometraje = !empty($datos['kilometraje']) ? intval($datos['kilometraje']) : NULL;
+    $chasis = !empty($datos['chasis']) ? $datos['chasis'] : NULL;
+    
+    $stmt->bind_param(
+        "sssssisssssssssssissssi",
+        $datos['tipo_vehiculo'],
+        $datos['marca'],
+        $datos['modelo'],
+        $chasis,
+        $datos['color'],
+        $anio,
+        $datos['conductor_nombre'],
+        $datos['conductor_cedula'],
+        $datos['conductor_telefono'],
+        $datos['licencia'],
+        $datos['empresa_codigo'],
+        $datos['empresa_nombre'],
+        $datos['proposito'],
+        $datos['area'],
+        $datos['persona_contacto'],
+        $datos['observaciones'],
+        $datos['estado_ingreso'],
+        $kilometraje,
+        $datos['combustible'],
+        $documentos_json,
+        $fotos_json,
+        $datos['usuario_id'],
+        $datos['ingreso_id']
+    );
+    
+    $resultado = $stmt->execute();
+    
+    if (!$resultado) {
+        $error = $stmt->error;
+        $stmt->close();
+        $conn->close();
+        throw new Exception('Error ejecutando la consulta: ' . $error);
+    }
+    
+    $stmt->close();
+    $conn->close();
+    
+    // Enviar notificaciones
+    notificarNuevoIngreso($datos, $datos['ingreso_id']);
+    
+    return $datos['ingreso_id'];
+}
+
+/**
+ * Verifica si una placa ya existe en otro registro
+ */
+function placaExisteEnOtroRegistro($placa, $ingreso_id) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Placa, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'
+            AND ID != ?";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("si", $placa, $ingreso_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Verifica si un chasis ya existe en otro registro
+ */
+function chasisExisteEnOtroRegistro($chasis, $ingreso_id) {
+    if (empty($chasis)) {
+        return false;
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Chasis, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'
+            AND ID != ?";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("si", $chasis, $ingreso_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Verifica si una cédula ya existe en otro registro
+ */
+function cedulaExisteEnOtroRegistro($cedula, $ingreso_id) {
+    if (empty($cedula)) {
+        return false;
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE REPLACE(ConductorCedula, ' ', '') = REPLACE(?, ' ', '') 
+            AND Estado = 'Ingresado'
+            AND ID != ?";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("si", $cedula, $ingreso_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+/**
+ * Verifica si una licencia ya existe en otro registro
+ */
+function licenciaExisteEnOtroRegistro($licencia, $ingreso_id) {
+    if (empty($licencia)) {
+        return false;
+    }
+    
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+    
+    $sql = "SELECT COUNT(*) as total FROM ingreso_vehiculos 
+            WHERE UPPER(REPLACE(Licencia, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
+            AND Estado = 'Ingresado'
+            AND ID != ?";
+    
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("si", $licencia, $ingreso_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    $conn->close();
+    
+    return $row['total'] > 0;
+}
+
+// ... (mantener todas las demás funciones existentes del f_ingreso_vehiculos.php original)
 
 /**
  * Registra el ingreso de un vehículo
@@ -74,6 +357,11 @@ function registrarIngresoVehiculo($datos) {
     
     $stmt->close();
     $conn->close();
+    
+    // ✅ NUEVO: ENVIAR NOTIFICACIONES DESPUÉS DEL REGISTRO EXITOSO
+    if ($id_insertado) {
+        notificarNuevoIngreso($datos, $id_insertado);
+    }
     
     return $id_insertado;
 }
@@ -355,31 +643,36 @@ function obtenerInfoLicenciaDuplicada($licencia) {
 }
 
 /**
- * Obtiene los roles que deben ser notificados según el propósito
+ * Notifica a supervisores y jefes de taller sobre nuevo ingreso
  */
-function obtenerRolesParaNotificacion($proposito) {
-    $notificaciones = [
-        'Mantenimiento' => ['Jefe de Taller', 'Mecánico'],
-        'Reparación' => ['Jefe de Taller', 'Mecánico', 'Administrador'],
-        'Accidentado' => ['Jefe de Taller', 'Administrador', 'Supervisor'],
-        'Inspección' => ['Jefe de Taller', 'Supervisor'],
-        'Lavado' => ['Recepcionista'],
-        'Revisión Técnica' => ['Jefe de Taller', 'Mecánico']
-    ];
+function notificarNuevoIngreso($datos_vehiculo, $ingreso_id) {
+    // Definir los roles que deben ser notificados
+    $roles_notificar = ['Supervisor', 'Jefe de Taller'];
     
-    return $notificaciones[$proposito] ?? ['Jefe de Taller', 'Administrador'];
-}
-
-/**
- * Guarda una notificación en el sistema
- */
-function guardarNotificacion($ingreso_id, $roles, $mensaje) {
-    $conn = conectar_Pepsico();
+    // Obtener usuarios con esos roles
+    $usuarios_destino = obtenerUsuariosPorRoles($roles_notificar);
     
-    // Aquí puedes implementar la lógica para guardar notificaciones
-    // Por ahora, solo retornamos true como placeholder
-    $conn->close();
-    return true;
+    if (empty($usuarios_destino)) {
+        error_log("No se encontraron usuarios para notificar con roles: " . implode(', ', $roles_notificar));
+        return false;
+    }
+    
+    // Crear mensaje de notificación
+    $titulo = "Nuevo Ingreso de Vehículo";
+    $mensaje = "Vehículo {$datos_vehiculo['placa']} - {$datos_vehiculo['marca']} {$datos_vehiculo['modelo']} ingresado por {$datos_vehiculo['conductor_nombre']}";
+    $modulo = "ingreso_vehiculos";
+    $enlace = "ingresos_vehiculos.php?ver={$ingreso_id}";
+    
+    // Crear notificación
+    $resultado = crearNotificacion($usuarios_destino, $titulo, $mensaje, $modulo, $enlace);
+    
+    if ($resultado) {
+        error_log("Notificaciones enviadas a " . count($usuarios_destino) . " usuarios");
+    } else {
+        error_log("Error al enviar notificaciones");
+    }
+    
+    return $resultado;
 }
 
 /**

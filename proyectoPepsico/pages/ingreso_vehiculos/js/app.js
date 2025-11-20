@@ -3,7 +3,7 @@ $(document).ready(function() {
     
     // Variables para almacenar archivos
     var documentosSubidos = [];
-    var fotosSubidas = [];
+    var vehiculoEncontrado = null;
 
     // Configuración de Bootstrap File Input
     $('.custom-file-input').on('change', function() {
@@ -24,19 +24,13 @@ $(document).ready(function() {
 
     // Mostrar archivos seleccionados
     function mostrarArchivosSeleccionados(input) {
-        if (!input) {
-            console.warn('⚠️ Input no encontrado');
-            return;
-        }
+        if (!input) return;
         
         const files = input.files;
         const listaId = input.id === 'documentos' ? 'lista-documentos' : 'lista-fotos';
         const lista = document.getElementById(listaId);
         
-        if (!lista) {
-            console.warn(`⚠️ Elemento con id ${listaId} no encontrado`);
-            return;
-        }
+        if (!lista) return;
         
         lista.innerHTML = '';
         
@@ -64,10 +58,7 @@ $(document).ready(function() {
     window.removerArchivo = function(index, tipo) {
         const input = document.getElementById(tipo);
         
-        if (!input) {
-            console.warn(`⚠️ Input ${tipo} no encontrado`);
-            return;
-        }
+        if (!input) return;
         
         const files = Array.from(input.files);
         files.splice(index, 1);
@@ -91,6 +82,182 @@ $(document).ready(function() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
+    // Buscar vehículo por placa
+    $('#btnBuscarPlaca').click(function() {
+        buscarVehiculoPorPlaca();
+    });
+
+    $('#buscadorPlaca').keypress(function(e) {
+        if (e.which === 13) {
+            buscarVehiculoPorPlaca();
+        }
+    });
+
+    function buscarVehiculoPorPlaca() {
+        const placa = $('#buscadorPlaca').val().trim().toUpperCase();
+        
+        if (!placa) {
+            mostrarError('Placa requerida', 'Ingrese una placa para buscar el vehículo');
+            return;
+        }
+
+        // Validar formato básico de placa
+        if (!validarPatenteChilena(placa).valida) {
+            mostrarError('Placa inválida', 'Ingrese una placa válida');
+            return;
+        }
+
+        $('#btnBuscarPlaca').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Buscando...');
+
+        $.ajax({
+            url: '../app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php',
+            type: 'POST',
+            data: {
+                action: 'buscar_ingreso_pendiente',
+                placa: placa
+            },
+            dataType: 'json',
+            success: function(response) {
+                $('#btnBuscarPlaca').prop('disabled', false).html('<i class="fas fa-search"></i> Buscar');
+                
+                if (response.success) {
+                    vehiculoEncontrado = response.data;
+                    cargarDatosVehiculo(vehiculoEncontrado);
+                    mostrarFormulario();
+                } else {
+                    mostrarVehiculoNoEncontrado();
+                }
+            },
+            error: function() {
+                $('#btnBuscarPlaca').prop('disabled', false).html('<i class="fas fa-search"></i> Buscar');
+                mostrarError('Error de conexión', 'No se pudo conectar con el servidor');
+            }
+        });
+    }
+
+    function cargarDatosVehiculo(vehiculo) {
+        // Cargar datos básicos del vehículo
+        $('#placa').val(vehiculo.Placa);
+        $('#ingreso_id').val(vehiculo.ID);
+        
+        // Mostrar información de precarga
+        $('#textoInfoPrecarga').html(`
+            Vehículo <strong>${vehiculo.Placa}</strong> encontrado. 
+            Registrado el ${formatFecha(vehiculo.FechaIngreso)}. 
+            Complete la información faltante.
+        `);
+        $('#infoPrecarga').show();
+
+        // Si hay campos con "Por definir" o "PENDIENTE", limpiarlos para que el usuario complete
+        if (vehiculo.TipoVehiculo === 'Por definir') {
+            $('#tipo_vehiculo').val('');
+        } else {
+            $('#tipo_vehiculo').val(vehiculo.TipoVehiculo);
+        }
+
+        if (vehiculo.Marca === 'Por definir') {
+            $('#marca').val('');
+        } else {
+            $('#marca').val(vehiculo.Marca);
+        }
+
+        if (vehiculo.Modelo === 'Por definir') {
+            $('#modelo').val('');
+        } else {
+            $('#modelo').val(vehiculo.Modelo);
+        }
+
+        if (vehiculo.ConductorNombre === 'Por completar') {
+            $('#conductor_nombre').val('');
+        } else {
+            $('#conductor_nombre').val(vehiculo.ConductorNombre);
+        }
+
+        if (vehiculo.ConductorCedula === 'Por completar') {
+            $('#conductor_cedula').val('');
+        } else {
+            $('#conductor_cedula').val(vehiculo.ConductorCedula);
+        }
+
+        if (vehiculo.EmpresaCodigo === 'PENDIENTE') {
+            $('#empresa_codigo').val('');
+        } else {
+            $('#empresa_codigo').val(vehiculo.EmpresaCodigo);
+        }
+
+        if (vehiculo.EmpresaNombre === 'PENDIENTE') {
+            $('#empresa_nombre').val('');
+        } else {
+            $('#empresa_nombre').val(vehiculo.EmpresaNombre);
+        }
+
+        if (vehiculo.Proposito === 'PENDIENTE') {
+            $('#proposito').val('');
+        } else {
+            $('#proposito').val(vehiculo.Proposito);
+        }
+
+        // Cargar otros campos si existen
+        if (vehiculo.Color && vehiculo.Color !== 'Sin especificar') {
+            $('#color').val(vehiculo.Color);
+        }
+
+        if (vehiculo.Anio) {
+            $('#anio').val(vehiculo.Anio);
+        }
+
+        if (vehiculo.Kilometraje) {
+            $('#kilometraje').val(vehiculo.Kilometraje);
+        }
+
+        if (vehiculo.Chasis) {
+            $('#chasis').val(vehiculo.Chasis);
+        }
+
+        if (vehiculo.ConductorTelefono && vehiculo.ConductorTelefono !== 'No registrado') {
+            $('#conductor_telefono').val(vehiculo.ConductorTelefono);
+        }
+
+        if (vehiculo.Licencia && vehiculo.Licencia !== 'No registrada') {
+            $('#licencia').val(vehiculo.Licencia);
+        }
+
+        if (vehiculo.EstadoIngreso) {
+            $('#estado_ingreso').val(vehiculo.EstadoIngreso);
+        }
+
+        if (vehiculo.Combustible) {
+            $('#combustible').val(vehiculo.Combustible);
+        }
+
+        if (vehiculo.Area && vehiculo.Area !== 'General') {
+            $('#area').val(vehiculo.Area);
+        }
+
+        if (vehiculo.PersonaContacto && vehiculo.PersonaContacto !== 'No asignado') {
+            $('#persona_contacto').val(vehiculo.PersonaContacto);
+        }
+
+        if (vehiculo.Observaciones) {
+            $('#observaciones').val(vehiculo.Observaciones);
+        }
+    }
+
+    function mostrarFormulario() {
+        $('#form-ingreso-vehiculo').show();
+        $('#mensaje-no-encontrado').hide();
+        $('html, body').animate({
+            scrollTop: $('#form-ingreso-vehiculo').offset().top - 100
+        }, 500);
+    }
+
+    function mostrarVehiculoNoEncontrado() {
+        $('#form-ingreso-vehiculo').hide();
+        $('#mensaje-no-encontrado').show();
+        $('#infoPrecarga').hide();
+        vehiculoEncontrado = null;
+    }
+
     // Validación de patente chilena
     function validarPatenteChilena(patente) {
         patente = patente.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -109,7 +276,7 @@ $(document).ready(function() {
         if (!valida) {
             return {
                 valida: false,
-                mensaje: 'Formato de patente inválido. Formatos: ABCD12, AB1234, AB12CD, ABC123, 1234AB, AB123C',
+                mensaje: 'Formato de patente inválido',
                 patenteNormalizada: patente
             };
         }
@@ -121,7 +288,7 @@ $(document).ready(function() {
         };
     }
 
-    // Funciones de normalización y validación mejoradas
+    // Funciones de normalización
     function normalizarTexto(texto) {
         return texto.trim().replace(/\s+/g, ' ');
     }
@@ -150,148 +317,42 @@ $(document).ready(function() {
         return licencia.toUpperCase().replace(/\s/g, '');
     }
 
-    // Validar nombre (solo letras y espacios)
+    // Validaciones
     function validarNombre(nombre) {
         return /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre);
     }
 
-    // Validar cédula (solo números, entre 7 y 15)
     function validarCedula(cedula) {
         return /^\d{7,15}$/.test(cedula);
     }
 
-    // Validar teléfono (solo números, entre 8 y 15)
     function validarTelefono(telefono) {
         return telefono === '' || /^\d{8,15}$/.test(telefono);
     }
 
-    // Validar licencia (solo letras, números y espacios)
     function validarLicencia(licencia) {
         return licencia === '' || /^[a-zA-Z0-9\s]+$/.test(licencia);
     }
 
-    // Verificar duplicados en tiempo real
-    function verificarDuplicados() {
-        const placa = $('#placa').val();
-        const chasis = $('#chasis').val();
-        const cedula = $('#conductor_cedula').val();
-        const licencia = $('#licencia').val();
+    // Formatear fecha
+    function formatFecha(fechaString) {
+        if (!fechaString) return 'Fecha no disponible';
         
-        return {
-            placaValida: validarPatenteChilena(placa).valida,
-            chasisValido: chasis === '' || chasis.length >= 5,
-            cedulaValida: validarCedula(cedula),
-            licenciaValida: licencia === '' || validarLicencia(licencia)
-        };
-    }
-
-    // Normalizar y validar campos en tiempo real
-    $('#placa').on('blur', function() {
-        let valor = normalizarPlaca($(this).val());
-        $(this).val(valor);
-        validarCampoPlaca();
-    });
-
-    $('#chasis').on('blur', function() {
-        let valor = normalizarChasis($(this).val());
-        $(this).val(valor);
-        
-        if (valor !== '' && !verificarDuplicados().chasisValido) {
-            $(this).addClass('is-invalid');
-            $(this).removeClass('is-valid');
-        } else if (valor !== '') {
-            $(this).removeClass('is-invalid');
-            $(this).addClass('is-valid');
-        } else {
-            $(this).removeClass('is-valid is-invalid');
-        }
-    });
-
-    $('#conductor_nombre').on('blur', function() {
-        let valor = normalizarTexto($(this).val());
-        valor = capitalizarTexto(valor);
-        $(this).val(valor);
-        
-        if (!validarNombre(valor)) {
-            $(this).addClass('is-invalid');
-            $(this).removeClass('is-valid');
-        } else {
-            $(this).removeClass('is-invalid');
-            $(this).addClass('is-valid');
-        }
-    });
-
-    $('#conductor_cedula').on('blur', function() {
-        let valor = normalizarCedula($(this).val());
-        $(this).val(valor);
-        
-        if (!validarCedula(valor)) {
-            $(this).addClass('is-invalid');
-            $(this).removeClass('is-valid');
-        } else {
-            $(this).removeClass('is-invalid');
-            $(this).addClass('is-valid');
-        }
-    });
-
-    $('#conductor_telefono').on('blur', function() {
-        let valor = normalizarTelefono($(this).val());
-        $(this).val(valor);
-        
-        if (!validarTelefono(valor)) {
-            $(this).addClass('is-invalid');
-            $(this).removeClass('is-valid');
-        } else {
-            $(this).removeClass('is-invalid');
-            $(this).addClass('is-valid');
-        }
-    });
-
-    $('#licencia').on('blur', function() {
-        let valor = normalizarLicencia($(this).val());
-        $(this).val(valor);
-        
-        if (!validarLicencia(valor)) {
-            $(this).addClass('is-invalid');
-            $(this).removeClass('is-valid');
-        } else {
-            $(this).removeClass('is-invalid');
-            $(this).addClass('is-valid');
-        }
-    });
-
-    // Formatear patente en tiempo real
-    $('#placa').on('input', function() {
-        let valor = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, '');
-        
-        if (valor.length > 10) {
-            valor = valor.substring(0, 10);
-        }
-        
-        $(this).val(valor);
-        validarCampoPlaca();
-    });
-
-    // Validación específica para placa
-    function validarCampoPlaca() {
-        const placa = $('#placa').val();
-        const resultado = validarPatenteChilena(placa);
-        
-        if (placa === '') {
-            $('#placa').removeClass('is-valid is-invalid');
-            return false;
-        }
-        
-        if (!resultado.valida) {
-            $('#placa').removeClass('is-valid').addClass('is-invalid');
-            return false;
-        } else {
-            $('#placa').removeClass('is-invalid').addClass('is-valid');
-            return true;
+        try {
+            const fecha = new Date(fechaString);
+            return fecha.toLocaleDateString('es-CL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return fechaString;
         }
     }
 
-    // Validación en tiempo real para todos los campos
+    // Validación en tiempo real
     $('#form-ingreso-vehiculo input, #form-ingreso-vehiculo select, #form-ingreso-vehiculo textarea').on('blur', function() {
         const $field = $(this);
         const value = $field.val().trim();
@@ -341,58 +402,23 @@ $(document).ready(function() {
         }
     });
 
-    // Validación antes del envío del formulario
-    function validarFormularioCompleto() {
-        const duplicados = verificarDuplicados();
-        
-        if (!duplicados.placaValida) {
-            mostrarError('Placa inválida', 'Por favor ingrese una placa válida');
-            return false;
-        }
-        
-        if (!duplicados.cedulaValida) {
-            mostrarError('Cédula inválida', 'La cédula debe contener entre 7 y 15 dígitos');
-            return false;
-        }
-        
-        // Validar que no haya caracteres especiales en nombres
-        const conductorNombre = $('#conductor_nombre').val();
-        if (!validarNombre(conductorNombre)) {
-            mostrarError('Nombre inválido', 'El nombre solo puede contener letras y espacios');
-            return false;
-        }
-        
-        return true;
-    }
-
-    // EVENTO PRINCIPAL DEL FORMULARIO
+    // EVENTO PRINCIPAL DEL FORMULARIO - ACTUALIZAR REGISTRO EXISTENTE
     $('#form-ingreso-vehiculo').on('submit', function(e) {
-        console.log('🔔 Submit del formulario capturado');
         e.preventDefault();
         
-        // Validar patente
-        if (!validarCampoPlaca()) {
-            $('#placa').focus();
-            mostrarError('Error en la patente', 'Por favor, ingrese una patente válida');
+        if (!vehiculoEncontrado) {
+            mostrarError('Error', 'Primero busque un vehículo por placa');
             return;
         }
 
-        // Validación adicional antes del envío
-        if (!validarFormularioCompleto()) {
-            return;
-        }
-
-        // Validar formulario completo
+        // Validar formulario
         if (!this.checkValidity()) {
-            console.log('❌ Formulario inválido');
             $(this).addClass('was-validated');
-            
             const firstInvalid = $(this).find('.is-invalid').first();
             if (firstInvalid.length) {
                 firstInvalid.focus();
             }
-            
-            mostrarError('Formulario incompleto', 'Por favor, complete todos los campos obligatorios correctamente');
+            mostrarError('Formulario incompleto', 'Complete todos los campos obligatorios');
             return;
         }
 
@@ -404,183 +430,19 @@ $(document).ready(function() {
             return;
         }
 
-        console.log('✅ Formulario válido, procediendo con registro...');
-        registrarVehiculo();
+        actualizarRegistroVehiculo();
     });
 
-    // Función mejorada para mostrar errores con información detallada de duplicados
-    function mostrarError(titulo, mensaje, camposDuplicados = [], datosDuplicados = {}) {
-        let htmlContent = `
-            <div class="text-left">
-                <h6 class="mb-3">${titulo}</h6>
-                <p class="mb-3">${mensaje}</p>
-        `;
-        
-        if (camposDuplicados.length > 0) {
-            htmlContent += `
-                <div class="alert alert-warning mt-3">
-                    <h6 class="alert-heading mb-2">📋 Entradas duplicadas encontradas:</h6>
-                    <div class="duplicated-entries">
-            `;
-            
-            const camposInfo = {
-                'placa': 'Placa del vehículo',
-                'chasis': 'Número de chasis', 
-                'cedula': 'Cédula del conductor',
-                'licencia': 'Número de licencia'
-            };
-            
-            camposDuplicados.forEach(campo => {
-                const info = datosDuplicados[campo];
-                htmlContent += `<div class="duplicate-item mb-3 p-2 border rounded">`;
-                htmlContent += `<strong>${camposInfo[campo]}</strong>`;
-                
-                if (info) {
-                    htmlContent += `<div class="duplicate-details mt-1 small text-muted">`;
-                    
-                    switch(campo) {
-                        case 'placa':
-                            htmlContent += `
-                                <div>🚗 <strong>Vehículo existente:</strong> ${info.Placa} - ${info.Marca} ${info.Modelo}</div>
-                                <div>👤 Conductor: ${info.ConductorNombre}</div>
-                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
-                            `;
-                            break;
-                        case 'chasis':
-                            htmlContent += `
-                                <div>🔧 <strong>Vehículo existente:</strong> ${info.Placa} - ${info.Marca} ${info.Modelo}</div>
-                                <div>👤 Conductor: ${info.ConductorNombre}</div>
-                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
-                            `;
-                            break;
-                        case 'cedula':
-                            htmlContent += `
-                                <div>👤 <strong>Conductor existente:</strong> ${info.ConductorNombre}</div>
-                                <div>🆔 Cédula: ${info.ConductorCedula}</div>
-                                <div>🚗 Vehículo: ${info.Placa}</div>
-                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
-                            `;
-                            break;
-                        case 'licencia':
-                            htmlContent += `
-                                <div>📜 <strong>Conductor existente:</strong> ${info.ConductorNombre}</div>
-                                <div>🆔 Licencia: ${info.Licencia}</div>
-                                <div>🚗 Vehículo: ${info.Placa}</div>
-                                <div>📅 Fecha de ingreso: ${formatFecha(info.FechaIngreso)}</div>
-                            `;
-                            break;
-                    }
-                    
-                    htmlContent += `</div>`;
-                }
-                
-                htmlContent += `</div>`;
-            });
-            
-            htmlContent += `
-                    </div>
-                    <hr>
-                    <p class="mb-0 small">⚠️ Los campos marcados han sido limpiados automáticamente. Por favor, ingrese valores únicos.</p>
-                </div>
-            `;
-        }
-        
-        htmlContent += `</div>`;
-        
-        Swal.fire({
-            icon: 'error',
-            title: titulo,
-            html: htmlContent,
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#dc3545',
-            width: '600px',
-            focusConfirm: false,
-            timer: camposDuplicados.length > 0 ? 15000 : 5000
-        }).then((result) => {
-            // Si hay campos duplicados, limpiarlos y enfocar el primero
-            if (camposDuplicados.length > 0) {
-                limpiarCamposDuplicados(camposDuplicados);
-            }
-        });
-    }
+    function actualizarRegistroVehiculo() {
+        $('#btn-registrar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Actualizando...');
 
-    // Función para formatear fecha
-    function formatFecha(fechaString) {
-        if (!fechaString) return 'Fecha no disponible';
-        
-        try {
-            const fecha = new Date(fechaString);
-            return fecha.toLocaleDateString('es-CL', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (e) {
-            return fechaString;
-        }
-    }
-
-    // Función para limpiar campos duplicados
-    function limpiarCamposDuplicados(camposDuplicados) {
-        console.log('🧹 Limpiando campos duplicados:', camposDuplicados);
-        
-        const mapeoCampos = {
-            'placa': '#placa',
-            'chasis': '#chasis',
-            'cedula': '#conductor_cedula', 
-            'licencia': '#licencia'
-        };
-        
-        // Limpiar todos los campos duplicados
-        camposDuplicados.forEach(campo => {
-            const selector = mapeoCampos[campo];
-            if (selector) {
-                $(selector).val('')
-                    .removeClass('is-valid is-invalid')
-                    .addClass('is-invalid')
-                    .addClass('highlight-duplicate');
-                
-                // Agregar mensaje de error específico
-                const mensajeError = `Este valor ya existe en el sistema. Por favor ingrese uno diferente.`;
-                $(selector).next('.invalid-feedback').text(mensajeError);
-                
-                // Remover la clase de highlight después de la animación
-                setTimeout(() => {
-                    $(selector).removeClass('highlight-duplicate');
-                }, 2000);
-            }
-        });
-        
-        // Enfocar el primer campo duplicado
-        if (camposDuplicados.length > 0) {
-            const primerCampo = mapeoCampos[camposDuplicados[0]];
-            if (primerCampo) {
-                setTimeout(() => {
-                    $(primerCampo).focus();
-                }, 500);
-            }
-        }
-    }
-
-    // Función principal para registrar el vehículo
-    function registrarVehiculo() {
-        console.log('🔔 Iniciando registro de vehículo...');
-        
-        // Validación adicional antes del envío
-        if (!validarFormularioCompleto()) {
-            return;
-        }
-
-        // Deshabilitar botón
-        $('#btn-registrar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
-
-        // Preparar FormData con datos normalizados
+        // Preparar FormData
         const formData = new FormData();
         
         // OBTENER Y NORMALIZAR TODOS LOS CAMPOS
         const camposFormulario = {
+            action: 'actualizar_ingreso',
+            ingreso_id: $('#ingreso_id').val(),
             placa: normalizarPlaca($('#placa').val()),
             tipo_vehiculo: $('#tipo_vehiculo').val(),
             marca: normalizarTexto($('#marca').val()),
@@ -604,51 +466,25 @@ $(document).ready(function() {
             usuario_id: $('#usuario_id').val() || 1
         };
 
-        console.log('📝 Datos normalizados:', camposFormulario);
-
         // Agregar campos manualmente al FormData
         Object.keys(camposFormulario).forEach(key => {
-            if (camposFormulario[key] !== undefined && camposFormulario[key] !== null && camposFormulario[key] !== '') {
+            if (camposFormulario[key] !== undefined && camposFormulario[key] !== null) {
                 formData.append(key, camposFormulario[key]);
             }
         });
 
-        // DEBUG: Verificar que el color se agregó correctamente
-        console.log('🔍 Verificando FormData - color:');
-        for (let pair of formData.entries()) {
-            if (pair[0] === 'color') {
-                console.log('✅ Color encontrado en FormData:', pair[1]);
-            }
-        }
-
-        // Manejar archivos de forma segura
+        // Manejar archivos
         try {
             const inputDocumentos = document.getElementById('documentos');
-            const inputFotos = document.getElementById('fotos');
-            
             if (inputDocumentos && inputDocumentos.files) {
                 const documentos = inputDocumentos.files;
                 for (let i = 0; i < documentos.length; i++) {
                     formData.append('documentos[]', documentos[i]);
                 }
-                console.log(`📄 Documentos a subir: ${documentos.length}`);
-            }
-            
-            if (inputFotos && inputFotos.files) {
-                const fotos = inputFotos.files;
-                for (let i = 0; i < fotos.length; i++) {
-                    formData.append('fotos[]', fotos[i]);
-                }
-                console.log(`📷 Fotos a subir: ${fotos.length}`);
             }
         } catch (error) {
-            console.warn('⚠️ Error al procesar archivos:', error);
+            console.warn('Error al procesar archivos:', error);
         }
-
-        // Agregar acción
-        formData.append('action', 'registrar_ingreso');
-
-        console.log('📤 Enviando datos al servidor:', baseUrl);
 
         // Enviar datos via AJAX
         $.ajax({
@@ -660,73 +496,63 @@ $(document).ready(function() {
             dataType: 'json',
             timeout: 30000,
             success: function(response) {
-                console.log('📨 Respuesta del servidor:', response);
-                
                 if (response.success) {
-                    // Éxito - usar la nueva función mejorada
                     mostrarModalExito(response.ingreso_id, response.message);
-                    
-                    // Limpiar formulario
-                    $('#form-ingreso-vehiculo')[0].reset();
-                    $('#form-ingreso-vehiculo').removeClass('was-validated');
-                    $('.custom-file-label').html('Seleccionar archivos...');
-                    $('#lista-documentos, #lista-fotos').empty();
-                    $('.is-valid').removeClass('is-valid');
-                    
-                    console.log('✅ Vehículo registrado exitosamente');
+                    limpiarFormulario();
                 } else {
-                    // Verificar si hay campos duplicados
-                    if (response.duplicated_fields && response.duplicated_fields.length > 0) {
-                        mostrarError(
-                            'Datos duplicados encontrados', 
-                            response.message, 
-                            response.duplicated_fields, 
-                            response.duplicated_data
-                        );
-                    } else {
-                        mostrarError('Error al registrar', response.message || 'Error desconocido');
-                    }
+                    mostrarError('Error al actualizar', response.message || 'Error desconocido');
                 }
             },
             error: function(xhr, status, error) {
-                console.error('❌ Error en AJAX:', error);
-                console.error('📊 Estado:', status);
-                
-                // Mostrar la respuesta del servidor para debugging
-                if (xhr.responseText) {
-                    console.error('📄 Respuesta del servidor:', xhr.responseText);
-                }
-                
                 let errorMsg = 'Error de conexión con el servidor';
-                
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
-                } else if (xhr.statusText) {
-                    errorMsg = xhr.statusText;
                 }
-                
                 mostrarError('Error de conexión', errorMsg);
             },
             complete: function() {
-                $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-car"></i> Registrar Ingreso de Vehículo');
+                $('#btn-registrar').prop('disabled', false).html('<i class="fas fa-save"></i> Completar Registro');
             }
         });
     }
 
-    // Función mejorada para mostrar el modal de éxito
+    function limpiarFormulario() {
+        $('#form-ingreso-vehiculo')[0].reset();
+        $('#form-ingreso-vehiculo').removeClass('was-validated');
+        $('.custom-file-label').html('Seleccionar archivos...');
+        $('#lista-documentos').empty();
+        $('.is-valid').removeClass('is-valid');
+        $('#form-ingreso-vehiculo').hide();
+        $('#buscadorPlaca').val('');
+        $('#infoPrecarga').hide();
+        vehiculoEncontrado = null;
+    }
+
+    $('#btn-limpiar').click(function() {
+        limpiarFormulario();
+        $('#mensaje-no-encontrado').hide();
+    });
+
+    // Función para mostrar errores
+    function mostrarError(titulo, mensaje) {
+        Swal.fire({
+            icon: 'error',
+            title: titulo,
+            text: mensaje,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#dc3545'
+        });
+    }
+
+    // Función para mostrar el modal de éxito
     function mostrarModalExito(ingresoId, mensaje) {
-        // Actualizar mensaje con ID si está disponible
         if (ingresoId) {
             $('#mensaje-exito').html(`
-                El vehículo ha sido registrado correctamente en el sistema. 
+                La información del vehículo ha sido completada correctamente.
                 <br><strong>ID de ingreso: <span id="id-registro">${ingresoId}</span></strong>
-                <br>Se han notificado a los responsables correspondientes.
             `);
-        } else {
-            $('#mensaje-exito').html(mensaje || 'El vehículo ha sido registrado correctamente en el sistema.');
         }
         
-        // Actualizar fecha actual
         const ahora = new Date();
         const fechaFormateada = ahora.toLocaleDateString('es-CL', {
             day: '2-digit',
@@ -737,22 +563,10 @@ $(document).ready(function() {
         });
         $('#fecha-registro').text(fechaFormateada);
         
-        // Mostrar modal con efectos
         $('#modal-exito').modal('show');
-        
-        // Efecto de confeti opcional (requiere librería confetti.js)
-        if (typeof confetti === 'function') {
-            setTimeout(() => {
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-            }, 300);
-        }
     }
 
-    // MANEJADORES DE EVENTOS PARA EL MODAL - CORREGIDOS
+    // Manejadores de eventos para el modal
     $(document).on('click', '#modal-exito .btn-success, #modal-exito .close, #modal-exito [data-dismiss="modal"]', function() {
         $('#modal-exito').modal('hide');
     });
@@ -760,24 +574,9 @@ $(document).ready(function() {
     $(document).on('click', '#modal-exito .btn-outline-primary', function() {
         $('#modal-exito').modal('hide');
         setTimeout(() => {
-            window.location.reload();
+            location.reload();
         }, 300);
     });
 
-    // También manejar el evento hidden.bs.modal para asegurar el cierre
-    $('#modal-exito').on('hidden.bs.modal', function() {
-        console.log('Modal cerrado correctamente');
-    });
-
-    // Limpiar validación al resetear formulario
-    $('button[type="reset"]').on('click', function() {
-        $('#form-ingreso-vehiculo').removeClass('was-validated');
-        $('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-        $('.custom-file-label').html('Seleccionar archivos...');
-        $('#lista-documentos, #lista-fotos').empty();
-        documentosSubidos = [];
-        fotosSubidas = [];
-    });
-
-    console.log('🚀 Aplicación lista para usar');
+    console.log('🚀 Aplicación de conductor lista para usar');
 });

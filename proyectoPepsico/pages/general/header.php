@@ -1,3 +1,27 @@
+<?php
+// Al inicio del header.php, después de tus includes existentes
+include 'funciones_notificaciones.php';
+
+// Obtener notificaciones del usuario actual
+$notificaciones = [];
+$contador_notificaciones = 0;
+
+if (isset($usuario_id) && !empty($usuario_id)) {
+    $notificaciones = obtenerNotificacionesUsuario($usuario_id, 5);
+    $contador_notificaciones = obtenerContadorNotificaciones($usuario_id);
+}
+
+// Procesar marcar como leída si se envió la solicitud
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida'])) {
+    $notificacion_id = intval($_POST['notificacion_id']);
+    if ($notificacion_id > 0) {
+        marcarNotificacionLeida($notificacion_id, $usuario_id);
+        // Recargar la página o usar AJAX para actualizar
+        echo "<script>window.location.reload();</script>";
+    }
+}
+?>
+
 <!-- [ Header ] start -->
 <header class="pc-header">
     <div class="header-wrapper">
@@ -55,56 +79,57 @@
                 <li class="dropdown pc-h-item">
                     <a class="pc-head-link dropdown-toggle arrow-none me-0" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                         <i class="ti ti-bell"></i>
-                        <span class="badge bg-danger notification-badge">3</span>
+                        <?php if ($contador_notificaciones > 0): ?>
+                            <span class="badge bg-danger notification-badge"><?php echo $contador_notificaciones; ?></span>
+                        <?php endif; ?>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end pc-h-dropdown notification-dropdown">
                         <div class="dropdown-header">
                             <h6 class="mb-0">Notificaciones</h6>
-                            <span class="text-muted">3 sin leer</span>
+                            <?php if ($contador_notificaciones > 0): ?>
+                                <span class="text-muted"><?php echo $contador_notificaciones; ?> sin leer</span>
+                            <?php else: ?>
+                                <span class="text-muted">0 sin leer</span>
+                            <?php endif; ?>
                         </div>
                         <div class="dropdown-body">
-                            <a href="#!" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <div class="notification-icon bg-primary">
-                                            <i class="ti ti-car"></i>
+                            <?php if (empty($notificaciones)): ?>
+                                <div class="text-center py-3">
+                                    <i class="ti ti-bell-off text-muted mb-2" style="font-size: 2rem;"></i>
+                                    <p class="text-muted mb-0">No hay notificaciones</p>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($notificaciones as $notificacion): ?>
+                                    <div class="notification-item">
+                                        <div class="d-flex align-items-start">
+                                            <div class="flex-grow-1 me-3">
+                                                <h6 class="notification-title mb-1"><?php echo htmlspecialchars($notificacion['titulo']); ?></h6>
+                                                <p class="notification-message mb-1"><?php echo htmlspecialchars($notificacion['mensaje']); ?></p>
+                                                <small class="text-muted">
+                                                    <i class="ti ti-clock"></i>
+                                                    <?php 
+                                                    $fecha = new DateTime($notificacion['fecha_creacion']);
+                                                    echo $fecha->format('d/m/Y H:i');
+                                                    ?>
+                                                </small>
+                                            </div>
+                                            <div class="flex-shrink-0">
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="notificacion_id" value="<?php echo $notificacion['id']; ?>">
+                                                    <button type="submit" name="marcar_leida" class="btn btn-sm btn-outline-success" title="Marcar como leída">
+                                                        <i class="ti ti-check"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <p class="mb-0">Nuevo vehículo registrado</p>
-                                        <small class="text-muted">Hace 5 minutos</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#!" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <div class="notification-icon bg-warning">
-                                            <i class="ti ti-alert-triangle"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <p class="mb-0">Tarea pendiente de revisión</p>
-                                        <small class="text-muted">Hace 1 hora</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <a href="#!" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <div class="notification-icon bg-success">
-                                            <i class="ti ti-check"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <p class="mb-0">Reparación completada</p>
-                                        <small class="text-muted">Hace 2 horas</small>
-                                    </div>
-                                </div>
-                            </a>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                         <div class="dropdown-footer">
-                            <a href="#!" class="btn btn-sm btn-primary w-100">Ver todas</a>
+                            <a href="notificaciones.php" class="btn btn-sm btn-primary w-100">
+                                Ver todas las notificaciones
+                            </a>
                         </div>
                     </div>
                 </li>
@@ -157,22 +182,6 @@
                                     </small>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Opciones del menú -->
-                        <div class="dropdown-body">
-                            <a href="#!" class="dropdown-item">
-                                <i class="ti ti-user me-2"></i>
-                                <span>Mi Perfil</span>
-                            </a>
-                            <a href="#!" class="dropdown-item">
-                                <i class="ti ti-settings me-2"></i>
-                                <span>Configuración</span>
-                            </a>
-                            <a href="#!" class="dropdown-item">
-                                <i class="ti ti-bell me-2"></i>
-                                <span>Notificaciones</span>
-                            </a>
                         </div>
                         
                         <!-- Footer con cerrar sesión -->
@@ -365,35 +374,74 @@
 }
 
 .notification-dropdown {
-    min-width: 320px;
+    min-width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
-.notification-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
+.notification-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e9ecef;
+    transition: all 0.3s ease;
 }
 
-.notification-dropdown .dropdown-item {
-    border-bottom: 1px solid #f8f9fa;
-    padding: 0.75rem 1rem;
-}
-
-.notification-dropdown .dropdown-item:last-child {
+.notification-item:last-child {
     border-bottom: none;
 }
 
-.notification-dropdown .dropdown-item p {
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
+.notification-item:hover {
+    background-color: #f8f9fa;
 }
 
-.notification-dropdown .dropdown-item small {
-    font-size: 0.75rem;
+.notification-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    color: #2c3e50;
+    line-height: 1.2;
+}
+
+.notification-message {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    color: #6c757d;
+    line-height: 1.3;
+}
+
+.notification-dropdown .dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.notification-dropdown .dropdown-body {
+    padding: 0;
+}
+
+.notification-dropdown .dropdown-footer {
+    padding: 12px 15px;
+    border-top: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    position: sticky;
+    bottom: 0;
+}
+
+/* Botón de marcar como leída */
+.btn-outline-success {
+    border-color: #28a745;
+    color: #28a745;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    color: white;
 }
 
 /* Responsive */
@@ -407,7 +455,7 @@
     }
     
     .notification-dropdown {
-        min-width: 280px;
+        min-width: 300px;
         right: 0 !important;
         left: auto !important;
     }
@@ -420,6 +468,10 @@
         width: 36px;
         height: 36px;
         font-size: 0.9rem;
+    }
+    
+    .notification-dropdown {
+        min-width: 280px;
     }
 }
 
@@ -465,6 +517,63 @@
     background: #2d3748;
     border-top-color: #4a5568;
 }
+
+[data-pc-theme="dark"] .notification-item {
+    border-bottom-color: #4a5568;
+}
+
+[data-pc-theme="dark"] .notification-item:hover {
+    background-color: #4a5568;
+}
+
+[data-pc-theme="dark"] .notification-title {
+    color: #e2e8f0;
+}
+
+[data-pc-theme="dark"] .notification-message {
+    color: #a0aec0;
+}
+
+[data-pc-theme="dark"] .notification-dropdown .dropdown-header,
+[data-pc-theme="dark"] .notification-dropdown .dropdown-footer {
+    background-color: #2d3748;
+    border-color: #4a5568;
+}
+
+[data-pc-theme="dark"] .user-dropdown-header {
+    background: linear-gradient(135deg, #004B93 0%, #002D5A 100%);
+}
+
+/* Scrollbar personalizado para notificaciones */
+.notification-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+[data-pc-theme="dark"] .notification-dropdown::-webkit-scrollbar-track {
+    background: #4a5568;
+}
+
+[data-pc-theme="dark"] .notification-dropdown::-webkit-scrollbar-thumb {
+    background: #718096;
+}
+
+[data-pc-theme="dark"] .notification-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #90a3bf;
+}
 </style>
 
 <script>
@@ -501,6 +610,17 @@ function layout_change(theme) {
     }
 }
 
+// Actualizar notificaciones cada 30 segundos
+function actualizarNotificaciones() {
+    fetch('?actualizar_notificaciones=1')
+        .then(response => response.text())
+        .then(data => {
+            // Aquí puedes actualizar el contador y la lista de notificaciones
+            console.log('Notificaciones actualizadas');
+        })
+        .catch(error => console.error('Error al actualizar notificaciones:', error));
+}
+
 // Cargar tema guardado al iniciar
 document.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -513,18 +633,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Manejo de notificaciones
-    const notificationBell = document.querySelector('.pc-head-link .ti-bell');
-    if (notificationBell) {
-        notificationBell.addEventListener('click', function() {
-            // Aquí puedes agregar lógica para marcar notificaciones como leídas
-            const badge = document.querySelector('.notification-badge');
-            if (badge) {
-                badge.style.display = 'none';
-            }
-        });
-    }
-    
     // Confirmación al cerrar sesión
     const logoutLink = document.querySelector('.dropdown-item.text-danger');
     if (logoutLink) {
@@ -534,5 +642,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Iniciar actualización automática de notificaciones
+    setInterval(actualizarNotificaciones, 30000);
+    
+    // Manejar el cierre del dropdown de notificaciones al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        const notificationDropdown = document.querySelector('.notification-dropdown');
+        const notificationToggle = document.querySelector('.pc-head-link[data-bs-toggle="dropdown"]');
+        
+        if (notificationDropdown && notificationToggle && 
+            !notificationDropdown.contains(e.target) && 
+            !notificationToggle.contains(e.target)) {
+            // El dropdown se cierra automáticamente con Bootstrap
+        }
+    });
 });
+
+// Función para marcar notificación como leída con AJAX (opcional)
+function marcarNotificacionLeida(notificacionId) {
+    fetch('marcar_notificacion_leida.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'notificacion_id=' + notificacionId
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar la interfaz
+            const badge = document.querySelector('.notification-badge');
+            if (badge) {
+                const currentCount = parseInt(badge.textContent);
+                if (currentCount > 1) {
+                    badge.textContent = currentCount - 1;
+                } else {
+                    badge.remove();
+                }
+            }
+            // Remover la notificación de la lista
+            const notificationItem = document.querySelector('[data-notification-id="' + notificacionId + '"]');
+            if (notificationItem) {
+                notificationItem.remove();
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
 </script>

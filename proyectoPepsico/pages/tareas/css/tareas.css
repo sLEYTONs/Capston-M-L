@@ -156,3 +156,66 @@
     background-color: #f8f9fa !important;
     border-bottom: 1px solid #dee2e6;
 }
+
+/* Evitar que las columnas se desarmen por textos largos */
+#tareas-table td {
+    white-space: normal !important;
+    word-wrap: break-word;
+    word-break: break-word;
+    max-width: 290px; /* Ajusta el ancho máximo que quieres permitir */
+}
+
+/* Estilos para las fotos en tareas */
+.foto-preview-card {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.foto-preview-card .btn-remove-foto {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255, 0, 0, 0.7);
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.foto-preview-card .foto-info {
+    padding: 5px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.foto-card {
+    transition: transform 0.2s;
+}
+
+.foto-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.foto-card img {
+    cursor: pointer;
+}
+
+/* Estados de las tareas */
+.status-Asignado { background-color: #ffc107; color: #000; }
+.status-Enprogreso { background-color: #0dcaf0; color: #000; }
+.status-Completado { background-color: #198754; color: #fff; }
+
+.placa-badge {
+    background: #004B93;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
