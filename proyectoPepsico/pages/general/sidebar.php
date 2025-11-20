@@ -135,8 +135,8 @@
         </li>
         <?php endif; ?>
 
-        <!-- Menú desplegable para Gestión (solo para roles con acceso a marcas, base_datos o gestion_usuarios) -->
-        <?php if (tiene_acceso('marcas.php') || tiene_acceso('base_datos.php') || tiene_acceso('gestion_usuarios.php')): ?>
+        <!-- Menú desplegable para Gestión (solo para roles con acceso a base_datos o gestion_usuarios) -->
+        <?php if (tiene_acceso('base_datos.php') || tiene_acceso('gestion_usuarios.php')): ?>
         <li class="pc-item pc-hasmenu">
           <a href="#!" class="pc-link">
             <span class="pc-micon">
@@ -148,13 +148,6 @@
             </span>
           </a>
           <ul class="pc-submenu">
-            <?php if (tiene_acceso('marcas.php')): ?>
-            <li class="pc-item">
-              <a href="marcas.php" class="pc-link">
-                <span class="pc-mtext">Marcas</span>
-              </a>
-            </li>
-            <?php endif; ?>
 
             <?php if (tiene_acceso('base_datos.php')): ?>
             <li class="pc-item">
