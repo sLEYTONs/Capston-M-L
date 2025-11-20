@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         switch ($action) {
             case 'buscar_ingreso_pendiente':
+            case 'buscar_por_placa':
                 $placa = $_POST['placa'] ?? '';
                 
                 if (empty($placa)) {

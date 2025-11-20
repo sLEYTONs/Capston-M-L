@@ -1,5 +1,7 @@
 <?php
-require_once __DIR__.'/../../app/config/conexion.php';
+if (!defined('FUNCIONES_NOTIFICACIONES_INCLUIDO')) {
+    define('FUNCIONES_NOTIFICACIONES_INCLUIDO', true);
+    require_once __DIR__.'/../../app/config/conexion.php';
 
 /**
  * Crea una nueva notificación para usuarios específicos
@@ -57,10 +59,11 @@ function obtenerUsuariosPorRoles($roles) {
     try {
         // Crear placeholders para la consulta IN
         $placeholders = str_repeat('?,', count($roles) - 1) . '?';
-        $sql = "SELECT id FROM usuarios WHERE rol IN ($placeholders) AND estado = 'activo'";
+        $sql = "SELECT UsuarioID FROM usuarios WHERE Rol IN ($placeholders) AND Estado = 1";
         
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
+            error_log("Error preparando consulta obtenerUsuariosPorRoles: " . $conn->error);
             $conn->close();
             return [];
         }
@@ -73,7 +76,7 @@ function obtenerUsuariosPorRoles($roles) {
         $result = $stmt->get_result();
         
         while ($row = $result->fetch_assoc()) {
-            $usuarios[] = $row['id'];
+            $usuarios[] = $row['UsuarioID'];
         }
         
         $stmt->close();
@@ -202,4 +205,5 @@ function obtenerContadorNotificaciones($usuario_id) {
     
     return $contador;
 }
+} // Fin del if de protección contra doble inclusión
 ?>

@@ -338,6 +338,48 @@ class ConsultaVehiculos {
                                     ${vehiculo.Observaciones ? `<p><strong>Observaciones:</strong> ${vehiculo.Observaciones}</p>` : ''}
                                 </div>
                             </div>
+                            ${vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6 class="section-title mb-3">
+                                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo
+                                    </h6>
+                                    <div class="row g-3" id="galeria-imagenes-vehiculo">
+                                        ${vehiculo.Fotos.map((foto, index) => {
+                                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
+                                            const tipoFoto = foto.tipo || foto.angulo || 'General';
+                                            return `
+                                                <div class="col-md-3 col-sm-4 col-6">
+                                                    <div class="card mb-3 imagen-vehiculo-card">
+                                                        <img src="${fotoData}" 
+                                                             class="card-img-top imagen-vehiculo" 
+                                                             alt="${tipoFoto}"
+                                                             style="height: 150px; object-fit: cover; cursor: pointer;"
+                                                             onclick="window.open('${fotoData}', '_blank')"
+                                                             data-bs-toggle="tooltip" 
+                                                             title="Click para ampliar">
+                                                        <div class="card-body p-2">
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-camera me-1"></i>${tipoFoto}
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                            ` : `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No hay imágenes registradas para este vehículo
+                                    </div>
+                                </div>
+                            </div>
+                            `}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -655,7 +697,7 @@ class ConsultaVehiculos {
         $('#modal-placa-seguimiento').text(data.vehiculo.Placa);
         
         // Mostrar información de asignación
-        this.mostrarInfoAsignacion(data.asignacion);
+        this.mostrarInfoAsignacion(data.asignacion, data.vehiculo);
         
         // Mostrar avances del mecánico
         this.mostrarAvancesMecanico(data.avances);
@@ -664,19 +706,118 @@ class ConsultaVehiculos {
         seguimientoModal.show();
     }
 
-    mostrarInfoAsignacion(asignacion) {
+    mostrarInfoAsignacion(asignacion, vehiculo) {
         if (!asignacion) {
-            $('#info-asignacion').html('<div class="alert alert-warning">No hay asignación activa para este vehículo.</div>');
+            $('#info-asignacion').html(`
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No hay asignación activa para este vehículo.
+                </div>
+                ${vehiculo && vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
+                <div class="mt-3">
+                    <h6 class="section-title mb-2">
+                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo
+                    </h6>
+                    <div class="row g-2">
+                        ${vehiculo.Fotos.map((foto, index) => {
+                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
+                            return `
+                                <div class="col-md-4 col-sm-6">
+                                    <img src="${fotoData}" 
+                                         class="img-thumbnail imagen-vehiculo-seguimiento" 
+                                         alt="Foto ${index + 1}"
+                                         style="cursor: pointer; width: 100%; height: 120px; object-fit: cover;"
+                                         onclick="window.open('${fotoData}', '_blank')"
+                                         title="Click para ampliar">
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            `);
             return;
         }
 
+        const estadoClass = asignacion.Estado.toLowerCase().replace(/\s+/g, '');
+        const estadoColor = {
+            'asignado': 'warning',
+            'enproceso': 'info',
+            'en proceso': 'info',
+            'completado': 'success'
+        }[estadoClass] || 'secondary';
+
         const html = `
-            <p><strong>Mecánico:</strong> ${asignacion.MecanicoNombre}</p>
-            <p><strong>Fecha Asignación:</strong> ${asignacion.FechaAsignacion}</p>
-            <p><strong>Observaciones:</strong> ${asignacion.Observaciones || 'Ninguna'}</p>
-            <p><strong>Estado Actual:</strong> <span class="status-badge status-${asignacion.Estado.replace(' ', '')}">${asignacion.Estado}</span></p>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <i class="fas fa-user-cog me-2"></i>Información de Asignación
+                    </h6>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="fw-bold" style="width: 40%;">Mecánico:</td>
+                            <td>${asignacion.MecanicoNombre}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">Fecha Asignación:</td>
+                            <td>${asignacion.FechaAsignacion}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">Estado Actual:</td>
+                            <td>
+                                <span class="badge bg-${estadoColor}">${asignacion.Estado}</span>
+                            </td>
+                        </tr>
+                    </table>
+                    ${asignacion.Observaciones ? `
+                        <div class="mt-3 pt-3 border-top">
+                            <strong>Observaciones:</strong>
+                            <p class="mb-0 text-muted small">${asignacion.Observaciones}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+            ${vehiculo && vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo al Ingreso
+                    </h6>
+                    <div class="row g-2">
+                        ${vehiculo.Fotos.map((foto, index) => {
+                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
+                            const tipoFoto = foto.tipo || foto.angulo || 'General';
+                            return `
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="position-relative">
+                                        <img src="${fotoData}" 
+                                             class="img-thumbnail imagen-vehiculo-seguimiento" 
+                                             alt="${tipoFoto}"
+                                             style="cursor: pointer; width: 100%; height: 100px; object-fit: cover;"
+                                             onclick="window.open('${fotoData}', '_blank')"
+                                             data-bs-toggle="tooltip" 
+                                             title="${tipoFoto} - Click para ampliar">
+                                        <small class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white text-center p-1" style="font-size: 0.65rem;">
+                                            ${tipoFoto}
+                                        </small>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            ` : ''}
         `;
         $('#info-asignacion').html(html);
+        
+        // Inicializar tooltips
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            const tooltipTriggerList = $('#info-asignacion [data-bs-toggle="tooltip"]');
+            tooltipTriggerList.each((index, element) => {
+                new bootstrap.Tooltip(element);
+            });
+        }
     }
 
     mostrarAvancesMecanico(avances) {
@@ -685,20 +826,73 @@ class ConsultaVehiculos {
         if (avances.length === 0) {
             html = '<div class="alert alert-info">No hay avances registrados aún.</div>';
         } else {
-            avances.forEach(avance => {
+            html = '<div class="timeline-avances">';
+            avances.forEach((avance, index) => {
+                const fotos = avance.Fotos && Array.isArray(avance.Fotos) ? avance.Fotos : [];
+                const estadoClass = avance.Estado.toLowerCase().replace(/\s+/g, '');
+                const estadoColor = {
+                    'asignado': 'warning',
+                    'enproceso': 'info',
+                    'en progreso': 'info',
+                    'completado': 'success'
+                }[estadoClass] || 'secondary';
+                
                 html += `
-                    <div class="avance-item">
-                        <div class="avance-header">
-                            <strong>${avance.FechaAvance}</strong>
-                            <span class="avance-estado ${avance.Estado.toLowerCase().replace(' ', '')}">${avance.Estado}</span>
+                    <div class="avance-item avance-${estadoClass} mb-4">
+                        <div class="avance-header d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="avance-indicador avance-indicador-${estadoColor} me-3"></div>
+                                <div>
+                                    <strong class="avance-fecha">${avance.FechaAvance}</strong>
+                                    <div class="avance-estado-badge badge bg-${estadoColor} ms-2">${avance.Estado}</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="avance-descripcion">${avance.Descripcion}</div>
+                        <div class="avance-contenido">
+                            <div class="avance-descripcion mb-2">
+                                ${avance.Descripcion || 'Sin descripción'}
+                            </div>
+                            ${fotos.length > 0 ? `
+                                <div class="avance-fotos mt-3">
+                                    <small class="text-muted mb-2 d-block">
+                                        <i class="fas fa-images me-1"></i>${fotos.length} foto(s) adjunta(s):
+                                    </small>
+                                    <div class="row g-2">
+                                        ${fotos.map((foto, fotoIndex) => {
+                                            const fotoData = typeof foto === 'string' ? foto : (foto.ruta || foto.data || foto.foto || foto);
+                                            return `
+                                                <div class="col-md-3 col-sm-4 col-6">
+                                                    <div class="card imagen-avance-card">
+                                                        <img src="${fotoData}" 
+                                                             class="card-img-top imagen-avance" 
+                                                             alt="Foto avance ${fotoIndex + 1}"
+                                                             style="height: 100px; object-fit: cover; cursor: pointer;"
+                                                             onclick="window.open('${fotoData}', '_blank')"
+                                                             data-bs-toggle="tooltip" 
+                                                             title="Click para ampliar">
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             });
+            html += '</div>';
         }
         
         $('#avances-mecanico').html(html);
+        
+        // Inicializar tooltips si Bootstrap está disponible
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            const tooltipTriggerList = $('#avances-mecanico [data-bs-toggle="tooltip"]');
+            tooltipTriggerList.each((index, element) => {
+                new bootstrap.Tooltip(element);
+            });
+        }
     }
 
     obtenerClaseEstado(estado) {

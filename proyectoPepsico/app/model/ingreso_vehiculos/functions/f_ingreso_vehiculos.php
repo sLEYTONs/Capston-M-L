@@ -661,7 +661,7 @@ function notificarNuevoIngreso($datos_vehiculo, $ingreso_id) {
     $titulo = "Nuevo Ingreso de Vehículo";
     $mensaje = "Vehículo {$datos_vehiculo['placa']} - {$datos_vehiculo['marca']} {$datos_vehiculo['modelo']} ingresado por {$datos_vehiculo['conductor_nombre']}";
     $modulo = "ingreso_vehiculos";
-    $enlace = "ingresos_vehiculos.php?ver={$ingreso_id}";
+    $enlace = "consulta.php";
     
     // Crear notificación
     $resultado = crearNotificacion($usuarios_destino, $titulo, $mensaje, $modulo, $enlace);

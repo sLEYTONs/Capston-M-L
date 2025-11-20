@@ -46,6 +46,8 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     include 'general/script.php';
 
 ?>
+<!-- Script de reportes - debe cargarse después de jQuery -->
+<script src="reportes/js/app.js"></script>
 </body>
 
 </html>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/conexion.php';
+require_once '../../../../pages/general/funciones_notificaciones.php';
 
 function buscarVehiculos($filtros) {
     $conn = conectar_Pepsico();
@@ -97,6 +98,7 @@ function obtenerVehiculoPorID($id) {
                 TipoVehiculo,
                 Marca,
                 Modelo,
+                Fotos,
                 Color,
                 Anio,
                 ConductorNombre,
@@ -126,6 +128,12 @@ function obtenerVehiculoPorID($id) {
 
     $vehiculo = null;
     if ($row = mysqli_fetch_assoc($result)) {
+        // Decodificar JSON de fotos si existe
+        if (!empty($row['Fotos'])) {
+            $row['Fotos'] = json_decode($row['Fotos'], true);
+        } else {
+            $row['Fotos'] = [];
+        }
         $vehiculo = $row;
     }
 
@@ -254,21 +262,37 @@ function asignarMecanico($vehiculo_id, $mecanico_id, $observaciones) {
     mysqli_begin_transaction($conn);
 
     try {
-        // 1. Actualizar estado del vehículo
+        // 1. Obtener información del vehículo antes de actualizar
+        $selectVehiculo = "SELECT Placa, Marca, Modelo, TipoVehiculo FROM ingreso_vehiculos WHERE ID = ?";
+        $stmt_select = mysqli_prepare($conn, $selectVehiculo);
+        mysqli_stmt_bind_param($stmt_select, 'i', $vehiculo_id);
+        mysqli_stmt_execute($stmt_select);
+        $result_vehiculo = mysqli_stmt_get_result($stmt_select);
+        $vehiculo = mysqli_fetch_assoc($result_vehiculo);
+        mysqli_stmt_close($stmt_select);
+
+        // 2. Actualizar estado del vehículo
         $updateVehiculo = "UPDATE ingreso_vehiculos SET Estado = 'Asignado' WHERE ID = ?";
         $stmt = mysqli_prepare($conn, $updateVehiculo);
         mysqli_stmt_bind_param($stmt, 'i', $vehiculo_id);
         mysqli_stmt_execute($stmt);
 
-        // 2. Crear asignación
+        // 3. Crear asignación
         $insertAsignacion = "INSERT INTO asignaciones_mecanico 
                             (VehiculoID, MecanicoID, Observaciones) 
                             VALUES (?, ?, ?)";
         $stmt2 = mysqli_prepare($conn, $insertAsignacion);
         mysqli_stmt_bind_param($stmt2, 'iis', $vehiculo_id, $mecanico_id, $observaciones);
         mysqli_stmt_execute($stmt2);
+        $asignacion_id = mysqli_insert_id($conn);
 
         mysqli_commit($conn);
+        
+        // 4. Notificar al mecánico después de la asignación exitosa
+        if ($vehiculo && $asignacion_id) {
+            notificarAsignacionMecanico($mecanico_id, $vehiculo, $observaciones, $asignacion_id);
+        }
+        
         return ['status' => 'success', 'message' => 'Mecánico asignado correctamente'];
     } catch (Exception $e) {
         mysqli_rollback($conn);
@@ -307,6 +331,39 @@ function obtenerAsignacionActiva($vehiculo_id) {
     return $asignacion;
 }
 
+/**
+ * Notifica al mecánico sobre una nueva tarea asignada
+ */
+function notificarAsignacionMecanico($mecanico_id, $vehiculo, $observaciones, $asignacion_id) {
+    if (empty($mecanico_id) || empty($vehiculo)) {
+        error_log("Error: Datos incompletos para notificar asignación al mecánico");
+        return false;
+    }
+    
+    // Crear mensaje de notificación
+    $titulo = "Nueva Tarea Asignada";
+    $mensaje = "Se te ha asignado el vehículo {$vehiculo['Placa']} - {$vehiculo['Marca']} {$vehiculo['Modelo']}";
+    if (!empty($observaciones)) {
+        $mensaje .= ". Observaciones: " . substr($observaciones, 0, 100);
+        if (strlen($observaciones) > 100) {
+            $mensaje .= "...";
+        }
+    }
+    $modulo = "tareas";
+    $enlace = "tareas.php";
+    
+    // Crear notificación para el mecánico específico
+    $resultado = crearNotificacion([$mecanico_id], $titulo, $mensaje, $modulo, $enlace);
+    
+    if ($resultado) {
+        error_log("Notificación enviada al mecánico ID: {$mecanico_id} para vehículo {$vehiculo['Placa']}");
+    } else {
+        error_log("Error al enviar notificación al mecánico ID: {$mecanico_id}");
+    }
+    
+    return $resultado;
+}
+
 function obtenerAvancesMecanico($asignacion_id) {
     if (!$asignacion_id) return [];
 
@@ -315,10 +372,18 @@ function obtenerAvancesMecanico($asignacion_id) {
         return [];
     }
 
+    // Verificar si existe la columna Fotos
+    $checkColumn = "SHOW COLUMNS FROM avances_mecanico LIKE 'Fotos'";
+    $resultCheck = mysqli_query($conn, $checkColumn);
+    $columnaFotosExiste = ($resultCheck && mysqli_num_rows($resultCheck) > 0);
+
     $query = "SELECT 
+                ID,
                 Descripcion,
                 Estado,
-                DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance
+                " . ($columnaFotosExiste ? "Fotos," : "NULL AS Fotos,") . "
+                DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance,
+                DATE_FORMAT(FechaAvance, '%Y-%m-%d %H:%i:%s') as FechaAvanceRaw
             FROM avances_mecanico 
             WHERE AsignacionID = ? 
             ORDER BY FechaAvance DESC";
@@ -330,9 +395,17 @@ function obtenerAvancesMecanico($asignacion_id) {
     $avances = [];
 
     while ($row = mysqli_fetch_assoc($result)) {
+        // Decodificar JSON de fotos si existe
+        if (!empty($row['Fotos']) && $row['Fotos'] !== 'NULL' && $row['Fotos'] !== null) {
+            $fotosDecoded = json_decode($row['Fotos'], true);
+            $row['Fotos'] = is_array($fotosDecoded) ? $fotosDecoded : [];
+        } else {
+            $row['Fotos'] = [];
+        }
         $avances[] = $row;
     }
 
+    mysqli_stmt_close($stmt);
     mysqli_close($conn);
     return $avances;
 }

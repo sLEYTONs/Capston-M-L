@@ -75,9 +75,18 @@ class BaseDatosApp {
                 { 
                     data: 'Estado',
                     render: (data) => {
-                        const badgeClass = data === 'active' ? 'badge-activo' : 'badge-inactivo';
-                        const texto = data === 'active' ? 'Activo' : 'Inactivo';
-                        return `<span class="badge badge-estado ${badgeClass}">${texto}</span>`;
+                        // Mapear estados a clases y textos
+                        const estadoMap = {
+                            'Ingresado': { class: 'badge-info', texto: 'Ingresado' },
+                            'Asignado': { class: 'badge-warning', texto: 'Asignado' },
+                            'En Proceso': { class: 'badge-primary', texto: 'En Proceso' },
+                            'Completado': { class: 'badge-success', texto: 'Completado' },
+                            'active': { class: 'badge-activo', texto: 'Activo' },  // Compatibilidad con datos antiguos
+                            'inactive': { class: 'badge-inactivo', texto: 'Inactivo' }
+                        };
+                        
+                        const estado = estadoMap[data] || { class: 'badge-secondary', texto: data || 'Desconocido' };
+                        return `<span class="badge badge-estado ${estado.class}">${estado.texto}</span>`;
                     }
                 },
                 { 

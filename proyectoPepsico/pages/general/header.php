@@ -12,12 +12,14 @@ if (isset($usuario_id) && !empty($usuario_id)) {
 }
 
 // Procesar marcar como leída si se envió la solicitud
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida'])) {
-    $notificacion_id = intval($_POST['notificacion_id']);
-    if ($notificacion_id > 0) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !headers_sent()) {
+    $notificacion_id = intval($_POST['notificacion_id'] ?? 0);
+    if ($notificacion_id > 0 && isset($usuario_id)) {
         marcarNotificacionLeida($notificacion_id, $usuario_id);
-        // Recargar la página o usar AJAX para actualizar
-        echo "<script>window.location.reload();</script>";
+        // Redirigir para evitar reenvío del formulario (POST-REDIRECT-GET pattern)
+        $current_url = $_SERVER['REQUEST_URI'];
+        header("Location: " . $current_url);
+        exit();
     }
 }
 ?>

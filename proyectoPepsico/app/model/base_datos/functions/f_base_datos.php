@@ -12,8 +12,8 @@ function obtenerEstadisticasGenerales() {
     $result1 = $conn->query($sql1);
     $totalRegistros = $result1->fetch_assoc()['total'];
     
-    // Vehículos activos
-    $sql2 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Estado = 'active'";
+    // Vehículos activos (Ingresado, Asignado, En Proceso - excluye Completado)
+    $sql2 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Estado IN ('Ingresado', 'Asignado', 'En Proceso')";
     $result2 = $conn->query($sql2);
     $vehiculosActivos = $result2->fetch_assoc()['total'];
     
@@ -166,7 +166,7 @@ function obtenerAnalisisMarcas() {
     $sql = "SELECT 
                 Marca,
                 COUNT(*) as Total,
-                SUM(CASE WHEN Estado = 'active' THEN 1 ELSE 0 END) as Activos,
+                SUM(CASE WHEN Estado IN ('Ingresado', 'Asignado', 'En Proceso') THEN 1 ELSE 0 END) as Activos,
                 COUNT(DISTINCT EmpresaNombre) as Empresas,
                 MAX(FechaIngreso) as UltimoIngreso
             FROM ingreso_vehiculos 
@@ -196,7 +196,7 @@ function obtenerAnalisisEmpresas() {
     $sql = "SELECT 
                 EmpresaNombre,
                 COUNT(*) as Total,
-                SUM(CASE WHEN Estado = 'active' THEN 1 ELSE 0 END) as Activos,
+                SUM(CASE WHEN Estado IN ('Ingresado', 'Asignado', 'En Proceso') THEN 1 ELSE 0 END) as Activos,
                 COUNT(DISTINCT ConductorCedula) as Conductores,
                 COUNT(DISTINCT Marca) as Marcas,
                 MAX(FechaIngreso) as UltimoIngreso
@@ -310,7 +310,17 @@ function obtenerDatosParaGraficos() {
     ];
     
     while ($row = $resultEstados->fetch_assoc()) {
-        $label = $row['Estado'] === 'active' ? 'Activo' : ($row['Estado'] === 'inactive' ? 'Inactivo' : 'Retirado');
+        // Mapear estados nuevos a etiquetas legibles
+        $estadoMap = [
+            'Ingresado' => 'Ingresado',
+            'Asignado' => 'Asignado',
+            'En Proceso' => 'En Proceso',
+            'Completado' => 'Completado',
+            'active' => 'Activo',  // Mantener compatibilidad con registros antiguos
+            'inactive' => 'Inactivo'
+        ];
+        
+        $label = $estadoMap[$row['Estado']] ?? $row['Estado'];
         $estadosData['labels'][] = $label;
         $estadosData['datasets'][0]['data'][] = $row['Total'];
     }

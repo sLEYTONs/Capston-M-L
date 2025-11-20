@@ -1,0 +1,86 @@
+/* Estilos para el módulo de Calidad */
+.stat-card {
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-card h6 {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+#tabla-asignaciones tbody tr {
+    cursor: pointer;
+}
+
+#tabla-asignaciones tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.badge-calidad {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-calidad.pendiente {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-calidad.aprobado {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-calidad.rechazado {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-calidad.en-revision {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.avance-item {
+    border-left: 4px solid #17a2b8;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.avance-item.completado {
+    border-left-color: #28a745;
+}
+
+.avance-item.en-proceso {
+    border-left-color: #ffc107;
+}
+
+.avance-fecha {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.avance-descripcion {
+    margin-top: 0.5rem;
+}
+
+.modal-xl {
+    max-width: 1200px;
+}
+

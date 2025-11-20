@@ -111,6 +111,18 @@
         </li>
         <?php endif; ?>
 
+        <!-- Recepción Técnica -->
+        <?php if (tiene_acceso('recepcion_tecnica.php')): ?>
+        <li class="pc-item">
+          <a href="recepcion_tecnica.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-clipboard-check"></i>
+            </span>
+            <span class="pc-mtext">Recepción Técnica</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Reportes -->
         <?php if (tiene_acceso('reportes.php')): ?>
         <li class="pc-item">
@@ -191,7 +203,27 @@
               </a>
             </li>
             <?php endif; ?>
+
+            <?php if (tiene_acceso('calidad.php')): ?>
+            <li class="pc-item">
+              <a href="calidad.php" class="pc-link">
+                <span class="pc-mtext">Control de Calidad</span>
+              </a>
+            </li>
+            <?php endif; ?>
           </ul>
+        </li>
+        <?php endif; ?>
+        
+        <!-- Control de Calidad - Enlace directo para Jefe de Taller -->
+        <?php if (tiene_acceso('calidad.php')): ?>
+        <li class="pc-item">
+          <a href="calidad.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-clipboard-check"></i>
+            </span>
+            <span class="pc-mtext">Diagnóstico y Calidad</span>
+          </a>
         </li>
         <?php endif; ?>
 

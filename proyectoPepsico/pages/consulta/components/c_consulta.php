@@ -103,14 +103,18 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6>Información de la Asignación</h6>
+                    <div class="col-md-5">
+                        <h6 class="section-title mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Información de la Asignación
+                        </h6>
                         <div id="info-asignacion">
                             <!-- Se cargará dinámicamente -->
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <h6>Avances del Mecánico</h6>
+                    <div class="col-md-7">
+                        <h6 class="section-title mb-3">
+                            <i class="fas fa-tasks me-2"></i>Avances del Mecánico
+                        </h6>
                         <div id="avances-mecanico" class="avances-container">
                             <!-- Se cargarán los avances -->
                         </div>

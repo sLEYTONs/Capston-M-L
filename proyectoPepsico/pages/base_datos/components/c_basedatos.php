@@ -73,8 +73,12 @@
                         <label class="form-label">Estado</label>
                         <select class="form-select" id="filter-status">
                             <option value="">Todos</option>
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
+                            <option value="Ingresado">Ingresado</option>
+                            <option value="Asignado">Asignado</option>
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="Completado">Completado</option>
+                            <option value="active">Activo (antiguo)</option>
+                            <option value="inactive">Inactivo (antiguo)</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">

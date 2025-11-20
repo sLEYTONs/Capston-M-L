@@ -104,6 +104,32 @@
     color: white;
 }
 
+/* Badges de estados específicos */
+.badge-estado.badge-info {
+    background-color: #17a2b8;
+    color: white !important;
+}
+
+.badge-estado.badge-warning {
+    background-color: #ffc107;
+    color: #212529 !important;
+}
+
+.badge-estado.badge-primary {
+    background-color: #0d6efd;
+    color: white !important;
+}
+
+.badge-estado.badge-success {
+    background-color: #28a745;
+    color: white !important;
+}
+
+.badge-estado.badge-secondary {
+    background-color: #6c757d;
+    color: white !important;
+}
+
 /* Gráficos */
 .chart-container {
     position: relative;

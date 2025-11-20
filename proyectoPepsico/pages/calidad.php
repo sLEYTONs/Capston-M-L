@@ -1,9 +1,8 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Administrador', 'Guardia', 'Jefe de Taller'];
+$roles_permitidos = ['Administrador', 'Jefe de Taller'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
-    // En lugar de redirigir a index.php, redirige a la página principal del usuario
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
     exit();
@@ -15,10 +14,15 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Ingreso - PepsiCo</title>
+    <title>Diagnóstico y Control de Calidad - PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+    
     <?php include 'general/head.php'; ?>
-    <link rel="stylesheet" href="control_ingreso/css/control_ingreso.css">
+    <link rel="stylesheet" href="calidad/css/calidad.css">
 </head>
 
 <body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
@@ -33,11 +37,11 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 <div class="page-block">
                     <div class="row align-items-center">
                         <div class="col-md-12">
-                            <h5 class="mb-1">Control de Ingreso/Salida</h5>
+                            <h5 class="mb-1">Diagnóstico de Fallas y Control de Calidad</h5>
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Control Ingreso</li>
+                                    <li class="breadcrumb-item active" aria-current="page">Calidad</li>
                                 </ol>
                             </nav>
                         </div>
@@ -45,7 +49,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 </div>
             </div>
             
-            <?php include 'control_ingreso/components/c_control_ingreso.php'; ?>
+            <?php include 'calidad/contents.php'; ?>
             
             <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
@@ -54,6 +58,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
     
-    <script src="control_ingreso/js/app.js"></script>
+    <script src="calidad/js/app.js"></script>
 </body>
 </html>
+

@@ -111,16 +111,22 @@
 .novedades-list {
     max-height: 250px;
     overflow-y: auto;
+    padding: 10px;
 }
 
 .novedad-item {
     padding: 12px 15px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 10px;
     border-left: 4px solid #ffc107;
     background: #fff;
-    margin-bottom: 8px;
     border-radius: 6px;
     border: 1px solid #e9ecef;
     transition: all 0.3s ease;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.5;
 }
 
 .novedad-item:hover {
@@ -132,20 +138,39 @@
 .novedad-item.media { border-left-color: #ffc107; background: #fffdf5; }
 .novedad-item.baja { border-left-color: #28a745; background: #f5fff5; }
 
+.novedad-item .d-flex {
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
 .novedad-tipo {
     font-weight: bold;
     color: #004B93;
     font-size: 0.85rem;
+    margin-bottom: 5px;
+    display: block;
 }
 
 .novedad-descripcion {
-    font-size: 0.8rem;
-    margin: 5px 0;
+    font-size: 0.85rem;
+    margin: 8px 0;
     color: #495057;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 .novedad-fecha {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.novedad-item small {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.8rem;
     color: #6c757d;
 }
 

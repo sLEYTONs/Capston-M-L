@@ -19,13 +19,14 @@ $paginas_por_rol = [
         'ingreso_vehiculos.php', 'marcas.php', 'reportes.php'
     ],
     'Jefe de Taller' => [
-        'consulta.php', 'marcas.php', 'reportes.php', 'base_datos.php'
+        'consulta.php', 'marcas.php', 'reportes.php', 'base_datos.php',
+        'control_ingreso.php', 'repuestos.php', 'calidad.php'
     ],
     'Mecánico' => [
         'tareas.php'
     ],
     'Recepcionista' => [
-        'consulta.php', 'base_datos.php'
+        'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php'
     ],
     'Guardia' => [
         'control_ingreso.php'

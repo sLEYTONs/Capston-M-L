@@ -1,7 +1,7 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Administrador', 'Chofer'];
+$roles_permitidos = ['Administrador', 'Chofer', 'Recepcionista'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     // En lugar de redirigir a index.php, redirige a la página principal del usuario
     $pagina_principal = obtener_pagina_principal($usuario_rol);
