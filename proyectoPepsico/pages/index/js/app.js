@@ -7,18 +7,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let formDataCache = null;
 
-    // Set default date/time
-    const entryTime = document.getElementById("entry-time");
-    if (entryTime) {
-        const now = new Date();
-        entryTime.value = now.toISOString().slice(0, 16);
+    // Set default date for fecha solicitada (mínimo hoy)
+    const fechaSolicitada = document.getElementById("fecha-solicitada");
+    if (fechaSolicitada) {
+        const hoy = new Date();
+        fechaSolicitada.min = hoy.toISOString().split('T')[0];
     }
 
     // Limpieza del formulario
     document.getElementById("clear-form").addEventListener("click", () => {
         form.reset();
-        const now = new Date();
-        entryTime.value = now.toISOString().slice(0, 16);
+        // Restablecer fecha mínima
+        if (fechaSolicitada) {
+            const hoy = new Date();
+            fechaSolicitada.min = hoy.toISOString().split('T')[0];
+        }
     });
 
     // Envío del formulario con modal
@@ -37,18 +40,53 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.style.display = "none";
 
         try {
-            const response = await fetch("../app/model/index/scripts/s_ingresoVehiculo.php", {
+            // Mapear nombres de campos del formulario a los nombres esperados por el backend
+            const fieldMapping = {
+                'plate': 'placa',
+                'vehicleType': 'tipo_vehiculo',
+                'brand': 'marca',
+                'model': 'modelo',
+                'color': 'color',
+                'year': 'anio',
+                'driverName': 'conductor_nombre',
+                'driverPhone': 'conductor_telefono',
+                'purpose': 'proposito',
+                'area': 'area',
+                'contactPerson': 'persona_contacto',
+                'observations': 'observaciones',
+                'fechaSolicitada': 'fecha_solicitada',
+                'horaSolicitada': 'hora_solicitada'
+            };
+
+            // Convertir FormData a objeto y mapear campos
+            const formDataObj = {};
+            formDataCache.forEach((value, key) => {
+                const mappedKey = fieldMapping[key] || key;
+                formDataObj[mappedKey] = value;
+            });
+            formDataObj['accion'] = 'crear_solicitud';
+
+            // Convertir a FormData nuevamente
+            const newFormData = new FormData();
+            Object.keys(formDataObj).forEach(key => {
+                newFormData.append(key, formDataObj[key]);
+            });
+
+            const response = await fetch("../app/model/agendamiento/scripts/s_agendamiento.php", {
                 method: "POST",
-                body: formDataCache
+                body: newFormData
             });
 
             const result = await response.json();
 
             if (result.status === "success") {
-                showNotification("Vehículo registrado correctamente", "success");
+                showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará.", "success");
                 form.reset();
-                const now = new Date();
-                entryTime.value = now.toISOString().slice(0, 16);
+                // Establecer fecha mínima para el campo de fecha
+                const fechaInput = document.getElementById("fecha-solicitada");
+                if (fechaInput) {
+                    fechaInput.min = new Date().toISOString().split('T')[0];
+                }
             } else {
                 showNotification("Error: " + result.message, "error");
             }
@@ -58,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function validateForm() {
-        const requiredFields = ['plate', 'vehicle-type', 'brand', 'model', 'driver-name', 'driver-id', 'company', 'entry-time', 'purpose'];
+        const requiredFields = ['plate', 'vehicle-type', 'brand', 'model', 'driver-name', 'purpose', 'fecha-solicitada', 'hora-solicitada'];
         let valid = true;
         requiredFields.forEach(id => {
             const field = document.getElementById(id);
@@ -69,6 +107,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 field.classList.remove("error");
             }
         });
+
+        // Validar que la fecha no sea anterior a hoy
+        const fechaInput = document.getElementById("fecha-solicitada");
+        if (fechaInput && fechaInput.value) {
+            const fechaSolicitada = new Date(fechaInput.value);
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            if (fechaSolicitada < hoy) {
+                fechaInput.classList.add("error");
+                showNotification("La fecha solicitada no puede ser anterior a hoy", "error");
+                valid = false;
+            }
+        }
+
         if (!valid) showNotification("Por favor complete los campos obligatorios", "error");
         return valid;
     }

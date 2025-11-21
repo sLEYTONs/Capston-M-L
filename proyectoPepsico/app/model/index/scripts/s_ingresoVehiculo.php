@@ -12,11 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'Color'             => trim($_POST['color'] ?? ''),
         'Anio'              => trim($_POST['year'] ?? ''),
         'ConductorNombre'   => trim($_POST['driverName'] ?? ''),
-        'ConductorCedula'   => trim($_POST['driverId'] ?? ''),
         'ConductorTelefono' => trim($_POST['driverPhone'] ?? ''),
-        'Licencia'          => trim($_POST['license'] ?? ''),
-        'EmpresaCodigo'     => trim($_POST['company'] ?? ''),
-        'EmpresaNombre'     => trim($_POST['companyName'] ?? ''),
         'Proposito'         => trim($_POST['purpose'] ?? ''),
         'Area'              => trim($_POST['area'] ?? ''),
         'PersonaContacto'   => trim($_POST['contactPerson'] ?? ''),
@@ -27,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validar campos requeridos
     $camposRequeridos = [
         'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 
-        'ConductorNombre', 'ConductorCedula', 'EmpresaCodigo', 'Proposito'
+        'ConductorNombre', 'Proposito'
     ];
     
     $camposFaltantes = [];
@@ -62,11 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Convertir formato datetime-local a MySQL
         $vehiculo['FechaIngreso'] = date('Y-m-d H:i:s', strtotime($vehiculo['FechaIngreso']));
-    }
-
-    // Si no se proporciona EmpresaNombre, usar el código como nombre
-    if (empty($vehiculo['EmpresaNombre'])) {
-        $vehiculo['EmpresaNombre'] = $vehiculo['EmpresaCodigo'];
     }
 
     $resultado = ingresoVehiculo($vehiculo);

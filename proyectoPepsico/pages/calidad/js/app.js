@@ -272,7 +272,6 @@ class CalidadApp {
             <p><strong>Color:</strong> ${rowData.Color || '-'}</p>
             <p><strong>Año:</strong> ${rowData.Anio || '-'}</p>
             <p><strong>Conductor:</strong> ${rowData.ConductorNombre || '-'}</p>
-            <p><strong>Empresa:</strong> ${rowData.EmpresaNombre || '-'}</p>
         `;
         $('#info-vehiculo').html(infoVehiculo);
 

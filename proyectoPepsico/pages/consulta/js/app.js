@@ -95,7 +95,28 @@ class ConsultaVehiculos {
 
             this.dataTable = $('#results-table').DataTable({
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                    "sProcessing": "Procesando...",
+                    "sLengthMenu": "Mostrar _MENU_ registros",
+                    "sZeroRecords": "No se encontraron resultados",
+                    "sEmptyTable": "Ningún dato disponible en esta tabla",
+                    "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                    "sInfoPostFix": "",
+                    "sSearch": "Buscar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Cargando...",
+                    "oPaginate": {
+                        "sFirst": "Primero",
+                        "sLast": "Último",
+                        "sNext": "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
                 },
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
@@ -120,14 +141,8 @@ class ConsultaVehiculos {
                             return `
                                 <div class="driver-info">
                                     <strong>${data.ConductorNombre}</strong>
-                                    <small class="driver-id">${data.ConductorCedula}</small>
                                 </div>
                             `;
-                        }
-                    },
-                    { data: 'EmpresaNombre',
-                        render: (data) => {
-                            return `<span class="company-badge">${data}</span>`;
                         }
                     },
                     { 
@@ -314,23 +329,18 @@ class ConsultaVehiculos {
                                     <p><strong>Marca/Modelo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}</p>
                                     <p><strong>Color:</strong> ${vehiculo.Color}</p>
                                     <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
-                                    <p><strong>Chasis:</strong> ${vehiculo.Chasis || 'N/A'}</p>
                                     <p><strong>Kilometraje:</strong> ${vehiculo.Kilometraje || 'N/A'}</p>
-                                    <p><strong>Combustible:</strong> ${vehiculo.Combustible || 'N/A'}</p>
                                     <p><strong>Estado Ingreso:</strong> ${vehiculo.EstadoIngreso || 'N/A'}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Información del Conductor</h6>
                                     <p><strong>Nombre:</strong> ${vehiculo.ConductorNombre}</p>
-                                    <p><strong>Cédula:</strong> ${vehiculo.ConductorCedula}</p>
                                     <p><strong>Teléfono:</strong> ${vehiculo.ConductorTelefono}</p>
-                                    <p><strong>Licencia:</strong> ${vehiculo.Licencia}</p>
                                 </div>
                             </div>
                             <div class="row mt-3">
                                 <div class="col-12">
                                     <h6>Información de la Visita</h6>
-                                    <p><strong>Empresa:</strong> ${vehiculo.EmpresaNombre}</p>
                                     <p><strong>Propósito:</strong> ${vehiculo.Proposito}</p>
                                     <p><strong>Área:</strong> ${vehiculo.Area}</p>
                                     <p><strong>Persona de Contacto:</strong> ${vehiculo.PersonaContacto}</p>
@@ -451,11 +461,7 @@ class ConsultaVehiculos {
         $('#edit-color').val(vehiculo.Color);
         $('#edit-anio').val(vehiculo.Anio);
         $('#edit-conductor-nombre').val(vehiculo.ConductorNombre);
-        $('#edit-conductor-cedula').val(vehiculo.ConductorCedula);
         $('#edit-conductor-telefono').val(vehiculo.ConductorTelefono);
-        $('#edit-licencia').val(vehiculo.Licencia);
-        $('#edit-empresa-codigo').val(vehiculo.EmpresaCodigo);
-        $('#edit-empresa-nombre').val(vehiculo.EmpresaNombre);
         $('#edit-proposito').val(vehiculo.Proposito);
         $('#edit-area').val(vehiculo.Area);
         $('#edit-persona-contacto').val(vehiculo.PersonaContacto);
@@ -523,8 +529,7 @@ class ConsultaVehiculos {
     validarFormularioEdicion(datos) {
         const camposRequeridos = [
             'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 
-            'ConductorNombre', 'ConductorCedula', 
-            'EmpresaCodigo', 'EmpresaNombre', 'Proposito'
+            'ConductorNombre', 'Proposito'
         ];
 
         for (const campo of camposRequeridos) {

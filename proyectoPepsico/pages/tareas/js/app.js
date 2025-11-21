@@ -241,10 +241,8 @@ class TareasMecanico {
                     $('#info-vehiculo').text(`${data.Marca} ${data.Modelo} - ${data.TipoVehiculo}`);
                     $('#info-color').text(data.Color);
                     $('#info-conductor').text(data.ConductorNombre);
-                    $('#info-empresa').text(data.EmpresaNombre);
                     $('#info-estado').text(data.Estado);
                     $('#info-anio').text(data.Anio || 'No especificado');
-                    $('#info-combustible').text(data.Combustible || 'No especificado');
                     
                     // Limpiar formulario
                     $('#avance-descripcion').val('');
@@ -447,10 +445,6 @@ class TareasMecanico {
                                     <td><strong>Año:</strong></td>
                                     <td>${data.Anio || 'No especificado'}</td>
                                 </tr>
-                                <tr>
-                                    <td><strong>Chasis:</strong></td>
-                                    <td>${data.Chasis || 'No especificado'}</td>
-                                </tr>
                             </table>
                         </div>
                     </div>
@@ -467,20 +461,8 @@ class TareasMecanico {
                                     <td>${data.ConductorNombre}</td>
                                 </tr>
                                 <tr>
-                                    <td><strong>Cédula:</strong></td>
-                                    <td>${data.ConductorCedula}</td>
-                                </tr>
-                                <tr>
                                     <td><strong>Teléfono:</strong></td>
                                     <td>${data.ConductorTelefono || 'No registrado'}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Licencia:</strong></td>
-                                    <td>${data.Licencia || 'No registrada'}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Empresa:</strong></td>
-                                    <td>${data.EmpresaNombre}</td>
                                 </tr>
                             </table>
                         </div>
@@ -506,10 +488,6 @@ class TareasMecanico {
                                 <tr>
                                     <td><strong>Estado:</strong></td>
                                     <td><span class="badge bg-${data.EstadoIngreso === 'Bueno' ? 'success' : data.EstadoIngreso === 'Regular' ? 'warning' : 'danger'}">${data.EstadoIngreso}</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Combustible:</strong></td>
-                                    <td>${data.Combustible}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Kilometraje:</strong></td>

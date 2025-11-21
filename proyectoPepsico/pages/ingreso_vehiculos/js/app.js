@@ -173,23 +173,6 @@ $(document).ready(function() {
             $('#conductor_nombre').val(vehiculo.ConductorNombre);
         }
 
-        if (vehiculo.ConductorCedula === 'Por completar') {
-            $('#conductor_cedula').val('');
-        } else {
-            $('#conductor_cedula').val(vehiculo.ConductorCedula);
-        }
-
-        if (vehiculo.EmpresaCodigo === 'PENDIENTE') {
-            $('#empresa_codigo').val('');
-        } else {
-            $('#empresa_codigo').val(vehiculo.EmpresaCodigo);
-        }
-
-        if (vehiculo.EmpresaNombre === 'PENDIENTE') {
-            $('#empresa_nombre').val('');
-        } else {
-            $('#empresa_nombre').val(vehiculo.EmpresaNombre);
-        }
 
         if (vehiculo.Proposito === 'PENDIENTE') {
             $('#proposito').val('');
@@ -210,24 +193,12 @@ $(document).ready(function() {
             $('#kilometraje').val(vehiculo.Kilometraje);
         }
 
-        if (vehiculo.Chasis) {
-            $('#chasis').val(vehiculo.Chasis);
-        }
-
         if (vehiculo.ConductorTelefono && vehiculo.ConductorTelefono !== 'No registrado') {
             $('#conductor_telefono').val(vehiculo.ConductorTelefono);
         }
 
-        if (vehiculo.Licencia && vehiculo.Licencia !== 'No registrada') {
-            $('#licencia').val(vehiculo.Licencia);
-        }
-
         if (vehiculo.EstadoIngreso) {
             $('#estado_ingreso').val(vehiculo.EstadoIngreso);
-        }
-
-        if (vehiculo.Combustible) {
-            $('#combustible').val(vehiculo.Combustible);
         }
 
         if (vehiculo.Area && vehiculo.Area !== 'General') {
@@ -301,20 +272,8 @@ $(document).ready(function() {
         return placa.toUpperCase().replace(/\s/g, '');
     }
 
-    function normalizarChasis(chasis) {
-        return chasis.toUpperCase().replace(/\s/g, '');
-    }
-
-    function normalizarCedula(cedula) {
-        return cedula.replace(/\D/g, '');
-    }
-
     function normalizarTelefono(telefono) {
         return telefono.replace(/\D/g, '');
-    }
-
-    function normalizarLicencia(licencia) {
-        return licencia.toUpperCase().replace(/\s/g, '');
     }
 
     // Validaciones
@@ -330,9 +289,6 @@ $(document).ready(function() {
         return telefono === '' || /^\d{8,15}$/.test(telefono);
     }
 
-    function validarLicencia(licencia) {
-        return licencia === '' || /^[a-zA-Z0-9\s]+$/.test(licencia);
-    }
 
     // Formatear fecha
     function formatFecha(fechaString) {
@@ -369,39 +325,6 @@ $(document).ready(function() {
         }
     });
 
-    // Validación específica para cédula
-    $('#conductor_cedula').on('input', function() {
-        let valor = $(this).val().replace(/\D/g, '');
-        if (valor.length > 15) {
-            valor = valor.substring(0, 15);
-        }
-        $(this).val(valor);
-        
-        if (valor.length >= 7 && valor.length <= 15) {
-            $(this).removeClass('is-invalid').addClass('is-valid');
-        } else if (valor.length > 0) {
-            $(this).removeClass('is-valid').addClass('is-invalid');
-        } else {
-            $(this).removeClass('is-valid is-invalid');
-        }
-    });
-
-    // Auto-completar empresa
-    $('#empresa_codigo').on('change', function() {
-        var codigo = $(this).val();
-        var empresas = {
-            'PEPS001': 'PepsiCo Chile S.A.',
-            'PEPS002': 'PepsiCo Distribución',
-            'PEPS003': 'PepsiCo Logística',
-            'PEPS004': 'PepsiCo Flota Norte',
-            'PEPS005': 'PepsiCo Flota Sur'
-        };
-        
-        if (empresas[codigo]) {
-            $('#empresa_nombre').val(empresas[codigo]).addClass('is-valid');
-        }
-    });
-
     // EVENTO PRINCIPAL DEL FORMULARIO - ACTUALIZAR REGISTRO EXISTENTE
     $('#form-ingreso-vehiculo').on('submit', function(e) {
         e.preventDefault();
@@ -422,13 +345,7 @@ $(document).ready(function() {
             return;
         }
 
-        // Validar cédula
-        const cedula = $('#conductor_cedula').val().replace(/\D/g, '');
-        if (cedula.length < 7) {
-            $('#conductor_cedula').focus();
-            mostrarError('Cédula inválida', 'La cédula debe tener entre 7 y 15 dígitos');
-            return;
-        }
+        // Validación de cédula eliminada
 
         actualizarRegistroVehiculo();
     });
@@ -447,22 +364,16 @@ $(document).ready(function() {
             tipo_vehiculo: $('#tipo_vehiculo').val(),
             marca: normalizarTexto($('#marca').val()),
             modelo: normalizarTexto($('#modelo').val()),
-            chasis: normalizarChasis($('#chasis').val()),
             color: normalizarTexto($('#color').val()),
             anio: $('#anio').val(),
             conductor_nombre: capitalizarTexto(normalizarTexto($('#conductor_nombre').val())),
-            conductor_cedula: normalizarCedula($('#conductor_cedula').val()),
             conductor_telefono: normalizarTelefono($('#conductor_telefono').val()),
-            licencia: normalizarLicencia($('#licencia').val()),
-            empresa_codigo: $('#empresa_codigo').val(),
-            empresa_nombre: $('#empresa_nombre').val(),
             proposito: $('#proposito').val(),
             area: $('#area').val(),
             persona_contacto: normalizarTexto($('#persona_contacto').val()),
             observaciones: normalizarTexto($('#observaciones').val()),
             estado_ingreso: $('#estado_ingreso').val(),
             kilometraje: $('#kilometraje').val(),
-            combustible: $('#combustible').val(),
             usuario_id: $('#usuario_id').val() || 1
         };
 

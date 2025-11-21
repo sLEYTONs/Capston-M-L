@@ -75,23 +75,35 @@ class ControlIngresoApp {
     verificarEstadoVehiculo(placa) {
         $('.guardia-card').addClass('search-loading');
         
+        // Obtener fecha actual en formato YYYY-MM-DD
+        const fechaActual = new Date().toISOString().split('T')[0];
+        
         $.ajax({
             url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
             type: 'POST',
             data: {
                 action: 'verificarEstado',
-                placa: placa
+                placa: placa,
+                fecha: fechaActual
             },
             dataType: 'json',
             success: (response) => {
                 $('.guardia-card').removeClass('search-loading');
                 
                 if (response.success) {
-                    this.vehiculoActual = response.data;
-                    this.mostrarInformacionBasica(response.data);
+                    const data = response.data;
+                    this.vehiculoActual = data;
+                    
+                    // Si tiene agenda aprobada, mostrar información de la agenda
+                    if (data.tiene_agenda && data.agenda) {
+                        this.mostrarInformacionConAgenda(data);
+                    } else {
+                        // Vehículo ya ingresado o sin agenda
+                        this.mostrarInformacionBasica(data);
+                    }
                 } else {
                     if (this.tipoOperacion === 'ingreso') {
-                        // Para ingreso, no existe el vehículo - está bien
+                        // Para ingreso, no existe el vehículo ni tiene agenda - está bien
                         this.vehiculoActual = { Placa: placa };
                         this.mostrarPreparadoIngreso(placa);
                     } else {
@@ -115,7 +127,6 @@ class ControlIngresoApp {
         $('#infoEstado').html('<span class="badge bg-warning">Nuevo Ingreso</span>');
         $('#infoFechaIngreso').text('Al confirmar ingreso');
         $('#infoConductorNombre').text('Por completar (Conductor)');
-        $('#infoEmpresa').text('PENDIENTE');
         
         $('#sinResultados').hide();
         $('#conResultados').show().addClass('fade-in');
@@ -123,19 +134,64 @@ class ControlIngresoApp {
         this.actualizarEstadoBotones();
     }
 
-    mostrarInformacionBasica(vehiculo) {
-        this.vehiculoActual = vehiculo;
+    mostrarInformacionBasica(data) {
+        const vehiculo = data.vehiculo || data;
         
         $('#infoPlaca').text(vehiculo.Placa);
-        $('#infoEstado').html('<span class="badge bg-success">En Patio</span>');
-        $('#infoFechaIngreso').text(this.formatearFecha(vehiculo.FechaIngreso));
+        
+        if (vehiculo.Estado === 'Ingresado') {
+            $('#infoEstado').html('<span class="badge bg-success">En Patio</span>');
+            $('#infoFechaIngreso').text(this.formatearFecha(vehiculo.FechaIngreso));
+        } else {
+            $('#infoEstado').html('<span class="badge bg-warning">Pendiente Ingreso</span>');
+            $('#infoFechaIngreso').text('Al confirmar ingreso');
+        }
+        
         $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'Por completar');
-        $('#infoEmpresa').text(vehiculo.EmpresaNombre || 'PENDIENTE');
         
         $('#sinResultados').hide();
         $('#conResultados').show().addClass('fade-in');
         
         this.actualizarEstadoBotones();
+    }
+
+    mostrarInformacionConAgenda(data) {
+        const vehiculo = data.vehiculo;
+        const agenda = data.agenda;
+        
+        $('#infoPlaca').text(vehiculo.Placa);
+        $('#infoEstado').html('<span class="badge bg-info">Con Agenda Aprobada</span>');
+        $('#infoFechaIngreso').html(`
+            <strong>Fecha Agenda:</strong> ${this.formatearFecha(agenda.FechaAgenda)}<br>
+            <strong>Hora:</strong> ${this.formatearHora(agenda.HoraInicio)} - ${this.formatearHora(agenda.HoraFin)}
+        `);
+        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'Por completar');
+        
+        // Mostrar alerta informativa sobre la agenda
+        const alertHtml = `
+            <div class="alert alert-info mb-3" id="alertAgenda">
+                <i class="fas fa-calendar-check me-2"></i>
+                <strong>Vehículo con agenda aprobada:</strong> Este vehículo tiene una cita agendada para hoy.
+                <br><small>Puede proceder con el registro de ingreso.</small>
+            </div>
+        `;
+        
+        // Insertar alerta después de la alerta de operación si no existe
+        if ($('#alertAgenda').length === 0) {
+            $('#alertOperacion').after(alertHtml);
+        }
+        
+        $('#sinResultados').hide();
+        $('#conResultados').show().addClass('fade-in');
+        
+        this.actualizarEstadoBotones();
+    }
+
+    formatearHora(hora) {
+        if (!hora) return '-';
+        // Formatear hora de formato HH:MM:SS a HH:MM
+        const partes = hora.split(':');
+        return `${partes[0]}:${partes[1]}`;
     }
 
     actualizarEstadoBotones() {
@@ -160,7 +216,8 @@ class ControlIngresoApp {
     }
 
     registrarIngresoBasico() {
-        const placa = this.vehiculoActual.Placa;
+        // Obtener la placa del vehículo, manejando tanto vehículos ingresados como con agenda
+        const placa = this.vehiculoActual.vehiculo ? this.vehiculoActual.vehiculo.Placa : this.vehiculoActual.Placa;
         
         $.ajax({
             url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
@@ -196,7 +253,8 @@ class ControlIngresoApp {
     }
 
     registrarSalida() {
-        const placa = this.vehiculoActual.Placa;
+        // Obtener la placa del vehículo, manejando tanto vehículos ingresados como con agenda
+        const placa = this.vehiculoActual.vehiculo ? this.vehiculoActual.vehiculo.Placa : this.vehiculoActual.Placa;
         
         $.ajax({
             url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
@@ -390,7 +448,7 @@ class ControlIngresoApp {
             type: 'POST',
             data: {
                 action: 'reportarNovedad',
-                placa: this.vehiculoActual.Placa,
+                placa: this.vehiculoActual.vehiculo ? this.vehiculoActual.vehiculo.Placa : this.vehiculoActual.Placa,
                 tipo: tipo,
                 descripcion: descripcion,
                 gravedad: gravedad

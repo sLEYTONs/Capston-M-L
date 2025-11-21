@@ -195,6 +195,16 @@ hr {
 /* Ajustes para el footer en este módulo específico */
 .pc-content {
     padding-bottom: 120px;
+    position: relative;
+}
+
+/* Asegurar que el footer no se desplace */
+.pc-footer {
+    position: relative !important;
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-top: auto;
 }
 
 /* Para contenido muy largo */

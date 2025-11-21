@@ -35,7 +35,6 @@ function obtenerReportesMantenimientos($filtros = []) {
                 v.Color,
                 v.Anio,
                 v.ConductorNombre,
-                v.EmpresaNombre,
                 
                 -- Datos del mecánico
                 u.NombreUsuario AS MecanicoNombre,
@@ -362,7 +361,7 @@ function exportarReportesExcel($datos) {
             $row['Modelo'],
             $row['TipoVehiculo'],
             $row['ConductorNombre'] ?? '',
-            $row['EmpresaNombre'] ?? '',
+            '', // EmpresaNombre eliminado
             $row['MecanicoNombre'],
             $row['FechaAsignacion'],
             $row['EstadoAsignacion'],

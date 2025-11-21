@@ -25,12 +25,15 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
 }
 
 /* Contenedor principal debe crecer */
@@ -38,11 +41,17 @@ body {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  align-items: center;
 }
 
 .pc-content {
   flex: 1 0 auto;
-  padding-bottom: 20px; /* Espacio antes del footer */
+  padding-bottom: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Estilos del footer */
@@ -55,11 +64,14 @@ body {
   flex-shrink: 0;
   width: 100%;
   position: relative;
+  left: 0;
+  right: 0;
 }
 
 .footer-wrapper {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .pc-footer .text-muted {
@@ -92,17 +104,24 @@ body {
 
 /* Asegurar que no haya espacios no deseados */
 .pc-footer-fix {
-  display: none; /* Ocultamos el espaciador manual */
+  display: none;
 }
 
 /* Eliminar cualquier padding/margin extra del body */
 body {
   overflow-x: hidden;
 }
+
+/* Centrado general para todo el contenido */
+.pc-main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
 </style>
 
 <script>
-// Script simplificado para el footer
 document.addEventListener('DOMContentLoaded', function() {
   function adjustFooter() {
     const body = document.body;

@@ -171,7 +171,6 @@ function obtenerOrdenesTrabajo($filtros = []) {
                 v.Modelo,
                 v.Color,
                 v.ConductorNombre,
-                v.EmpresaNombre,
                 
                 -- Datos del recepcionista
                 u.NombreUsuario AS RecepcionistaNombre,
@@ -339,7 +338,7 @@ function obtenerOTPorID($ot_id) {
 
     $query = "SELECT 
                 ot.*,
-                v.Placa, v.Marca, v.Modelo, v.Color, v.ConductorNombre, v.EmpresaNombre,
+                v.Placa, v.Marca, v.Modelo, v.Color, v.ConductorNombre,
                 u.NombreUsuario AS RecepcionistaNombre
             FROM ordenes_trabajo ot
             INNER JOIN ingreso_vehiculos v ON ot.VehiculoID = v.ID

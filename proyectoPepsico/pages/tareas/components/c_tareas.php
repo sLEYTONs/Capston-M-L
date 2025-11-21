@@ -138,9 +138,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Conductor:</strong> <span id="info-conductor"></span></p>
-                                    <p><strong>Empresa:</strong> <span id="info-empresa"></span></p>
                                     <p><strong>Estado:</strong> <span id="info-estado"></span></p>
-                                    <p><strong>Combustible:</strong> <span id="info-combustible"></span></p>
                                 </div>
                             </div>
                         </div>

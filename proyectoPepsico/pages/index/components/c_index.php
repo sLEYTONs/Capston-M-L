@@ -1,9 +1,10 @@
 <main class="main">
     <div class="container">
-        <!-- Sección de Ingreso de Vehículos -->
+        <!-- Sección de Solicitud de Agendamiento -->
         <section id="entry-section" class="section active">
             <div class="form-container">
-                <h2>Registro de Ingreso de Vehículo</h2>
+                <h2>Solicitud de Agendamiento para Taller</h2>
+                <p class="info-text">Complete el formulario para solicitar una hora de agendamiento en el taller. El supervisor revisará su solicitud y le notificará la respuesta.</p>
                 <form id="vehicle-entry-form" class="vehicle-form">
                     <div class="form-grid">
                         <!-- Información del Vehículo -->
@@ -56,40 +57,11 @@
                                     <label for="driver-name">Nombre Completo *</label>
                                     <input type="text" id="driver-name" name="driverName" required>
                                 </div>
-                                <div class="form-field">
-                                    <label for="driver-id">Cédula de Identidad *</label>
-                                    <input type="text" id="driver-id" name="driverId" required>
-                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-field">
                                     <label for="driver-phone">Teléfono</label>
                                     <input type="tel" id="driver-phone" name="driverPhone">
-                                </div>
-                                <div class="form-field">
-                                    <label for="license">Número de Licencia</label>
-                                    <input type="text" id="license" name="license">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Información de la Empresa -->
-                        <div class="form-group">
-                            <h3>Información de la Empresa</h3>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="company">Empresa *</label>
-                                    <select id="company" name="company" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="pepsico">PepsiCo</option>
-                                        <option value="proveedor">Proveedor</option>
-                                        <option value="cliente">Cliente</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-                                <div class="form-field">
-                                    <label for="company-name">Nombre de la Empresa</label>
-                                    <input type="text" id="company-name" name="companyName">
                                 </div>
                             </div>
                         </div>
@@ -131,11 +103,27 @@
                                 <textarea id="observations" name="observations" rows="3"></textarea>
                             </div>
                         </div>
+
+                        <!-- Información de Agendamiento -->
+                        <div class="form-group">
+                            <h3>Fecha y Hora Solicitada</h3>
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label for="fecha-solicitada">Fecha Solicitada *</label>
+                                    <input type="date" id="fecha-solicitada" name="fechaSolicitada" required min="<?php echo date('Y-m-d'); ?>">
+                                </div>
+                                <div class="form-field">
+                                    <label for="hora-solicitada">Hora Solicitada *</label>
+                                    <input type="time" id="hora-solicitada" name="horaSolicitada" required>
+                                </div>
+                            </div>
+                            <p class="help-text">Seleccione la fecha y hora en la que desea agendar su visita al taller. El supervisor verificará la disponibilidad y le notificará.</p>
+                        </div>
                     </div>
 
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="clear-form">Limpiar Formulario</button>
-                        <button type="submit" class="btn btn-primary">Registrar Ingreso</button>
+                        <button type="submit" class="btn btn-primary">Enviar Solicitud de Agendamiento</button>
                     </div>
                 </form>
             </div>
@@ -150,11 +138,11 @@
 <div id="confirmation-modal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <h3>Confirmar Registro</h3>
-        <p>¿Está seguro de que desea registrar el ingreso de este vehículo?</p>
+        <h3>Confirmar Solicitud de Agendamiento</h3>
+        <p>¿Está seguro de que desea enviar esta solicitud de agendamiento? El supervisor revisará su solicitud y le notificará la respuesta.</p>
         <div class="modal-actions">
             <button class="btn btn-secondary" id="cancel-registration">Cancelar</button>
-            <button class="btn btn-primary" id="confirm-registration">Confirmar</button>
+            <button class="btn btn-primary" id="confirm-registration">Enviar Solicitud</button>
         </div>
     </div>
 </div>

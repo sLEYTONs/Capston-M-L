@@ -22,15 +22,11 @@ function obtenerEstadisticasGenerales() {
     $result3 = $conn->query($sql3);
     $marcasUnicas = $result3->fetch_assoc()['total'];
     
-    // Empresas registradas
-    $sql4 = "SELECT COUNT(DISTINCT EmpresaNombre) as total FROM ingreso_vehiculos";
-    $result4 = $conn->query($sql4);
-    $empresasRegistradas = $result4->fetch_assoc()['total'];
+    // Empresas registradas - Columna eliminada
+    $empresasRegistradas = 0;
     
-    // Conductores únicos
-    $sql5 = "SELECT COUNT(DISTINCT ConductorCedula) as total FROM ingreso_vehiculos";
-    $result5 = $conn->query($sql5);
-    $conductoresUnicos = $result5->fetch_assoc()['total'];
+    // Conductores únicos - Columna eliminada
+    $conductoresUnicos = 0;
     
     // Ingresos hoy
     $sql6 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE DATE(FechaIngreso) = CURDATE()";
@@ -60,7 +56,6 @@ function obtenerVehiculosFiltrados($filtros) {
                 Placa,
                 CONCAT(Marca, ' ', Modelo) as MarcaModelo,
                 ConductorNombre,
-                EmpresaNombre,
                 Estado,
                 FechaIngreso,
                 Proposito,
@@ -73,10 +68,10 @@ function obtenerVehiculosFiltrados($filtros) {
     $types = '';
     
     if (!empty($filtros['busqueda'])) {
-        $sql .= " AND (Placa LIKE ? OR ConductorNombre LIKE ? OR EmpresaNombre LIKE ? OR Marca LIKE ? OR ConductorCedula LIKE ?)";
+        $sql .= " AND (Placa LIKE ? OR ConductorNombre LIKE ? OR Marca LIKE ?)";
         $searchTerm = "%{$filtros['busqueda']}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
-        $types .= 'sssss';
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
+        $types .= 'sss';
     }
     
     if (!empty($filtros['estado'])) {
@@ -85,7 +80,8 @@ function obtenerVehiculosFiltrados($filtros) {
         $types .= 's';
     }
     
-    if (!empty($filtros['empresa'])) {
+    // Filtro por empresa eliminado - columna no existe
+    if (false && !empty($filtros['empresa'])) {
         $sql .= " AND EmpresaNombre = ?";
         $params[] = $filtros['empresa'];
         $types .= 's';
@@ -125,13 +121,8 @@ function obtenerVehiculosFiltrados($filtros) {
 function obtenerListaEmpresas() {
     $conn = conectar_Pepsico();
     
-    $sql = "SELECT DISTINCT EmpresaNombre FROM ingreso_vehiculos WHERE EmpresaNombre IS NOT NULL AND EmpresaNombre != '' ORDER BY EmpresaNombre";
-    $result = $conn->query($sql);
-    
+    // Función deshabilitada - columna EmpresaNombre eliminada
     $empresas = [];
-    while ($row = $result->fetch_assoc()) {
-        $empresas[] = $row['EmpresaNombre'];
-    }
     
     $conn->close();
     
@@ -167,7 +158,7 @@ function obtenerAnalisisMarcas() {
                 Marca,
                 COUNT(*) as Total,
                 SUM(CASE WHEN Estado IN ('Ingresado', 'Asignado', 'En Proceso') THEN 1 ELSE 0 END) as Activos,
-                COUNT(DISTINCT EmpresaNombre) as Empresas,
+                0 as Empresas,
                 MAX(FechaIngreso) as UltimoIngreso
             FROM ingreso_vehiculos 
             WHERE Marca IS NOT NULL AND Marca != ''
@@ -191,29 +182,8 @@ function obtenerAnalisisMarcas() {
  * Obtiene análisis por empresas
  */
 function obtenerAnalisisEmpresas() {
-    $conn = conectar_Pepsico();
-    
-    $sql = "SELECT 
-                EmpresaNombre,
-                COUNT(*) as Total,
-                SUM(CASE WHEN Estado IN ('Ingresado', 'Asignado', 'En Proceso') THEN 1 ELSE 0 END) as Activos,
-                COUNT(DISTINCT ConductorCedula) as Conductores,
-                COUNT(DISTINCT Marca) as Marcas,
-                MAX(FechaIngreso) as UltimoIngreso
-            FROM ingreso_vehiculos 
-            WHERE EmpresaNombre IS NOT NULL AND EmpresaNombre != ''
-            GROUP BY EmpresaNombre 
-            ORDER BY Total DESC";
-    
-    $result = $conn->query($sql);
-    
-    $analisis = [];
-    while ($row = $result->fetch_assoc()) {
-        $row['Frecuencia'] = $row['Total'] > 10 ? 'Alta' : ($row['Total'] > 5 ? 'Media' : 'Baja');
-        $analisis[] = $row;
-    }
-    
-    $conn->close();
+    // Función deshabilitada - columnas EmpresaNombre y ConductorCedula eliminadas
+    return [];
     
     return $analisis;
 }
@@ -222,31 +192,8 @@ function obtenerAnalisisEmpresas() {
  * Obtiene análisis de conductores
  */
 function obtenerAnalisisConductores() {
-    $conn = conectar_Pepsico();
-    
-    $sql = "SELECT 
-                ConductorCedula,
-                ConductorNombre,
-                COUNT(*) as TotalVehiculos,
-                COUNT(DISTINCT Placa) as VehiculosUnicos,
-                GROUP_CONCAT(DISTINCT EmpresaNombre) as Empresas,
-                MAX(FechaIngreso) as UltimaVisita,
-                MIN(FechaIngreso) as PrimeraVisita
-            FROM ingreso_vehiculos 
-            WHERE ConductorCedula IS NOT NULL AND ConductorCedula != ''
-            GROUP BY ConductorCedula, ConductorNombre
-            ORDER BY TotalVehiculos DESC";
-    
-    $result = $conn->query($sql);
-    
-    $analisis = [];
-    while ($row = $result->fetch_assoc()) {
-        $analisis[] = $row;
-    }
-    
-    $conn->close();
-    
-    return $analisis;
+    // Función deshabilitada - columnas ConductorCedula y EmpresaNombre eliminadas
+    return [];
 }
 
 /**
@@ -325,26 +272,16 @@ function obtenerDatosParaGraficos() {
         $estadosData['datasets'][0]['data'][] = $row['Total'];
     }
     
-    // Datos para gráfico de empresas (Top 8)
-    $sqlEmpresas = "SELECT EmpresaNombre, COUNT(*) as Total FROM ingreso_vehiculos WHERE EmpresaNombre IS NOT NULL GROUP BY EmpresaNombre ORDER BY Total DESC LIMIT 8";
-    $resultEmpresas = $conn->query($sqlEmpresas);
+    // Datos para gráfico de empresas - deshabilitado (columna EmpresaNombre eliminada)
     $empresasData = [
         'labels' => [],
         'datasets' => [[
             'label' => 'Vehículos por Empresa',
             'data' => [],
-            'backgroundColor' => [
-                '#004B93', '#28a745', '#dc3545', '#ffc107', '#17a2b8',
-                '#6f42c1', '#e83e8c', '#fd7e14'
-            ],
+            'backgroundColor' => [],
             'borderWidth' => 1
         ]]
     ];
-    
-    while ($row = $resultEmpresas->fetch_assoc()) {
-        $empresasData['labels'][] = $row['EmpresaNombre'];
-        $empresasData['datasets'][0]['data'][] = $row['Total'];
-    }
     
     // Datos para gráfico mensual (últimos 6 meses)
     $sqlMensual = "SELECT 
@@ -449,10 +386,9 @@ function exportarCSVCompleto() {
     // Encabezados
     fputcsv($output, [
         'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Color', 'Anio',
-        'ConductorNombre', 'ConductorCedula', 'ConductorTelefono', 'Licencia',
-        'EmpresaCodigo', 'EmpresaNombre', 'FechaIngreso', 'Proposito', 'Area',
+        'ConductorNombre', 'ConductorTelefono', 'FechaIngreso', 'Proposito', 'Area',
         'PersonaContacto', 'Observaciones', 'Estado', 'FechaRegistro',
-        'EstadoIngreso', 'Kilometraje', 'Combustible', 'UsuarioRegistro', 'Notificado'
+        'EstadoIngreso', 'Kilometraje', 'UsuarioRegistro', 'Notificado'
     ]);
     
     $conn = conectar_Pepsico();
@@ -469,11 +405,7 @@ function exportarCSVCompleto() {
             $row['Color'],
             $row['Anio'],
             $row['ConductorNombre'],
-            $row['ConductorCedula'],
             $row['ConductorTelefono'],
-            $row['Licencia'],
-            $row['EmpresaCodigo'],
-            $row['EmpresaNombre'],
             $row['FechaIngreso'],
             $row['Proposito'],
             $row['Area'],
@@ -483,7 +415,6 @@ function exportarCSVCompleto() {
             $row['FechaRegistro'],
             $row['EstadoIngreso'],
             $row['Kilometraje'],
-            $row['Combustible'],
             $row['UsuarioRegistro'],
             $row['Notificado']
         ]);
@@ -533,13 +464,13 @@ function exportarVehiculosCSV() {
     $output = fopen('php://output', 'w');
     fputcsv($output, [
         'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Color', 'Anio',
-        'EstadoIngreso', 'Kilometraje', 'Combustible', 'Estado', 'FechaIngreso'
+        'EstadoIngreso', 'Kilometraje', 'Estado', 'FechaIngreso'
     ]);
     
     $conn = conectar_Pepsico();
     $sql = "SELECT 
                 Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
-                EstadoIngreso, Kilometraje, Combustible, Estado, FechaIngreso
+                EstadoIngreso, Kilometraje, Estado, FechaIngreso
             FROM ingreso_vehiculos 
             ORDER BY Marca, Modelo";
     $result = $conn->query($sql);
@@ -600,7 +531,7 @@ function exportarEmpresasCSV() {
     
     foreach ($datos as $empresa) {
         fputcsv($output, [
-            $empresa['EmpresaNombre'],
+            'N/A', // EmpresaNombre eliminado
             $empresa['Total'],
             $empresa['Activos'],
             $empresa['Conductores'],
@@ -622,24 +553,18 @@ function exportarConductoresCSV() {
     header('Content-Disposition: attachment; filename=conductores_analisis_' . date('Y-m-d') . '.csv');
     
     $output = fopen('php://output', 'w');
+    // Función deshabilitada - columnas ConductorCedula y EmpresaNombre eliminadas
     fputcsv($output, [
-        'Cédula', 'Nombre', 'Total Vehículos', 'Vehículos Únicos',
-        'Empresas', 'Primera Visita', 'Última Visita'
+        'Nombre', 'Total Vehículos', 'Vehículos Únicos',
+        'Primera Visita', 'Última Visita'
     ]);
     
     $datos = obtenerAnalisisConductores();
     
-    foreach ($datos as $conductor) {
-        fputcsv($output, [
-            $conductor['ConductorCedula'],
-            $conductor['ConductorNombre'],
-            $conductor['TotalVehiculos'],
-            $conductor['VehículosUnicos'],
-            $conductor['Empresas'],
-            $conductor['PrimeraVisita'],
-            $conductor['UltimaVisita']
-        ]);
-    }
+    // Función deshabilitada - no hay datos disponibles
+    // foreach ($datos as $conductor) {
+    //     fputcsv($output, [...]);
+    // }
     
     fclose($output);
     exit;

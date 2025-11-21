@@ -121,10 +121,6 @@
                                     <td class="fw-bold" width="40%">Nombre:</td>
                                     <td id="infoConductorNombre">-</td>
                                 </tr>
-                                <tr>
-                                    <td class="fw-bold">Empresa:</td>
-                                    <td id="infoEmpresa">-</td>
-                                </tr>
                             </table>
                         </div>
                     </div>

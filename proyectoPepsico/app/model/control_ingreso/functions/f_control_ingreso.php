@@ -137,15 +137,11 @@ function registrarIngresoBasico($placa, $usuario_id) {
         Marca, 
         Modelo, 
         ConductorNombre, 
-        ConductorCedula, 
-        EmpresaCodigo, 
-        EmpresaNombre, 
         Proposito, 
         Estado, 
         EstadoIngreso, 
-        Combustible, 
         UsuarioRegistro
-    ) VALUES (?, 'Por definir', 'Por definir', 'Por definir', 'Por completar', 'Por completar', 'PENDIENTE', 'PENDIENTE', 'PENDIENTE', 'Ingresado', 'Bueno', '1/2', ?)";
+    ) VALUES (?, 'Por definir', 'Por definir', 'Por definir', 'Por completar', 'PENDIENTE', 'Ingresado', 'Bueno', ?)";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("si", $placa, $usuario_id);
@@ -249,11 +245,18 @@ function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
 
 /**
  * Verifica estado del vehículo
+ * Si no está ingresado, verifica si tiene una solicitud de agendamiento aprobada para hoy
  */
-function verificarEstadoVehiculo($placa) {
+function verificarEstadoVehiculo($placa, $fecha = null) {
     $conn = conectar_Pepsico();
     
-    $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, EmpresaNombre 
+    // Si no se proporciona fecha, usar la fecha actual
+    if ($fecha === null) {
+        $fecha = date('Y-m-d');
+    }
+    
+    // Primero buscar si el vehículo ya está ingresado
+    $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre
             FROM ingreso_vehiculos 
             WHERE Placa = ? AND Estado = 'Ingresado'";
     
@@ -263,10 +266,82 @@ function verificarEstadoVehiculo($placa) {
     $result = $stmt->get_result();
     
     $vehiculo = $result->fetch_assoc();
-    
     $stmt->close();
+    
+    // Si el vehículo ya está ingresado, retornarlo
+    if ($vehiculo) {
+        $conn->close();
+        return [
+            'vehiculo' => $vehiculo,
+            'tiene_agenda' => false
+        ];
+    }
+    
+    // Si no está ingresado, verificar si tiene una solicitud de agendamiento aprobada para hoy
+    $sqlAgenda = "SELECT 
+                    s.ID as SolicitudID,
+                    s.Placa,
+                    s.TipoVehiculo,
+                    s.Marca,
+                    s.Modelo,
+                    s.Color,
+                    s.Anio,
+                    s.ConductorNombre,
+                    s.Proposito,
+                    s.Area,
+                    s.Observaciones,
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio,
+                    a.HoraFin,
+                    u.NombreUsuario as ChoferNombre
+                  FROM solicitudes_agendamiento s
+                  INNER JOIN agenda_taller a ON s.AgendaID = a.ID
+                  LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
+                  WHERE s.Placa = ? 
+                    AND s.Estado = 'Aprobada'
+                    AND a.Fecha = ?
+                  ORDER BY s.FechaCreacion DESC
+                  LIMIT 1";
+    
+    $stmtAgenda = $conn->prepare($sqlAgenda);
+    $stmtAgenda->bind_param("ss", $placa, $fecha);
+    $stmtAgenda->execute();
+    $resultAgenda = $stmtAgenda->get_result();
+    
+    $solicitud = $resultAgenda->fetch_assoc();
+    $stmtAgenda->close();
     $conn->close();
     
-    return $vehiculo;
+    // Si encontró una solicitud aprobada, retornar los datos del vehículo de la solicitud
+    if ($solicitud) {
+        return [
+            'vehiculo' => [
+                'ID' => null,
+                'Placa' => $solicitud['Placa'],
+                'Estado' => 'Pendiente Ingreso',
+                'FechaIngreso' => null,
+                'ConductorNombre' => $solicitud['ConductorNombre'],
+                'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                'Marca' => $solicitud['Marca'],
+                'Modelo' => $solicitud['Modelo'],
+                'Color' => $solicitud['Color'],
+                'Anio' => $solicitud['Anio'],
+                'Proposito' => $solicitud['Proposito'],
+                'Area' => $solicitud['Area'],
+                'Observaciones' => $solicitud['Observaciones']
+            ],
+            'tiene_agenda' => true,
+            'agenda' => [
+                'SolicitudID' => $solicitud['SolicitudID'],
+                'FechaAgenda' => $solicitud['FechaAgenda'],
+                'HoraInicio' => $solicitud['HoraInicio'],
+                'HoraFin' => $solicitud['HoraFin'],
+                'ChoferNombre' => $solicitud['ChoferNombre']
+            ]
+        ];
+    }
+    
+    // No está ingresado ni tiene agenda aprobada
+    return null;
 }
 ?>

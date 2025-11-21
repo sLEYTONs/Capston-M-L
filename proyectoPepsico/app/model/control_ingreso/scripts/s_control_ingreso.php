@@ -97,17 +97,18 @@ try {
             
         case 'verificarEstado':
             $placa = $_POST['placa'] ?? '';
+            $fecha = $_POST['fecha'] ?? date('Y-m-d');
             
             if (empty($placa)) {
                 echo json_encode(['success' => false, 'message' => 'Placa requerida']);
                 exit();
             }
             
-            $vehiculo = verificarEstadoVehiculo($placa);
-            if ($vehiculo) {
-                echo json_encode(['success' => true, 'data' => $vehiculo]);
+            $resultado = verificarEstadoVehiculo($placa, $fecha);
+            if ($resultado) {
+                echo json_encode(['success' => true, 'data' => $resultado]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Vehículo no encontrado o ya salió']);
+                echo json_encode(['success' => false, 'message' => 'Vehículo no encontrado o ya salió. No tiene agenda aprobada para hoy.']);
             }
             break;
             

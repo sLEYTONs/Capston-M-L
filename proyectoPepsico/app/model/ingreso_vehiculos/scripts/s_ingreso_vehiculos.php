@@ -44,9 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Validaciones básicas
                 $campos_obligatorios = [
                     'ingreso_id', 'placa', 'tipo_vehiculo', 'marca', 'modelo', 
-                    'conductor_nombre', 'conductor_cedula', 
-                    'empresa_codigo', 'empresa_nombre', 
-                    'proposito', 'estado_ingreso', 'combustible'
+                    'conductor_nombre', 
+                    'proposito', 'estado_ingreso'
                 ];
                 
                 $campos_faltantes = [];
@@ -62,13 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 
-                // Validación adicional de formato de cédula
-                $cedula = trim($_POST['conductor_cedula']);
-                if (!preg_match('/^\d{7,15}$/', $cedula)) {
-                    $response['message'] = 'La cédula debe contener solo números y tener entre 7 y 15 dígitos';
-                    echo json_encode($response);
-                    exit;
-                }
+                // Validación de cédula eliminada - columna no existe
                 
                 // Validación de formato de nombre
                 $nombreConductor = trim($_POST['conductor_nombre']);
@@ -88,9 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // NORMALIZAR DATOS
                 $placa_normalizada = strtoupper(trim($_POST['placa']));
-                $chasis_normalizado = !empty($_POST['chasis']) ? strtoupper(trim($_POST['chasis'])) : '';
-                $cedula_normalizada = trim($_POST['conductor_cedula']);
-                $licencia_normalizada = !empty($_POST['licencia']) ? strtoupper(trim($_POST['licencia'])) : '';
                 
                 // Verificar duplicados (excluyendo el registro actual)
                 $campos_duplicados = [];
@@ -102,26 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $datos_duplicados['placa'] = obtenerInfoPlacaDuplicada($placa_normalizada);
                 }
                 
-                // Verificar si el chasis ya existe en otro registro (solo si no está vacío)
-                if (!empty($chasis_normalizado)) {
-                    if (chasisExisteEnOtroRegistro($chasis_normalizado, $_POST['ingreso_id'])) {
-                        $campos_duplicados[] = 'chasis';
-                        $datos_duplicados['chasis'] = obtenerInfoChasisDuplicado($chasis_normalizado);
-                    }
-                }
-                
                 // Verificar si la cédula ya existe en otro registro
                 if (cedulaExisteEnOtroRegistro($cedula_normalizada, $_POST['ingreso_id'])) {
                     $campos_duplicados[] = 'cedula';
                     $datos_duplicados['cedula'] = obtenerInfoCedulaDuplicada($cedula_normalizada);
-                }
-                
-                // Verificar si la licencia ya existe en otro registro (solo si no está vacía)
-                if (!empty($licencia_normalizada)) {
-                    if (licenciaExisteEnOtroRegistro($licencia_normalizada, $_POST['ingreso_id'])) {
-                        $campos_duplicados[] = 'licencia';
-                        $datos_duplicados['licencia'] = obtenerInfoLicenciaDuplicada($licencia_normalizada);
-                    }
                 }
                 
                 // Si hay campos duplicados, retornar error específico
@@ -131,9 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $mensajes_campos = [
                         'placa' => 'La placa ' . $placa_normalizada . ' ya está registrada en otro vehículo',
-                        'chasis' => 'El chasis ' . $chasis_normalizado . ' ya está registrado en otro vehículo',
-                        'cedula' => 'La cédula ' . $cedula_normalizada . ' ya está registrada en otro conductor',
-                        'licencia' => 'La licencia ' . $licencia_normalizada . ' ya está registrada en otro conductor'
+                        'cedula' => 'La cédula ' . $cedula_normalizada . ' ya está registrada en otro conductor'
                     ];
                     
                     $mensajes = [];
@@ -153,22 +125,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'chasis' => $chasis_normalizado,
                     'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
-                    'conductor_cedula' => $cedula_normalizada,
                     'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
-                    'licencia' => $licencia_normalizada,
-                    'empresa_codigo' => trim($_POST['empresa_codigo']),
-                    'empresa_nombre' => trim($_POST['empresa_nombre']),
                     'proposito' => trim($_POST['proposito']),
                     'area' => $_POST['area'] ?? '',
                     'persona_contacto' => $_POST['persona_contacto'] ?? '',
                     'observaciones' => $_POST['observaciones'] ?? '',
                     'estado_ingreso' => trim($_POST['estado_ingreso']),
                     'kilometraje' => $_POST['kilometraje'] ?? '',
-                    'combustible' => trim($_POST['combustible']),
                     'usuario_id' => intval($_POST['usuario_id'] ?? 1),
                     'documentos' => []
                 ];
@@ -212,9 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Validaciones básicas
                 $campos_obligatorios = [
                     'placa', 'tipo_vehiculo', 'marca', 'modelo', 
-                    'conductor_nombre', 'conductor_cedula', 
-                    'empresa_codigo', 'empresa_nombre', 
-                    'proposito', 'estado_ingreso', 'combustible'
+                    'conductor_nombre', 
+                    'proposito', 'estado_ingreso'
                 ];
                 
                 $campos_faltantes = [];
@@ -237,19 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 
-                if (strlen($_POST['conductor_cedula']) > 15) {
-                    $response['message'] = 'La cédula no puede tener más de 15 caracteres';
-                    echo json_encode($response);
-                    exit;
-                }
-                
-                // Validación adicional de formato de cédula
-                $cedula = trim($_POST['conductor_cedula']);
-                if (!preg_match('/^\d{7,15}$/', $cedula)) {
-                    $response['message'] = 'La cédula debe contener solo números y tener entre 7 y 15 dígitos';
-                    echo json_encode($response);
-                    exit;
-                }
+                // Validación de cédula eliminada - columna no existe
                 
                 // Validación de formato de nombre
                 $nombreConductor = trim($_POST['conductor_nombre']);
@@ -269,15 +222,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // NORMALIZAR DATOS PARA EVITAR DUPLICADOS POR FORMATO
                 $placa_normalizada = strtoupper(trim($_POST['placa']));
-                $chasis_normalizado = !empty($_POST['chasis']) ? strtoupper(trim($_POST['chasis'])) : '';
-                $cedula_normalizada = trim($_POST['conductor_cedula']);
-                $licencia_normalizada = !empty($_POST['licencia']) ? strtoupper(trim($_POST['licencia'])) : '';
                 
                 // DEBUG: Mostrar valores normalizados
                 error_log("DEBUG - Placa normalizada: " . $placa_normalizada);
-                error_log("DEBUG - Chasis normalizado: " . $chasis_normalizado);
-                error_log("DEBUG - Cédula normalizada: " . $cedula_normalizada);
-                error_log("DEBUG - Licencia normalizada: " . $licencia_normalizada);
                 
                 // Verificar duplicados y recolectar campos duplicados
                 $campos_duplicados = [];
@@ -290,31 +237,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $datos_duplicados['placa'] = obtenerInfoPlacaDuplicada($placa_normalizada);
                 }
                 
-                // Verificar si el chasis ya existe (solo si no está vacío)
-                if (!empty($chasis_normalizado)) {
-                    if (chasisExiste($chasis_normalizado)) {
-                        error_log("DEBUG - Chasis duplicado encontrado: " . $chasis_normalizado);
-                        $campos_duplicados[] = 'chasis';
-                        $datos_duplicados['chasis'] = obtenerInfoChasisDuplicado($chasis_normalizado);
-                    }
-                }
-                
-                // Verificar si la cédula ya existe
-                if (cedulaExiste($cedula_normalizada)) {
-                    error_log("DEBUG - Cédula duplicada encontrada: " . $cedula_normalizada);
-                    $campos_duplicados[] = 'cedula';
-                    $datos_duplicados['cedula'] = obtenerInfoCedulaDuplicada($cedula_normalizada);
-                }
-                
-                // Verificar si la licencia ya existe (solo si no está vacía)
-                if (!empty($licencia_normalizada)) {
-                    if (licenciaExiste($licencia_normalizada)) {
-                        error_log("DEBUG - Licencia duplicada encontrada: " . $licencia_normalizada);
-                        $campos_duplicados[] = 'licencia';
-                        $datos_duplicados['licencia'] = obtenerInfoLicenciaDuplicada($licencia_normalizada);
-                    }
-                }
-                
                 // DEBUG: Mostrar resultados de validación
                 error_log("DEBUG - Campos duplicados encontrados: " . implode(', ', $campos_duplicados));
                 
@@ -324,10 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $response['duplicated_data'] = $datos_duplicados;
                     
                     $mensajes_campos = [
-                        'placa' => 'La placa ' . $placa_normalizada . ' ya está registrada en el sistema',
-                        'chasis' => 'El chasis ' . $chasis_normalizado . ' ya está registrado en el sistema',
-                        'cedula' => 'La cédula ' . $cedula_normalizada . ' ya está registrada en el sistema',
-                        'licencia' => 'La licencia ' . $licencia_normalizada . ' ya está registrada en el sistema'
+                        'placa' => 'La placa ' . $placa_normalizada . ' ya está registrada en el sistema'
                     ];
                     
                     $mensajes = [];
@@ -346,22 +265,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'chasis' => $chasis_normalizado,
                     'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
-                    'conductor_cedula' => $cedula_normalizada,
                     'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
-                    'licencia' => $licencia_normalizada,
-                    'empresa_codigo' => trim($_POST['empresa_codigo']),
-                    'empresa_nombre' => trim($_POST['empresa_nombre']),
                     'proposito' => trim($_POST['proposito']),
                     'area' => $_POST['area'] ?? '',
                     'persona_contacto' => $_POST['persona_contacto'] ?? '',
                     'observaciones' => $_POST['observaciones'] ?? '',
                     'estado_ingreso' => trim($_POST['estado_ingreso']),
                     'kilometraje' => $_POST['kilometraje'] ?? '',
-                    'combustible' => trim($_POST['combustible']),
                     'usuario_id' => intval($_POST['usuario_id'] ?? 1),
                     'documentos' => [],
                     'fotos' => []

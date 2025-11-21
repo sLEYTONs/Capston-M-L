@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
         $vehiculo_id = mysqli_real_escape_string($conn, $vehiculo_id);
 
         $query = "SELECT 
-                    Placa, TipoVehiculo, Marca, Modelo, Color, Anio, Chasis,
-                    ConductorNombre, ConductorCedula, ConductorTelefono, Licencia,
-                    EmpresaNombre, Proposito, Area, EstadoIngreso, Combustible, 
+                    Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
+                    ConductorNombre, ConductorTelefono,
+                    Proposito, Area, EstadoIngreso, 
                     Kilometraje, Observaciones
                 FROM ingreso_vehiculos 
                 WHERE ID = '$vehiculo_id'";

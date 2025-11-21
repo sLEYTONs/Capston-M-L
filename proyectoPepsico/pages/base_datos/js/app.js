@@ -54,7 +54,7 @@ class BaseDatosApp {
         $('#total-registros').text(data.totalRegistros.toLocaleString());
         $('#vehiculos-activos').text(data.vehiculosActivos.toLocaleString());
         $('#marcas-unicas').text(data.marcasUnicas.toLocaleString());
-        $('#empresas-registradas').text(data.empresasRegistradas.toLocaleString());
+        $('#empresas-registradas').text('0'); // Columna eliminada
     }
 
     inicializarDataTables() {
@@ -71,7 +71,6 @@ class BaseDatosApp {
                 { data: 'Placa' },
                 { data: 'MarcaModelo' },
                 { data: 'ConductorNombre' },
-                { data: 'EmpresaNombre' },
                 { 
                     data: 'Estado',
                     render: (data) => {
@@ -119,22 +118,8 @@ class BaseDatosApp {
     }
 
     cargarFiltros() {
-        // Cargar empresas
-        $.ajax({
-            url: '../app/model/base_datos/scripts/s_base_datos.php',
-            type: 'POST',
-            data: { action: 'obtenerEmpresas' },
-            dataType: 'json',
-            success: (response) => {
-                if (response.success) {
-                    const select = $('#filter-company');
-                    select.empty().append('<option value="">Todas las empresas</option>');
-                    response.data.forEach(empresa => {
-                        select.append(`<option value="${empresa}">${empresa}</option>`);
-                    });
-                }
-            }
-        });
+        // Cargar empresas - deshabilitado (columna eliminada)
+        // $.ajax({...});
 
         // Cargar marcas
         $.ajax({
@@ -158,7 +143,7 @@ class BaseDatosApp {
         const filtros = {
             busqueda: $('#global-search').val(),
             estado: $('#filter-status').val(),
-            empresa: $('#filter-company').val(),
+            // empresa: $('#filter-company').val(), // Columna eliminada
             marca: $('#filter-brand').val()
         };
 
@@ -169,7 +154,7 @@ class BaseDatosApp {
     limpiarFiltros() {
         $('#global-search').val('');
         $('#filter-status').val('');
-        $('#filter-company').val('');
+        // $('#filter-company').val(''); // Columna eliminada
         $('#filter-brand').val('');
         this.dataTables.vehiculos.ajax.url('../app/model/base_datos/scripts/s_base_datos.php?action=obtenerVehiculos').load();
         this.mostrarNotificacion('Filtros limpiados', 'info');
@@ -189,10 +174,12 @@ class BaseDatosApp {
                 this.cargarDatosMarcas();
                 break;
             case 'empresas':
-                this.cargarDatosEmpresas();
+                // Función deshabilitada - columna eliminada
+                this.mostrarNotificacion('Esta funcionalidad no está disponible', 'warning');
                 break;
             case 'conductores':
-                this.cargarDatosConductores();
+                // Función deshabilitada - columna eliminada
+                this.mostrarNotificacion('Esta funcionalidad no está disponible', 'warning');
                 break;
             case 'graficos':
                 this.inicializarGraficos();
@@ -326,18 +313,14 @@ class BaseDatosApp {
                     <h6>Información del Conductor</h6>
                     <table class="table table-sm">
                         <tr><td><strong>Nombre:</strong></td><td>${vehiculo.ConductorNombre}</td></tr>
-                        <tr><td><strong>Cédula:</strong></td><td>${vehiculo.ConductorCedula}</td></tr>
                         <tr><td><strong>Teléfono:</strong></td><td>${vehiculo.ConductorTelefono}</td></tr>
-                        <tr><td><strong>Licencia:</strong></td><td>${vehiculo.Licencia}</td></tr>
                     </table>
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-12">
-                    <h6>Información de la Empresa</h6>
+                    <h6>Información de la Visita</h6>
                     <table class="table table-sm">
-                        <tr><td><strong>Empresa:</strong></td><td>${vehiculo.EmpresaNombre}</td></tr>
-                        <tr><td><strong>Código:</strong></td><td>${vehiculo.EmpresaCodigo}</td></tr>
                         <tr><td><strong>Propósito:</strong></td><td>${vehiculo.Proposito}</td></tr>
                         <tr><td><strong>Área:</strong></td><td>${vehiculo.Area}</td></tr>
                     </table>

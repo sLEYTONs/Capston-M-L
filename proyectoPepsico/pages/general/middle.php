@@ -32,10 +32,12 @@ $paginas_por_rol = [
         'control_ingreso.php'
     ],
     'Supervisor' => [
-        'consulta.php'
+        'consulta.php',
+        'gestion_solicitudes.php'
     ],
     'Chofer' => [
-        'ingreso_vehiculos.php'
+        'ingreso_vehiculos.php',
+        'solicitudes_agendamiento.php'
     ]
 ];
 

@@ -33,7 +33,6 @@ function obtenerAsignacionesRevision($filtros = []) {
                 v.Color,
                 v.Anio,
                 v.ConductorNombre,
-                v.EmpresaNombre,
                 
                 -- Datos del mecánico
                 u.NombreUsuario AS MecanicoNombre,

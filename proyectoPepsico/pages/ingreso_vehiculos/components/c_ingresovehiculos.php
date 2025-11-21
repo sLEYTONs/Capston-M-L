@@ -76,14 +76,6 @@
 
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="chasis">Chasis</label>
-                                <input type="text" class="form-control" id="chasis" name="chasis" 
-                                    placeholder="Número de chasis" maxlength="100">
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <div class="form-group">
                                 <label for="modelo">Modelo *</label>
                                 <input type="text" class="form-control" id="modelo" name="modelo" required>
                             </div>
@@ -130,38 +122,8 @@
                         
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="conductor_cedula">Cédula *</label>
-                                <input type="text" class="form-control" id="conductor_cedula" name="conductor_cedula" required>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-group">
                                 <label for="conductor_telefono">Teléfono</label>
                                 <input type="tel" class="form-control" id="conductor_telefono" name="conductor_telefono">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="licencia">Licencia</label>
-                                <input type="text" class="form-control" id="licencia" name="licencia">
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="empresa_codigo">Código de Empresa *</label>
-                                <input type="text" class="form-control" id="empresa_codigo" name="empresa_codigo" required>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="empresa_nombre">Nombre de Empresa *</label>
-                                <input type="text" class="form-control" id="empresa_nombre" name="empresa_nombre" required>
                             </div>
                         </div>
                     </div>
@@ -186,12 +148,6 @@
                         </div>
                         
                         <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="combustible">Nivel de Combustible *</label>
-                                <select class="form-control" id="combustible" name="combustible" required>
-                                    <option value="Lleno">Lleno</option>
-                                    <option value="3/4">3/4</option>
-                                    <option value="1/2">1/2</option>
                                     <option value="1/4">1/4</option>
                                     <option value="Reserva">Reserva</option>
                                 </select>

@@ -81,12 +81,7 @@
                             <option value="inactive">Inactivo (antiguo)</option>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label">Empresa</label>
-                        <select class="form-select" id="filter-company">
-                            <option value="">Todas las empresas</option>
-                        </select>
-                    </div>
+                    <!-- Filtro por empresa eliminado - columna no existe -->
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Marca</label>
                         <select class="form-select" id="filter-brand">
@@ -159,7 +154,6 @@
                                         <th>Placa</th>
                                         <th>Marca/Modelo</th>
                                         <th>Conductor</th>
-                                        <th>Empresa</th>
                                         <th>Estado</th>
                                         <th>FechaIngreso</th>
                                         <th>Acciones</th>
@@ -198,16 +192,16 @@
                         </div>
                     </div>
 
-                    <!-- Pestaña Empresas -->
+                    <!-- Pestaña Empresas - Deshabilitada (columna eliminada) -->
                     <div class="tab-pane fade" id="empresas" role="tabpanel">
-                        <h5 class="mb-3"><i class="fas fa-building me-2"></i>Análisis por Empresas</h5>
+                        <h5 class="mb-3"><i class="fas fa-building me-2"></i>Análisis por Empresas (No disponible)</h5>
+                        <p class="text-muted">Esta funcionalidad ha sido deshabilitada debido a que la columna EmpresaNombre fue eliminada de la base de datos.</p>
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="table-responsive">
                                     <table id="empresas-table" class="table table-striped table-hover" style="width:100%">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th>Empresa</th>
                                                 <th>Total Vehículos</th>
                                                 <th>Conductores</th>
                                                 <th>Activos</th>
@@ -233,11 +227,8 @@
                             <table id="conductores-table" class="table table-striped table-hover" style="width:100%">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>Cédula</th>
                                         <th>Nombre</th>
                                         <th>Teléfono</th>
-                                        <th>Licencia</th>
-                                        <th>Empresa</th>
                                         <th>Vehículos</th>
                                         <th>Última Visita</th>
                                     </tr>

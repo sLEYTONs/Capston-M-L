@@ -1,0 +1,131 @@
+/* Estilos para gestión de solicitudes */
+.main {
+    padding: 2rem;
+}
+
+.search-container {
+    background: var(--card-bg, #ffffff);
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-form {
+    margin-bottom: 2rem;
+}
+
+.search-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    padding: 0.75rem;
+    border: 2px solid var(--border-color, #e0e0e0);
+    border-radius: 5px;
+    font-size: 1rem;
+    width: 100%;
+    background: var(--input-bg, #ffffff);
+    color: var(--text-color, #333);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #2196f3);
+}
+
+.results-container {
+    margin-top: 2rem;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.results-table th,
+.results-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.results-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.badge.bg-warning {
+    background: #ff9800;
+    color: white;
+}
+
+.badge.bg-success {
+    background: #4caf50;
+    color: white;
+}
+
+.badge.bg-danger {
+    background: #f44336;
+    color: white;
+}
+
+.badge.bg-secondary {
+    background: #757575;
+    color: white;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: #2196f3;
+    color: white;
+}
+
+.btn-success {
+    background: #4caf50;
+    color: white;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn-secondary {
+    background: #757575;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+    .search-fields {
+        grid-template-columns: 1fr;
+    }
+}
+

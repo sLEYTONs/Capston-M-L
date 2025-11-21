@@ -23,7 +23,6 @@ function obtenerTareasMecanico($mecanico_id) {
                 v.Modelo,
                 v.Color,
                 v.ConductorNombre,
-                v.EmpresaNombre,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion,
                 a.Estado,
                 a.Observaciones,
@@ -92,7 +91,6 @@ function obtenerDetallesAsignacion($asignacion_id) {
                 v.Modelo,
                 v.Color,
                 v.ConductorNombre,
-                v.EmpresaNombre,
                 a.Estado,
                 a.Observaciones
             FROM asignaciones_mecanico a

@@ -16,11 +16,7 @@ function obtenerVehiculo() {
                         Color,
                         Anio,
                         ConductorNombre,
-                        ConductorCedula,
                         ConductorTelefono,
-                        Licencia,
-                        EmpresaCodigo,
-                        EmpresaNombre,
                         FechaIngreso,
                         Proposito,
                         Area,
@@ -70,11 +66,7 @@ function ingresoVehiculo($vehiculo) {
     $color = mysqli_real_escape_string($conn, $vehiculo['Color']);
     $anio = mysqli_real_escape_string($conn, $vehiculo['Anio']);
     $conductorNombre = mysqli_real_escape_string($conn, $vehiculo['ConductorNombre']);
-    $conductorCedula = mysqli_real_escape_string($conn, $vehiculo['ConductorCedula']);
     $conductorTelefono = mysqli_real_escape_string($conn, $vehiculo['ConductorTelefono']);
-    $licencia = mysqli_real_escape_string($conn, $vehiculo['Licencia']);
-    $empresaCodigo = mysqli_real_escape_string($conn, $vehiculo['EmpresaCodigo']);
-    $empresaNombre = mysqli_real_escape_string($conn, $vehiculo['EmpresaNombre']);
     $proposito = mysqli_real_escape_string($conn, $vehiculo['Proposito']);
     $area = mysqli_real_escape_string($conn, $vehiculo['Area']);
     $personaContacto = mysqli_real_escape_string($conn, $vehiculo['PersonaContacto']);
@@ -93,11 +85,7 @@ function ingresoVehiculo($vehiculo) {
             Color, 
             Anio,
             ConductorNombre, 
-            ConductorCedula, 
             ConductorTelefono, 
-            Licencia,
-            EmpresaCodigo, 
-            EmpresaNombre, 
             FechaIngreso,
             Proposito, 
             Area,
@@ -112,11 +100,7 @@ function ingresoVehiculo($vehiculo) {
             " . ($color ? "'$color'" : "DEFAULT") . ",
             " . ($anio ? "'$anio'" : "NULL") . ",
             '$conductorNombre',
-            '$conductorCedula',
             " . ($conductorTelefono ? "'$conductorTelefono'" : "DEFAULT") . ",
-            " . ($licencia ? "'$licencia'" : "DEFAULT") . ",
-            '$empresaCodigo',
-            '$empresaNombre',
             '$fechaIngreso',
             '$proposito',
             " . ($area ? "'$area'" : "DEFAULT") . ",

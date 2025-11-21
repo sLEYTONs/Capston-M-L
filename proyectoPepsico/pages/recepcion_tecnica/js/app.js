@@ -244,7 +244,7 @@ class RecepcionTecnicaApp {
                     $('#info-vehiculo-ot').html(`
                         <strong>Vehículo encontrado:</strong><br>
                         ${vehiculo.Marca} ${vehiculo.Modelo} - ${vehiculo.Placa}<br>
-                        <small>Conductor: ${vehiculo.ConductorNombre} | Empresa: ${vehiculo.EmpresaNombre || '-'}</small>
+                        <small>Conductor: ${vehiculo.ConductorNombre}</small>
                     `).show();
                 } else {
                     $('#info-vehiculo-ot').html(
@@ -476,7 +476,6 @@ class RecepcionTecnicaApp {
                         <tr><th>Placa:</th><td>${ot.Placa}</td></tr>
                         <tr><th>Vehículo:</th><td>${ot.Marca} ${ot.Modelo}</td></tr>
                         <tr><th>Conductor:</th><td>${ot.ConductorNombre || '-'}</td></tr>
-                        <tr><th>Empresa:</th><td>${ot.EmpresaNombre || '-'}</td></tr>
                     </table>
                 </div>
             </div>

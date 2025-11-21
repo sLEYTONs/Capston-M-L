@@ -99,6 +99,18 @@
         </li>
         <?php endif; ?>
 
+        <!-- Solicitudes de Agendamiento - Solo para Chofer -->
+        <?php if (tiene_acceso('solicitudes_agendamiento.php')): ?>
+        <li class="pc-item">
+          <a href="solicitudes_agendamiento.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-calendar-check"></i>
+            </span>
+            <span class="pc-mtext">Solicitudes de Agendamiento</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Consulta -->
         <?php if (tiene_acceso('consulta.php')): ?>
         <li class="pc-item">
@@ -107,6 +119,18 @@
               <i class="fas fa-search"></i>
             </span>
             <span class="pc-mtext">Consulta</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <!-- Gestión de Solicitudes - Solo para Supervisor -->
+        <?php if (tiene_acceso('gestion_solicitudes.php')): ?>
+        <li class="pc-item">
+          <a href="gestion_solicitudes.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-calendar-check"></i>
+            </span>
+            <span class="pc-mtext">Gestión de Solicitudes</span>
           </a>
         </li>
         <?php endif; ?>

@@ -34,7 +34,6 @@
                         <th>Placa</th>
                         <th>Vehículo</th>
                         <th>Conductor</th>
-                        <th>Empresa</th>
                         <th>Fecha Ingreso</th>
                         <th>Estado</th>
                         <th>Acciones</th>
