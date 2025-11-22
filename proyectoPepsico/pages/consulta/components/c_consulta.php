@@ -35,6 +35,7 @@
                         <th>Vehículo</th>
                         <th>Conductor</th>
                         <th>Fecha Ingreso</th>
+                        <th>Mecánico</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>

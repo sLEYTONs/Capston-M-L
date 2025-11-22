@@ -84,7 +84,8 @@ class ControlIngresoApp {
             data: {
                 action: 'verificarEstado',
                 placa: placa,
-                fecha: fechaActual
+                fecha: fechaActual,
+                tipo_operacion: this.tipoOperacion
             },
             dataType: 'json',
             success: (response) => {
@@ -97,20 +98,18 @@ class ControlIngresoApp {
                     // Si tiene agenda aprobada, mostrar información de la agenda
                     if (data.tiene_agenda && data.agenda) {
                         this.mostrarInformacionConAgenda(data);
-                    } else {
-                        // Vehículo ya ingresado o sin agenda
+                    } else if (data.puede_salir) {
+                        // Vehículo ya ingresado - puede salir
                         this.mostrarInformacionBasica(data);
-                    }
-                } else {
-                    if (this.tipoOperacion === 'ingreso') {
-                        // Para ingreso, no existe el vehículo ni tiene agenda - está bien
-                        this.vehiculoActual = { Placa: placa };
-                        this.mostrarPreparadoIngreso(placa);
                     } else {
-                        // Para salida, el vehículo debe existir
-                        this.mostrarAlerta(response.message, 'error');
+                        // No puede ingresar ni salir
+                        this.mostrarAlerta(data.mensaje || 'No se puede procesar esta operación', 'warning');
                         this.ocultarInformacionVehiculo();
                     }
+                } else {
+                    // No tiene agenda aprobada o no está ingresado
+                    this.mostrarAlerta(response.message, 'error');
+                    this.ocultarInformacionVehiculo();
                 }
             },
             error: () => {
@@ -142,12 +141,27 @@ class ControlIngresoApp {
         if (vehiculo.Estado === 'Ingresado') {
             $('#infoEstado').html('<span class="badge bg-success">En Patio</span>');
             $('#infoFechaIngreso').text(this.formatearFecha(vehiculo.FechaIngreso));
+            
+            // Mostrar información adicional del vehículo si existe
+            let infoVehiculo = '';
+            if (vehiculo.TipoVehiculo) infoVehiculo += `<strong>Tipo:</strong> ${vehiculo.TipoVehiculo}<br>`;
+            if (vehiculo.Marca && vehiculo.Modelo) infoVehiculo += `<strong>Vehículo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}<br>`;
+            
+            if ($('#infoVehiculo').length === 0) {
+                $('#infoConductorNombre').after('<div id="infoVehiculo" class="mt-2"></div>');
+            }
+            if (infoVehiculo) {
+                $('#infoVehiculo').html(infoVehiculo).show();
+            }
         } else {
             $('#infoEstado').html('<span class="badge bg-warning">Pendiente Ingreso</span>');
             $('#infoFechaIngreso').text('Al confirmar ingreso');
         }
         
-        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'Por completar');
+        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
+        
+        // Ocultar alerta de agenda si existe
+        $('#alertAgenda').remove();
         
         $('#sinResultados').hide();
         $('#conResultados').show().addClass('fade-in');
@@ -160,18 +174,33 @@ class ControlIngresoApp {
         const agenda = data.agenda;
         
         $('#infoPlaca').text(vehiculo.Placa);
-        $('#infoEstado').html('<span class="badge bg-info">Con Agenda Aprobada</span>');
+        $('#infoEstado').html('<span class="badge bg-success">Con Hora Asignada</span>');
         $('#infoFechaIngreso').html(`
-            <strong>Fecha Agenda:</strong> ${this.formatearFecha(agenda.FechaAgenda)}<br>
+            <strong>Fecha:</strong> ${this.formatearFecha(agenda.FechaAgenda)}<br>
             <strong>Hora:</strong> ${this.formatearHora(agenda.HoraInicio)} - ${this.formatearHora(agenda.HoraFin)}
         `);
-        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'Por completar');
+        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
+        
+        // Mostrar información adicional del vehículo si existe
+        let infoVehiculo = '';
+        if (vehiculo.TipoVehiculo) infoVehiculo += `<strong>Tipo:</strong> ${vehiculo.TipoVehiculo}<br>`;
+        if (vehiculo.Marca && vehiculo.Modelo) infoVehiculo += `<strong>Vehículo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}<br>`;
+        if (vehiculo.Color) infoVehiculo += `<strong>Color:</strong> ${vehiculo.Color}<br>`;
+        if (vehiculo.Proposito) infoVehiculo += `<strong>Propósito:</strong> ${vehiculo.Proposito}`;
+        
+        // Buscar o crear elemento para información del vehículo
+        if ($('#infoVehiculo').length === 0) {
+            $('#infoConductorNombre').after('<div id="infoVehiculo" class="mt-2"></div>');
+        }
+        if (infoVehiculo) {
+            $('#infoVehiculo').html(infoVehiculo).show();
+        }
         
         // Mostrar alerta informativa sobre la agenda
         const alertHtml = `
-            <div class="alert alert-info mb-3" id="alertAgenda">
+            <div class="alert alert-success mb-3" id="alertAgenda">
                 <i class="fas fa-calendar-check me-2"></i>
-                <strong>Vehículo con agenda aprobada:</strong> Este vehículo tiene una cita agendada para hoy.
+                <strong>Vehículo con hora asignada:</strong> Este vehículo tiene una cita agendada y aprobada para hoy.
                 <br><small>Puede proceder con el registro de ingreso.</small>
             </div>
         `;
@@ -201,8 +230,13 @@ class ControlIngresoApp {
         // Mínimo 2 fotos requeridas
         const fotosSuficientes = this.fotosCapturadas.length >= 2;
         
-        $('#btnProcesarIngreso').prop('disabled', !tieneVehiculo || !fotosSuficientes);
-        $('#btnProcesarSalida').prop('disabled', !tieneVehiculo || !fotosSuficientes);
+        // Para ingreso: solo si tiene agenda aprobada
+        const puedeIngresar = tieneVehiculo && this.vehiculoActual.puede_ingresar;
+        // Para salida: solo si el vehículo está ingresado
+        const puedeSalir = tieneVehiculo && this.vehiculoActual.puede_salir;
+        
+        $('#btnProcesarIngreso').prop('disabled', !puedeIngresar || !fotosSuficientes);
+        $('#btnProcesarSalida').prop('disabled', !puedeSalir || !fotosSuficientes);
         $('#btnReportarNovedad').prop('disabled', !tieneVehiculo);
     }
 

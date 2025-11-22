@@ -19,14 +19,16 @@ class BaseDatosApp {
         
         // Actualización
         $('#refresh-vehicles').click(() => this.actualizarTablaVehiculos());
+        $('#refresh-agendas').click(() => this.actualizarTablaAgendas());
+        $('#refresh-repuestos').click(() => this.actualizarTablaRepuestos());
+        $('#refresh-usuarios').click(() => this.actualizarTablaUsuarios());
+        $('#refresh-conductores').click(() => this.actualizarTablaConductores());
         
         // Exportación
         $('#export-csv-completo').click(() => this.exportarCSVCompleto());
         $('#export-excel-completo').click(() => this.exportarExcelCompleto());
         $('#export-json-completo').click(() => this.exportarJSONCompleto());
         $('#export-vehiculos').click(() => this.exportarVehiculos());
-        $('#export-marcas').click(() => this.exportarMarcas());
-        $('#export-empresas').click(() => this.exportarEmpresas());
         $('#export-conductores').click(() => this.exportarConductores());
         
         // Eventos de pestañas
@@ -53,21 +55,27 @@ class BaseDatosApp {
     mostrarEstadisticas(data) {
         $('#total-registros').text(data.totalRegistros.toLocaleString());
         $('#vehiculos-activos').text(data.vehiculosActivos.toLocaleString());
-        $('#marcas-unicas').text(data.marcasUnicas.toLocaleString());
-        $('#empresas-registradas').text('0'); // Columna eliminada
+        $('#repuestos-stock-bajo').text((data.repuestosStockBajo || 0).toLocaleString());
+        
+        // Resaltar si hay repuestos con stock bajo
+        if (data.repuestosStockBajo > 0) {
+            $('#repuestos-stock-bajo').parent().parent().addClass('stat-card-warning');
+        }
     }
 
     inicializarDataTables() {
-        // Tabla de Vehículos
+        // Tabla de Vehículos (ahora trae todos los vehículos ingresados)
         this.dataTables.vehiculos = $('#vehiculos-table').DataTable({
             processing: true,
-            serverSide: true,
+            serverSide: false,
             ajax: {
                 url: '../app/model/base_datos/scripts/s_base_datos.php',
                 type: 'POST',
-                data: { action: 'obtenerVehiculos' }
+                data: { action: 'obtenerVehiculos' },
+                dataSrc: 'data'
             },
             columns: [
+                { data: 'ID' },
                 { data: 'Placa' },
                 { data: 'MarcaModelo' },
                 { data: 'ConductorNombre' },
@@ -166,10 +174,235 @@ class BaseDatosApp {
         this.mostrarNotificacion('Datos actualizados', 'success');
     }
 
+    inicializarTablaAgendas() {
+        if (this.dataTables.agendas) {
+            return;
+        }
+
+        this.dataTables.agendas = $('#agendas-table').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url: '../app/model/base_datos/scripts/s_base_datos.php',
+                type: 'POST',
+                data: { action: 'obtenerAgendas' },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'ID' },
+                { 
+                    data: 'Fecha',
+                    render: (data) => data ? new Date(data).toLocaleDateString('es-ES') : 'N/A'
+                },
+                { data: 'HoraInicio' },
+                { data: 'HoraFin' },
+                { 
+                    data: 'Disponible',
+                    render: (data) => {
+                        return data == 1 
+                            ? '<span class="badge badge-success">Disponible</span>'
+                            : '<span class="badge badge-danger">No Disponible</span>';
+                    }
+                },
+                { data: 'Observaciones' || 'N/A' }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true
+        });
+    }
+
+    inicializarTablaRepuestos() {
+        if (this.dataTables.repuestos) {
+            return;
+        }
+
+        this.dataTables.repuestos = $('#repuestos-table').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url: '../app/model/base_datos/scripts/s_base_datos.php',
+                type: 'POST',
+                data: { action: 'obtenerRepuestos' },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'ID' },
+                { data: 'Nombre' },
+                { data: 'Descripcion' || 'N/A' },
+                { data: 'Stock' },
+                { data: 'StockMinimo' },
+                { 
+                    data: 'Precio',
+                    render: (data) => {
+                        const precio = parseFloat(data) || 0;
+                        return '$' + Math.round(precio).toLocaleString('es-CL');
+                    }
+                },
+                { 
+                    data: 'Estado',
+                    render: (data) => {
+                        return data === 'Activo' 
+                            ? '<span class="badge badge-success">Activo</span>'
+                            : '<span class="badge badge-danger">Inactivo</span>';
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true
+        });
+    }
+
+    inicializarTablaUsuarios() {
+        if (this.dataTables.usuarios) {
+            return;
+        }
+
+        this.dataTables.usuarios = $('#usuarios-table').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url: '../app/model/base_datos/scripts/s_base_datos.php',
+                type: 'POST',
+                data: { action: 'obtenerUsuarios' },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'ID' },
+                { data: 'NombreUsuario' },
+                { data: 'Correo' },
+                { data: 'Rol' },
+                { 
+                    data: 'Estado',
+                    render: (data) => {
+                        return data == 1 
+                            ? '<span class="badge badge-primary">Activo</span>'
+                            : '<span class="badge badge-danger">Inactivo</span>';
+                    }
+                },
+                { 
+                    data: 'FechaCreacion',
+                    render: (data) => data ? new Date(data).toLocaleDateString('es-ES') : 'N/A'
+                },
+                { 
+                    data: 'UltimoAcceso',
+                    render: (data) => {
+                        if (data) {
+                            return new Date(data).toLocaleString('es-ES');
+                        }
+                        return 'Nunca';
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true
+        });
+    }
+
+    inicializarTablaConductores() {
+        if (this.dataTables.conductores) {
+            return;
+        }
+
+        this.dataTables.conductores = $('#conductores-table').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url: '../app/model/base_datos/scripts/s_base_datos.php',
+                type: 'POST',
+                data: { action: 'obtenerAnalisisConductores' },
+                dataSrc: 'data'
+            },
+            columns: [
+                { data: 'ID' },
+                { data: 'Nombre' },
+                { data: 'Correo' },
+                { 
+                    data: 'Estado',
+                    render: (data) => {
+                        return data == 1 
+                            ? '<span class="badge badge-primary">Activo</span>'
+                            : '<span class="badge badge-danger">Inactivo</span>';
+                    }
+                },
+                { data: 'Vehiculos' },
+                { 
+                    data: 'FechaCreacion',
+                    render: (data) => data ? new Date(data).toLocaleDateString('es-ES') : 'N/A'
+                },
+                { 
+                    data: 'UltimaVisita',
+                    render: (data) => {
+                        if (data) {
+                            return new Date(data).toLocaleString('es-ES');
+                        }
+                        return 'Nunca';
+                    }
+                }
+            ],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true
+        });
+    }
+
+    actualizarTablaAgendas() {
+        if (this.dataTables.agendas) {
+            this.dataTables.agendas.ajax.reload();
+            this.mostrarNotificacion('Agendas actualizadas', 'success');
+        }
+    }
+
+    actualizarTablaConductores() {
+        if (this.dataTables.conductores) {
+            this.dataTables.conductores.ajax.reload();
+            this.mostrarNotificacion('Conductores actualizados', 'success');
+        }
+    }
+
+    actualizarTablaRepuestos() {
+        if (this.dataTables.repuestos) {
+            this.dataTables.repuestos.ajax.reload();
+            this.mostrarNotificacion('Repuestos actualizados', 'success');
+        }
+    }
+
+    actualizarTablaUsuarios() {
+        if (this.dataTables.usuarios) {
+            this.dataTables.usuarios.ajax.reload();
+            this.mostrarNotificacion('Usuarios actualizados', 'success');
+        }
+    }
+
     onTabChange(tab) {
         const tabId = $(tab).attr('data-bs-target').substring(1);
         
         switch(tabId) {
+            case 'agendas':
+                if (!this.dataTables.agendas) {
+                    this.inicializarTablaAgendas();
+                }
+                break;
+            case 'repuestos':
+                if (!this.dataTables.repuestos) {
+                    this.inicializarTablaRepuestos();
+                }
+                break;
+            case 'usuarios':
+                if (!this.dataTables.usuarios) {
+                    this.inicializarTablaUsuarios();
+                }
+                break;
             case 'marcas':
                 this.cargarDatosMarcas();
                 break;
@@ -178,8 +411,9 @@ class BaseDatosApp {
                 this.mostrarNotificacion('Esta funcionalidad no está disponible', 'warning');
                 break;
             case 'conductores':
-                // Función deshabilitada - columna eliminada
-                this.mostrarNotificacion('Esta funcionalidad no está disponible', 'warning');
+                if (!this.dataTables.conductores) {
+                    this.inicializarTablaConductores();
+                }
                 break;
             case 'graficos':
                 this.inicializarGraficos();
@@ -313,7 +547,6 @@ class BaseDatosApp {
                     <h6>Información del Conductor</h6>
                     <table class="table table-sm">
                         <tr><td><strong>Nombre:</strong></td><td>${vehiculo.ConductorNombre}</td></tr>
-                        <tr><td><strong>Teléfono:</strong></td><td>${vehiculo.ConductorTelefono}</td></tr>
                     </table>
                 </div>
             </div>
@@ -322,7 +555,6 @@ class BaseDatosApp {
                     <h6>Información de la Visita</h6>
                     <table class="table table-sm">
                         <tr><td><strong>Propósito:</strong></td><td>${vehiculo.Proposito}</td></tr>
-                        <tr><td><strong>Área:</strong></td><td>${vehiculo.Area}</td></tr>
                     </table>
                 </div>
             </div>
@@ -348,16 +580,6 @@ class BaseDatosApp {
     exportarVehiculos() {
         window.open('base_datos/scripts/s_base_datos.php?action=exportarVehiculos', '_blank');
         this.mostrarNotificacion('Exportando datos de vehículos...', 'info');
-    }
-
-    exportarMarcas() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarMarcas', '_blank');
-        this.mostrarNotificacion('Exportando datos de marcas...', 'info');
-    }
-
-    exportarEmpresas() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarEmpresas', '_blank');
-        this.mostrarNotificacion('Exportando datos de empresas...', 'info');
     }
 
     exportarConductores() {

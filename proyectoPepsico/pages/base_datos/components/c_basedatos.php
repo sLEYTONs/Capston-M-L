@@ -7,7 +7,7 @@
             </div>
             <div class="card-body">
                 <div class="row" id="stats-container">
-                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="col-md-4 col-sm-6 mb-3">
                         <div class="stat-card">
                             <div class="stat-icon">
                                 <i class="fas fa-database"></i>
@@ -18,7 +18,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="col-md-4 col-sm-6 mb-3">
                         <div class="stat-card">
                             <div class="stat-icon">
                                 <i class="fas fa-car"></i>
@@ -29,25 +29,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="col-md-4 col-sm-6 mb-3">
                         <div class="stat-card">
                             <div class="stat-icon">
-                                <i class="fas fa-tags"></i>
+                                <i class="fas fa-exclamation-triangle"></i>
                             </div>
                             <div class="stat-content">
-                                <h3 id="marcas-unicas">0</h3>
-                                <p>Marcas Únicas</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-building"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3 id="empresas-registradas">0</h3>
-                                <p>Empresas Registradas</p>
+                                <h3 id="repuestos-stock-bajo">0</h3>
+                                <p>Repuestos Stock Bajo</p>
                             </div>
                         </div>
                     </div>
@@ -111,6 +100,25 @@
                             <i class="fas fa-truck me-2"></i>Vehículos
                         </button>
                     </li>
+                    <?php if ($usuario_rol === 'Jefe de Taller'): ?>
+                    <!-- Pestañas específicas para Jefe de Taller -->
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="agendas-tab" data-bs-toggle="tab" data-bs-target="#agendas" type="button" role="tab">
+                            <i class="fas fa-calendar-alt me-2"></i>Agendas
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="repuestos-tab" data-bs-toggle="tab" data-bs-target="#repuestos" type="button" role="tab">
+                            <i class="fas fa-cogs me-2"></i>Repuestos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button" role="tab">
+                            <i class="fas fa-user-friends me-2"></i>Usuarios
+                        </button>
+                    </li>
+                    <?php else: ?>
+                    <!-- Pestañas para otros roles (Administrador, Recepcionista) -->
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="marcas-tab" data-bs-toggle="tab" data-bs-target="#marcas" type="button" role="tab">
                             <i class="fas fa-tags me-2"></i>Marcas
@@ -122,13 +130,14 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="conductores-tab" data-bs-toggle="tab" data-bs-target="#conductores" type="button" role="tab">
-                            <i class="fas fa-users me-2"></i>Conductores
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
                         <button class="nav-link" id="graficos-tab" data-bs-toggle="tab" data-bs-target="#graficos" type="button" role="tab">
                             <i class="fas fa-chart-pie me-2"></i>Gráficos
+                        </button>
+                    </li>
+                    <?php endif; ?>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="conductores-tab" data-bs-toggle="tab" data-bs-target="#conductores" type="button" role="tab">
+                            <i class="fas fa-users me-2"></i>Conductores
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -151,6 +160,7 @@
                             <table id="vehiculos-table" class="table table-striped table-hover" style="width:100%">
                                 <thead class="table-dark">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Placa</th>
                                         <th>Marca/Modelo</th>
                                         <th>Conductor</th>
@@ -164,7 +174,85 @@
                         </div>
                     </div>
 
-                    <!-- Pestaña Marcas -->
+                    <?php if ($usuario_rol === 'Jefe de Taller'): ?>
+                    <!-- Pestaña Agendas (Solo Jefe de Taller) -->
+                    <div class="tab-pane fade" id="agendas" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendas del Taller</h5>
+                            <button class="btn btn-success btn-sm" id="refresh-agendas">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="agendas-table" class="table table-striped table-hover" style="width:100%">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Fecha</th>
+                                        <th>Hora Inicio</th>
+                                        <th>Hora Fin</th>
+                                        <th>Disponible</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Repuestos (Solo Jefe de Taller) -->
+                    <div class="tab-pane fade" id="repuestos" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Repuestos</h5>
+                            <button class="btn btn-success btn-sm" id="refresh-repuestos">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="repuestos-table" class="table table-striped table-hover" style="width:100%">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Stock</th>
+                                        <th>Stock Mínimo</th>
+                                        <th>Precio</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pestaña Usuarios (Solo Jefe de Taller) -->
+                    <div class="tab-pane fade" id="usuarios" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i>Usuarios del Sistema</h5>
+                            <button class="btn btn-success btn-sm" id="refresh-usuarios">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="usuarios-table" class="table table-striped table-hover" style="width:100%">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre Usuario</th>
+                                        <th>Correo</th>
+                                        <th>Rol</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Último Acceso</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <!-- Pestaña Marcas (Otros roles) -->
                     <div class="tab-pane fade" id="marcas" role="tabpanel">
                         <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Análisis por Marcas</h5>
                         <div class="row">
@@ -219,17 +307,26 @@
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Pestaña Conductores -->
                     <div class="tab-pane fade" id="conductores" role="tabpanel">
-                        <h5 class="mb-3"><i class="fas fa-users me-2"></i>Registros de Conductores</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="fas fa-users me-2"></i>Registros de Conductores (Usuarios con Rol Chofer)</h5>
+                            <button class="btn btn-success btn-sm" id="refresh-conductores">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                        </div>
                         <div class="table-responsive">
                             <table id="conductores-table" class="table table-striped table-hover" style="width:100%">
                                 <thead class="table-dark">
                                     <tr>
+                                        <th>ID</th>
                                         <th>Nombre</th>
-                                        <th>Teléfono</th>
+                                        <th>Correo</th>
+                                        <th>Estado</th>
                                         <th>Vehículos</th>
+                                        <th>Fecha Creación</th>
                                         <th>Última Visita</th>
                                     </tr>
                                 </thead>
@@ -320,12 +417,6 @@
                                         <div class="d-grid gap-2">
                                             <button class="btn btn-outline-primary" id="export-vehiculos">
                                                 <i class="fas fa-truck me-2"></i>Solo Vehículos
-                                            </button>
-                                            <button class="btn btn-outline-primary" id="export-marcas">
-                                                <i class="fas fa-tags me-2"></i>Solo Marcas
-                                            </button>
-                                            <button class="btn btn-outline-primary" id="export-empresas">
-                                                <i class="fas fa-building me-2"></i>Solo Empresas
                                             </button>
                                             <button class="btn btn-outline-primary" id="export-conductores">
                                                 <i class="fas fa-users me-2"></i>Solo Conductores

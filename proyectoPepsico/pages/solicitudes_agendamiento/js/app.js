@@ -18,9 +18,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const confirmBtn = document.getElementById("confirm-registration");
     const cancelBtn = document.getElementById("cancel-registration");
     const notification = document.getElementById("notification");
+    const plateInput = document.getElementById("plate");
+    const vehicleInfo = document.getElementById("vehicle-info");
 
     let formDataCache = null;
     const baseUrl = getBaseUrl();
+    const fotosInput = document.getElementById("fotos");
+    const fotosPreview = document.getElementById("fotos-preview");
+    const fotosPreviewContainer = document.getElementById("fotos-preview-container");
 
     // Set default date for fecha solicitada (mínimo hoy)
     const fechaSolicitada = document.getElementById("fecha-solicitada");
@@ -29,11 +34,255 @@ document.addEventListener("DOMContentLoaded", () => {
         fechaSolicitada.min = hoy.toISOString().split('T')[0];
     }
 
+    // Manejar preview de imágenes
+    if (fotosInput) {
+        fotosInput.addEventListener("change", (e) => {
+            const files = Array.from(e.target.files);
+            fotosPreviewContainer.innerHTML = '';
+            
+            if (files.length > 0) {
+                fotosPreview.style.display = 'block';
+                
+                files.forEach((file, index) => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-3 mb-2';
+                            col.innerHTML = `
+                                <div class="card">
+                                    <img src="${event.target.result}" class="card-img-top" style="max-height: 150px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <small class="text-muted">${file.name}</small>
+                                    </div>
+                                </div>
+                            `;
+                            fotosPreviewContainer.appendChild(col);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            } else {
+                fotosPreview.style.display = 'none';
+            }
+        });
+    }
+
+    // Letras permitidas en placas chilenas (solo consonantes)
+    const letrasPermitidas = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
+    
+    // Función para validar formato de placa chilena
+    function validarFormatoPlaca(placa) {
+        // Convertir a mayúsculas y eliminar espacios
+        placa = placa.toUpperCase().replace(/\s/g, '');
+        
+        // Validar longitud
+        if (placa.length !== 6) {
+            return { valido: false, mensaje: 'La placa debe tener 6 caracteres' };
+        }
+        
+        // Validar formato: 4 letras + 2 números o 2 letras + 4 números
+        const formato1 = /^[BCDFGHJKLMNPRSTVWXYZ]{4}[0-9]{2}$/; // 4 letras + 2 números
+        const formato2 = /^[BCDFGHJKLMNPRSTVWXYZ]{2}[0-9]{4}$/; // 2 letras + 4 números
+        
+        if (!formato1.test(placa) && !formato2.test(placa)) {
+            return { valido: false, mensaje: 'Formato inválido. Use: 4 letras + 2 números (BCDF12) o 2 letras + 4 números (BC1234)' };
+        }
+        
+        // Validar que todas las letras sean permitidas
+        for (let i = 0; i < placa.length; i++) {
+            const char = placa[i];
+            if (isNaN(char)) { // Es una letra
+                if (!letrasPermitidas.includes(char)) {
+                    return { valido: false, mensaje: `La letra "${char}" no está permitida. Solo consonantes: ${letrasPermitidas.join(', ')}` };
+                }
+            }
+        }
+        
+        return { valido: true, placa: placa };
+    }
+    
+    // Función para filtrar caracteres no permitidos mientras el usuario escribe
+    function filtrarCaracteresPlaca(input) {
+        let valor = input.value.toUpperCase();
+        let valorFiltrado = '';
+        
+        for (let i = 0; i < valor.length; i++) {
+            const char = valor[i];
+            // Permitir letras permitidas y números
+            if (letrasPermitidas.includes(char) || /[0-9]/.test(char)) {
+                valorFiltrado += char;
+            }
+        }
+        
+        // Limitar a 6 caracteres
+        valorFiltrado = valorFiltrado.substring(0, 6);
+        
+        input.value = valorFiltrado;
+        return valorFiltrado;
+    }
+    
+    // Buscar vehículo por patente cuando se ingrese la placa
+    if (plateInput) {
+        const plateError = document.getElementById("plate-error");
+        let timeoutId;
+        
+        // Convertir a mayúsculas y filtrar caracteres mientras escribe
+        plateInput.addEventListener("input", (e) => {
+            const valorOriginal = e.target.value;
+            const valorFiltrado = filtrarCaracteresPlaca(e.target);
+            
+            // Limpiar mensaje de error si hay cambios
+            if (plateError) {
+                plateError.style.display = 'none';
+                plateError.textContent = '';
+            }
+            plateInput.classList.remove("error");
+            
+            // Validar formato cuando tenga 6 caracteres
+            if (valorFiltrado.length === 6) {
+                const validacion = validarFormatoPlaca(valorFiltrado);
+                if (!validacion.valido) {
+                    if (plateError) {
+                        plateError.textContent = validacion.mensaje;
+                        plateError.style.display = 'block';
+                    }
+                    plateInput.classList.add("error");
+                    ocultarInfoVehiculo();
+                    return;
+                } else {
+                    // Formato válido, buscar vehículo
+                    if (plateError) {
+                        plateError.style.display = 'none';
+                    }
+                    plateInput.classList.remove("error");
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        buscarVehiculoPorPatente(validacion.placa);
+                    }, 500);
+                }
+            } else if (valorFiltrado.length > 0) {
+                // Si tiene caracteres pero no 6, validar solo letras permitidas
+                for (let i = 0; i < valorFiltrado.length; i++) {
+                    const char = valorFiltrado[i];
+                    if (isNaN(char) && !letrasPermitidas.includes(char)) {
+                        if (plateError) {
+                            plateError.textContent = `La letra "${char}" no está permitida. Solo consonantes: ${letrasPermitidas.join(', ')}`;
+                            plateError.style.display = 'block';
+                        }
+                        plateInput.classList.add("error");
+                        break;
+                    }
+                }
+            } else {
+                // Si está vacío, ocultar información del vehículo
+                ocultarInfoVehiculo();
+            }
+        });
+        
+        // Validar al perder el foco
+        plateInput.addEventListener("blur", (e) => {
+            const patente = e.target.value.trim();
+            if (patente.length > 0 && patente.length !== 6) {
+                const validacion = validarFormatoPlaca(patente);
+                if (!validacion.valido) {
+                    if (plateError) {
+                        plateError.textContent = validacion.mensaje;
+                        plateError.style.display = 'block';
+                    }
+                    plateInput.classList.add("error");
+                }
+            }
+        });
+    }
+
+    // Función para buscar vehículo por patente
+    async function buscarVehiculoPorPatente(patente) {
+        try {
+            // Asegurar que la patente esté en mayúsculas y validada
+            const validacion = validarFormatoPlaca(patente);
+            if (!validacion.valido) {
+                ocultarInfoVehiculo();
+                return;
+            }
+            
+            const patenteValidada = validacion.placa;
+            
+            const formData = new FormData();
+            formData.append('accion', 'obtener_vehiculo_por_patente');
+            formData.append('patente', patenteValidada);
+
+            const response = await fetch(baseUrl, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+
+            const result = await response.json();
+
+            if (result.status === 'success' && result.data) {
+                llenarDatosVehiculo(result.data);
+            } else {
+                ocultarInfoVehiculo();
+                if (result.message) {
+                    // Mostrar error en el campo de placa
+                    const plateError = document.getElementById("plate-error");
+                    if (plateError) {
+                        plateError.textContent = result.message;
+                        plateError.style.display = 'block';
+                    }
+                    plateInput.classList.add("error");
+                    showNotification(result.message, "error");
+                }
+            }
+        } catch (error) {
+            console.error("Error al buscar vehículo:", error);
+            ocultarInfoVehiculo();
+        }
+    }
+
+    // Función para llenar los datos del vehículo en el formulario
+    function llenarDatosVehiculo(vehiculo) {
+        const vehicleType = document.getElementById("vehicle-type");
+        const brand = document.getElementById("brand");
+        const model = document.getElementById("model");
+        const color = document.getElementById("color");
+        const year = document.getElementById("year");
+
+        if (vehicleType) vehicleType.value = vehiculo.TipoVehiculo || '';
+        if (brand) brand.value = vehiculo.Marca || '';
+        if (model) model.value = vehiculo.Modelo || '';
+        if (color) color.value = vehiculo.Color || '';
+        if (year) year.value = vehiculo.Anio || '';
+
+        // Mostrar la sección de información del vehículo
+        if (vehicleInfo) {
+            vehicleInfo.style.display = 'block';
+        }
+
+        showNotification("Datos del vehículo cargados correctamente", "success");
+    }
+
+    // Función para ocultar información del vehículo
+    function ocultarInfoVehiculo() {
+        if (vehicleInfo) {
+            vehicleInfo.style.display = 'none';
+        }
+    }
+
     // Limpieza del formulario
     const clearBtn = document.getElementById("clear-form");
     if (clearBtn) {
         clearBtn.addEventListener("click", () => {
             form.reset();
+            ocultarInfoVehiculo();
+            if (fotosPreview) {
+                fotosPreview.style.display = 'none';
+                fotosPreviewContainer.innerHTML = '';
+            }
             if (fechaSolicitada) {
                 const hoy = new Date();
                 fechaSolicitada.min = hoy.toISOString().split('T')[0];
@@ -70,38 +319,52 @@ document.addEventListener("DOMContentLoaded", () => {
                     'model': 'modelo',
                     'color': 'color',
                     'year': 'anio',
-                    'driverName': 'conductor_nombre',
-                    'driverPhone': 'conductor_telefono',
                     'purpose': 'proposito',
-                    'area': 'area',
-                    'contactPerson': 'persona_contacto',
                     'observations': 'observaciones',
                     // Fecha y hora se asignarán cuando el supervisor apruebe
                     'fechaSolicitada': 'fecha_solicitada',
                     'horaSolicitada': 'hora_solicitada'
                 };
-                
-                // Si no hay fecha/hora, usar valores por defecto (serán actualizados por el supervisor)
-                if (!formDataObj['fecha_solicitada']) {
-                    formDataObj['fecha_solicitada'] = new Date().toISOString().split('T')[0];
-                }
-                if (!formDataObj['hora_solicitada']) {
-                    formDataObj['hora_solicitada'] = '08:00';
-                }
 
-                // Convertir FormData a objeto y mapear campos
-                const formDataObj = {};
+                // Crear nuevo FormData con los datos mapeados y las imágenes
+                const newFormData = new FormData();
+                
+                // Mapear campos de texto
                 formDataCache.forEach((value, key) => {
                     const mappedKey = fieldMapping[key] || key;
-                    formDataObj[mappedKey] = value;
+                    if (mappedKey && value && key !== 'fotos[]') {
+                        // Asegurar que la placa esté en mayúsculas y validada
+                        if (key === 'plate') {
+                            const validacion = validarFormatoPlaca(value);
+                            if (validacion.valido) {
+                                newFormData.append(mappedKey, validacion.placa);
+                            } else {
+                                showNotification("Error: La placa no tiene un formato válido", "error");
+                                return;
+                            }
+                        } else {
+                            newFormData.append(mappedKey, value);
+                        }
+                    }
                 });
-                formDataObj['accion'] = 'crear_solicitud';
-
-                // Convertir a FormData nuevamente
-                const newFormData = new FormData();
-                Object.keys(formDataObj).forEach(key => {
-                    newFormData.append(key, formDataObj[key]);
+                
+                // Agregar imágenes si existen
+                const fotosFiles = formDataCache.getAll('fotos[]');
+                fotosFiles.forEach(file => {
+                    if (file instanceof File) {
+                        newFormData.append('fotos[]', file);
+                    }
                 });
+                
+                // Si no hay fecha/hora, usar valores por defecto (serán actualizados por el supervisor)
+                if (!formDataCache.get('fechaSolicitada')) {
+                    newFormData.append('fecha_solicitada', new Date().toISOString().split('T')[0]);
+                }
+                if (!formDataCache.get('horaSolicitada')) {
+                    newFormData.append('hora_solicitada', '08:00');
+                }
+                
+                newFormData.append('accion', 'crear_solicitud');
 
                 const response = await fetch(baseUrl, {
                     method: "POST",
@@ -129,14 +392,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (result.status === "success") {
                     showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará la respuesta.", "success");
                     form.reset();
+                    if (fotosPreview) {
+                        fotosPreview.style.display = 'none';
+                        fotosPreviewContainer.innerHTML = '';
+                    }
                     if (fechaSolicitada) {
                         const hoy = new Date();
                         fechaSolicitada.min = hoy.toISOString().split('T')[0];
                     }
-                    // Recargar tabla de solicitudes
-                    cargarMisSolicitudes();
                 } else {
-                    showNotification("Error: " + result.message, "error");
+                    // Verificar si es el error de solicitud pendiente
+                    if (result.message && result.message.includes("Ya existe una solicitud pendiente")) {
+                        mostrarModalSolicitudPendiente();
+                    } else {
+                        showNotification("Error: " + result.message, "error");
+                    }
                 }
             } catch (error) {
                 console.error("Error:", error);
@@ -146,8 +416,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function validateForm() {
-        const requiredFields = ['plate', 'vehicle-type', 'brand', 'model', 'driver-name', 'driver-id', 'company', 'purpose'];
+        const requiredFields = ['plate', 'vehicle-type', 'brand', 'model', 'driver-name', 'purpose'];
         let valid = true;
+        const plateError = document.getElementById("plate-error");
+        
+        // Validar placa primero
+        if (plateInput) {
+            const patente = plateInput.value.trim().toUpperCase();
+            const validacion = validarFormatoPlaca(patente);
+            
+            if (!patente) {
+                plateInput.classList.add("error");
+                if (plateError) {
+                    plateError.textContent = 'La placa es obligatoria';
+                    plateError.style.display = 'block';
+                }
+                valid = false;
+            } else if (!validacion.valido) {
+                plateInput.classList.add("error");
+                if (plateError) {
+                    plateError.textContent = validacion.mensaje;
+                    plateError.style.display = 'block';
+                }
+                valid = false;
+            } else {
+                plateInput.classList.remove("error");
+                if (plateError) {
+                    plateError.style.display = 'none';
+                }
+            }
+        }
+        
+        // Validar otros campos requeridos
         requiredFields.forEach(id => {
             const field = document.getElementById(id);
             if (field && !field.value.trim()) {
@@ -158,7 +458,21 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        if (!valid) showNotification("Por favor complete los campos obligatorios", "error");
+        // Verificar que se haya encontrado el vehículo
+        if (valid && vehicleInfo && vehicleInfo.style.display === 'none') {
+            showNotification("Por favor ingrese una patente válida y espere a que se carguen los datos del vehículo", "error");
+            if (plateInput) {
+                plateInput.classList.add("error");
+            }
+            valid = false;
+        }
+
+        if (!valid) {
+            const mensaje = plateInput && plateInput.classList.contains("error") 
+                ? "Por favor corrija los errores en el formulario" 
+                : "Por favor complete los campos obligatorios";
+            showNotification(mensaje, "error");
+        }
         return valid;
     }
 
@@ -175,158 +489,38 @@ document.addEventListener("DOMContentLoaded", () => {
         closeBtn.addEventListener("click", () => modal.style.display = "none");
     }
 
-    // Cargar mis solicitudes al iniciar
-    cargarMisSolicitudes();
-});
+    // Modal de solicitud pendiente
+    const solicitudPendienteModal = document.getElementById("solicitud-pendiente-modal");
+    const closePendienteModal = document.getElementById("close-pendiente-modal");
+    const aceptarPendienteModal = document.getElementById("aceptar-pendiente-modal");
 
-// Función para cargar las solicitudes del chofer
-function cargarMisSolicitudes() {
-    const tbody = document.querySelector('#mis-solicitudes-table tbody');
-    if (!tbody) return;
-
-    const formData = new FormData();
-    formData.append('accion', 'obtener_solicitudes');
-
-    const baseUrl = getBaseUrl();
-
-    fetch(baseUrl, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        // Verificar si la respuesta es JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            return response.text().then(text => {
-                console.error('Respuesta no JSON recibida:', text);
-                throw new Error('El servidor devolvió una respuesta no válida. Ver consola para detalles.');
-            });
+    function mostrarModalSolicitudPendiente() {
+        if (solicitudPendienteModal) {
+            solicitudPendienteModal.style.display = "block";
         }
-        
-        if (!response.ok) {
-            return response.text().then(text => {
-                console.error('Error HTTP:', response.status);
-                console.error('Respuesta completa:', text);
-                try {
-                    const errorData = JSON.parse(text);
-                    throw new Error(errorData.message || 'Error del servidor: ' + response.status);
-                } catch (e) {
-                    throw new Error('Error del servidor: ' + response.status + '. Ver consola para detalles.');
-                }
-            });
-        }
-        
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            mostrarSolicitudes(data.data);
-        } else {
-            console.error('Error en respuesta:', data.message || 'Error desconocido');
-        }
-    })
-    .catch(error => {
-        console.error('Error completo:', error);
-        // No mostrar notificación aquí para evitar spam, solo log
-    });
-}
-
-function mostrarSolicitudes(solicitudes) {
-    const tbody = document.querySelector('#mis-solicitudes-table tbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (solicitudes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No tiene solicitudes registradas</td></tr>';
-        return;
     }
 
-    solicitudes.forEach(solicitud => {
-        const row = document.createElement('tr');
-        const estadoClass = getEstadoClass(solicitud.Estado);
-        const fechaSolicitada = new Date(solicitud.FechaSolicitada).toLocaleDateString('es-ES');
-        const horaSolicitada = solicitud.HoraSolicitada || 'N/A';
-        const fechaActualizacion = solicitud.FechaActualizacion ? 
-            new Date(solicitud.FechaActualizacion).toLocaleDateString('es-ES') : '-';
-
-        row.innerHTML = `
-            <td>${solicitud.ID}</td>
-            <td>${solicitud.Placa}</td>
-            <td>${solicitud.Marca} ${solicitud.Modelo}</td>
-            <td>${fechaSolicitada} ${horaSolicitada}</td>
-            <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
-            <td>${fechaActualizacion}</td>
-            <td>
-                ${solicitud.MotivoRechazo ? `
-                    <button class="btn btn-sm btn-info" onclick="verMotivoRechazo('${solicitud.MotivoRechazo.replace(/'/g, "\\'")}')">
-                        <i class="fas fa-info-circle"></i> Ver motivo
-                    </button>
-                ` : '-'}
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-
-    // Inicializar DataTable si está disponible
-    if (typeof $ !== 'undefined' && $.fn.DataTable) {
-        if ($.fn.DataTable.isDataTable('#mis-solicitudes-table')) {
-            $('#mis-solicitudes-table').DataTable().destroy();
+    function cerrarModalSolicitudPendiente() {
+        if (solicitudPendienteModal) {
+            solicitudPendienteModal.style.display = "none";
         }
-        $('#mis-solicitudes-table').DataTable({
-            language: {
-                "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ registros",
-                "sZeroRecords": "No se encontraron resultados",
-                "sEmptyTable": "Ningún dato disponible en esta tabla",
-                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
-                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
-                "sInfoPostFix": "",
-                "sSearch": "Buscar:",
-                "sUrl": "",
-                "sInfoThousands": ",",
-                "sLoadingRecords": "Cargando...",
-                "oPaginate": {
-                    "sFirst": "Primero",
-                    "sLast": "Último",
-                    "sNext": "Siguiente",
-                    "sPrevious": "Anterior"
-                },
-                "oAria": {
-                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
-                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
-                }
-            },
-            order: [[0, 'desc']],
-            pageLength: 10,
-            responsive: true,
-            scrollX: true,
-            autoWidth: false,
-            columnDefs: [
-                { width: "80px", targets: 0 }, // ID
-                { width: "100px", targets: 1 }, // Placa
-                { width: "150px", targets: 2 }, // Vehículo
-                { width: "150px", targets: 3 }, // Fecha/Hora
-                { width: "100px", targets: 4 }, // Estado
-                { width: "120px", targets: 5 }, // Fecha Respuesta
-                { width: "120px", targets: 6 }  // Acciones
-            ]
+    }
+
+    if (closePendienteModal) {
+        closePendienteModal.addEventListener("click", cerrarModalSolicitudPendiente);
+    }
+
+    if (aceptarPendienteModal) {
+        aceptarPendienteModal.addEventListener("click", cerrarModalSolicitudPendiente);
+    }
+
+    // Cerrar modal al hacer clic fuera de él
+    if (solicitudPendienteModal) {
+        window.addEventListener("click", (event) => {
+            if (event.target === solicitudPendienteModal) {
+                cerrarModalSolicitudPendiente();
+            }
         });
     }
-}
-
-function getEstadoClass(estado) {
-    const clases = {
-        'Pendiente': 'bg-warning',
-        'Aprobada': 'bg-success',
-        'Rechazada': 'bg-danger',
-        'Cancelada': 'bg-secondary'
-    };
-    return clases[estado] || 'bg-secondary';
-}
-
-function verMotivoRechazo(motivo) {
-    alert('Motivo de rechazo:\n\n' + motivo);
-}
+});
 

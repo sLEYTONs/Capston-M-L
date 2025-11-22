@@ -110,7 +110,8 @@ function obtenerNovedadesRecientes() {
 }
 
 /**
- * Registra ingreso básico de vehículo (solo guardia)
+ * Registra ingreso de vehículo con hora asignada (solo guardia)
+ * Solo permite ingresar vehículos que tengan una solicitud de agendamiento aprobada
  */
 function registrarIngresoBasico($placa, $usuario_id) {
     $conn = conectar_Pepsico();
@@ -130,21 +131,108 @@ function registrarIngresoBasico($placa, $usuario_id) {
     }
     $stmtCheck->close();
     
-    // Insertar registro básico
+    // Verificar si la columna Fotos existe en solicitudes_agendamiento
+    $columna_fotos_existe = false;
+    $checkColumna = "SHOW COLUMNS FROM solicitudes_agendamiento LIKE 'Fotos'";
+    $resultColumna = $conn->query($checkColumna);
+    if ($resultColumna && $resultColumna->num_rows > 0) {
+        $columna_fotos_existe = true;
+    }
+    
+    // Verificar que tenga una solicitud de agendamiento aprobada para hoy
+    $fecha = date('Y-m-d');
+    $sqlAgenda = "SELECT 
+                    s.ID as SolicitudID,
+                    s.Placa,
+                    s.TipoVehiculo,
+                    s.Marca,
+                    s.Modelo,
+                    s.Color,
+                    s.Anio,
+                    s.ConductorNombre,
+                    s.Proposito,
+                    s.Observaciones" . 
+                    ($columna_fotos_existe ? ", s.Fotos" : "") . ",
+                    a.ID as AgendaID,
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio,
+                    a.HoraFin
+                  FROM solicitudes_agendamiento s
+                  INNER JOIN agenda_taller a ON s.AgendaID = a.ID
+                  WHERE s.Placa = ? 
+                    AND s.Estado = 'Aprobada'
+                    AND a.Fecha = ?
+                  ORDER BY s.FechaCreacion DESC
+                  LIMIT 1";
+    
+    $stmtAgenda = $conn->prepare($sqlAgenda);
+    $stmtAgenda->bind_param("ss", $placa, $fecha);
+    $stmtAgenda->execute();
+    $resultAgenda = $stmtAgenda->get_result();
+    $agenda = $resultAgenda->fetch_assoc();
+    $stmtAgenda->close();
+    
+    if (!$agenda) {
+        $conn->close();
+        return ['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada para hoy. Solo se pueden ingresar vehículos con agenda aprobada.'];
+    }
+    
+    // Obtener las fotos de la solicitud (si existen y la columna existe)
+    $fotos = NULL;
+    if ($columna_fotos_existe && !empty($agenda['Fotos'])) {
+        $fotos = $agenda['Fotos'];
+    }
+    
+    // Insertar registro usando los datos de la solicitud aprobada
     $sql = "INSERT INTO ingreso_vehiculos (
         Placa, 
         TipoVehiculo, 
         Marca, 
-        Modelo, 
+        Modelo,
+        Color,
+        Anio,
         ConductorNombre, 
         Proposito, 
+        Observaciones" . 
+        ($columna_fotos_existe ? ", Fotos" : "") . ",
         Estado, 
         EstadoIngreso, 
+        FechaIngreso,
         UsuarioRegistro
-    ) VALUES (?, 'Por definir', 'Por definir', 'Por definir', 'Por completar', 'PENDIENTE', 'Ingresado', 'Bueno', ?)";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?" . 
+        ($columna_fotos_existe ? ", ?" : "") . ", 'Ingresado', 'Bueno', NOW(), ?)";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("si", $placa, $usuario_id);
+    $anio = !empty($agenda['Anio']) ? intval($agenda['Anio']) : null;
+    
+    if ($columna_fotos_existe) {
+        $stmt->bind_param("sssssissisi", 
+            $agenda['Placa'],
+            $agenda['TipoVehiculo'],
+            $agenda['Marca'],
+            $agenda['Modelo'],
+            $agenda['Color'],
+            $anio,
+            $agenda['ConductorNombre'],
+            $agenda['Proposito'],
+            $agenda['Observaciones'],
+            $fotos,
+            $usuario_id
+        );
+    } else {
+        $stmt->bind_param("sssssissi", 
+            $agenda['Placa'],
+            $agenda['TipoVehiculo'],
+            $agenda['Marca'],
+            $agenda['Modelo'],
+            $agenda['Color'],
+            $anio,
+            $agenda['ConductorNombre'],
+            $agenda['Proposito'],
+            $agenda['Observaciones'],
+            $usuario_id
+        );
+    }
     $result = $stmt->execute();
     
     $nuevo_id = $conn->insert_id;
@@ -198,6 +286,87 @@ function registrarSalidaVehiculo($placa, $usuario_id) {
 }
 
 /**
+ * Obtiene vehículos con horas agendadas aprobadas (para vista del guardia)
+ */
+function obtenerVehiculosAgendados($fecha = null) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return [];
+    }
+    
+    // Si no se proporciona fecha, usar la fecha actual
+    if ($fecha === null) {
+        $fecha = date('Y-m-d');
+    }
+    
+    $vehiculos = [];
+    
+    try {
+        $sql = "SELECT 
+                    s.ID as SolicitudID,
+                    s.Placa,
+                    s.TipoVehiculo,
+                    s.Marca,
+                    s.Modelo,
+                    s.Color,
+                    s.Anio,
+                    s.ConductorNombre,
+                    s.Proposito,
+                    s.Observaciones,
+                    s.Estado as EstadoSolicitud,
+                    s.FechaCreacion as FechaSolicitud,
+                    a.ID as AgendaID,
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio,
+                    a.HoraFin,
+                    u.NombreUsuario as ChoferNombre,
+                    u.Correo as ChoferCorreo,
+                    sup.NombreUsuario as SupervisorNombre,
+                    CASE 
+                        WHEN iv.ID IS NOT NULL THEN 'Ingresado'
+                        ELSE 'Pendiente Ingreso'
+                    END as EstadoIngreso,
+                    iv.FechaIngreso
+                FROM solicitudes_agendamiento s
+                INNER JOIN agenda_taller a ON s.AgendaID = a.ID
+                LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
+                LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
+                LEFT JOIN ingreso_vehiculos iv ON s.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci 
+                    AND iv.Estado = 'Ingresado'
+                WHERE s.Estado = 'Aprobada'
+                    AND a.Fecha >= ?
+                ORDER BY a.Fecha ASC, a.HoraInicio ASC";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            $conn->close();
+            return [];
+        }
+        
+        $stmt->bind_param("s", $fecha);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+        
+        $stmt->close();
+        $conn->close();
+        
+    } catch (Exception $e) {
+        error_log("Error obteniendo vehículos agendados: " . $e->getMessage());
+        if ($conn) {
+            $conn->close();
+        }
+        return [];
+    }
+    
+    return $vehiculos;
+}
+
+/**
  * Guarda fotos del vehículo
  */
 function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
@@ -245,9 +414,10 @@ function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
 
 /**
  * Verifica estado del vehículo
- * Si no está ingresado, verifica si tiene una solicitud de agendamiento aprobada para hoy
+ * Para INGRESO: Solo retorna vehículos con solicitud de agendamiento aprobada y hora asignada
+ * Para SALIDA: Retorna vehículos que están ingresados y listos para retirar
  */
-function verificarEstadoVehiculo($placa, $fecha = null) {
+function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingreso') {
     $conn = conectar_Pepsico();
     
     // Si no se proporciona fecha, usar la fecha actual
@@ -255,7 +425,35 @@ function verificarEstadoVehiculo($placa, $fecha = null) {
         $fecha = date('Y-m-d');
     }
     
-    // Primero buscar si el vehículo ya está ingresado
+    // Si es operación de SALIDA, buscar vehículos ingresados
+    if ($tipoOperacion === 'salida') {
+        $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, TipoVehiculo, Marca, Modelo
+                FROM ingreso_vehiculos 
+                WHERE Placa = ? AND Estado = 'Ingresado'";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("s", $placa);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $vehiculo = $result->fetch_assoc();
+        $stmt->close();
+        
+        if ($vehiculo) {
+            $conn->close();
+            return [
+                'vehiculo' => $vehiculo,
+                'tiene_agenda' => false,
+                'puede_ingresar' => false,
+                'puede_salir' => true
+            ];
+        } else {
+            $conn->close();
+            return null; // No hay vehículo ingresado para salida
+        }
+    }
+    
+    // Para INGRESO: Primero verificar si ya está ingresado
     $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre
             FROM ingreso_vehiculos 
             WHERE Placa = ? AND Estado = 'Ingresado'";
@@ -268,12 +466,15 @@ function verificarEstadoVehiculo($placa, $fecha = null) {
     $vehiculo = $result->fetch_assoc();
     $stmt->close();
     
-    // Si el vehículo ya está ingresado, retornarlo
+    // Si el vehículo ya está ingresado, retornarlo (no puede ingresar de nuevo)
     if ($vehiculo) {
         $conn->close();
         return [
             'vehiculo' => $vehiculo,
-            'tiene_agenda' => false
+            'tiene_agenda' => false,
+            'puede_ingresar' => false,
+            'puede_salir' => true,
+            'mensaje' => 'Vehículo ya está ingresado en el patio'
         ];
     }
     
@@ -288,8 +489,8 @@ function verificarEstadoVehiculo($placa, $fecha = null) {
                     s.Anio,
                     s.ConductorNombre,
                     s.Proposito,
-                    s.Area,
                     s.Observaciones,
+                    a.ID as AgendaID,
                     a.Fecha as FechaAgenda,
                     a.HoraInicio,
                     a.HoraFin,
@@ -318,30 +519,30 @@ function verificarEstadoVehiculo($placa, $fecha = null) {
             'vehiculo' => [
                 'ID' => null,
                 'Placa' => $solicitud['Placa'],
-                'Estado' => 'Pendiente Ingreso',
-                'FechaIngreso' => null,
-                'ConductorNombre' => $solicitud['ConductorNombre'],
                 'TipoVehiculo' => $solicitud['TipoVehiculo'],
                 'Marca' => $solicitud['Marca'],
                 'Modelo' => $solicitud['Modelo'],
                 'Color' => $solicitud['Color'],
                 'Anio' => $solicitud['Anio'],
+                'ConductorNombre' => $solicitud['ConductorNombre'],
                 'Proposito' => $solicitud['Proposito'],
-                'Area' => $solicitud['Area'],
                 'Observaciones' => $solicitud['Observaciones']
             ],
-            'tiene_agenda' => true,
             'agenda' => [
                 'SolicitudID' => $solicitud['SolicitudID'],
+                'AgendaID' => $solicitud['AgendaID'],
                 'FechaAgenda' => $solicitud['FechaAgenda'],
                 'HoraInicio' => $solicitud['HoraInicio'],
                 'HoraFin' => $solicitud['HoraFin'],
                 'ChoferNombre' => $solicitud['ChoferNombre']
-            ]
+            ],
+            'tiene_agenda' => true,
+            'puede_ingresar' => true,
+            'puede_salir' => false
         ];
     }
     
-    // No está ingresado ni tiene agenda aprobada
+    // Si no tiene agenda aprobada, no puede ingresar
     return null;
 }
 ?>

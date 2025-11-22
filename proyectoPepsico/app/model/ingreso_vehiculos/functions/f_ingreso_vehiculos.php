@@ -197,12 +197,12 @@ function registrarIngresoVehiculo($datos) {
         throw new Exception('Error de conexión a la base de datos');
     }
 
+    // Función simplificada para registrar vehículos nuevos (solo campos mínimos)
+    // Los demás campos se llenarán cuando se haga la solicitud de agendamiento
     $sql = "INSERT INTO ingreso_vehiculos (
         Placa, TipoVehiculo, Marca, Modelo, Color, Anio, 
-        ConductorNombre, ConductorTelefono, Proposito, Area, PersonaContacto,
-        Observaciones, EstadoIngreso, Kilometraje, 
-        Documentos, Fotos, UsuarioRegistro, FechaIngreso, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+        ConductorNombre, UsuarioRegistro, FechaRegistro, Estado
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
     
     $stmt = $conn->prepare($sql);
     
@@ -219,8 +219,9 @@ function registrarIngresoVehiculo($datos) {
     $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
     $kilometraje = !empty($datos['kilometraje']) ? intval($datos['kilometraje']) : NULL;
     
+    // Solo campos mínimos requeridos
     $stmt->bind_param(
-        "ssssissssssssisssi",
+        "sssssis",
         $datos['placa'],
         $datos['tipo_vehiculo'],
         $datos['marca'],
@@ -228,15 +229,6 @@ function registrarIngresoVehiculo($datos) {
         $datos['color'],
         $anio,
         $datos['conductor_nombre'],
-        $datos['conductor_telefono'],
-        $datos['proposito'],
-        $datos['area'],
-        $datos['persona_contacto'],
-        $datos['observaciones'],
-        $datos['estado_ingreso'],
-        $kilometraje,
-        $documentos_json,
-        $fotos_json,
         $datos['usuario_id']
     );
     
@@ -257,6 +249,77 @@ function registrarIngresoVehiculo($datos) {
     if ($id_insertado) {
         notificarNuevoIngreso($datos, $id_insertado);
     }
+    
+    return $id_insertado;
+}
+
+/**
+ * Registra un nuevo vehículo de PepsiCo (solo campos mínimos)
+ * Esta función es para administradores que registran vehículos nuevos
+ */
+function registrarVehiculoPepsico($datos) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        throw new Exception('Error de conexión a la base de datos');
+    }
+
+    // Validar campos requeridos
+    $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'color', 'anio', 'conductor_nombre', 'usuario_id'];
+    foreach ($campos_requeridos as $campo) {
+        if (empty($datos[$campo]) && $campo !== 'anio') {
+            $conn->close();
+            throw new Exception("Campo requerido faltante: $campo");
+        }
+    }
+
+    // Verificar si la placa ya existe
+    $placa_normalizada = strtoupper(trim($datos['placa']));
+    if (placaExiste($placa_normalizada)) {
+        $conn->close();
+        throw new Exception('La placa ya está registrada en el sistema');
+    }
+
+    $sql = "INSERT INTO ingreso_vehiculos (
+        Placa, TipoVehiculo, Marca, Modelo, Color, Anio, 
+        ConductorNombre, UsuarioRegistro, FechaRegistro, Estado
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+    
+    $stmt = $conn->prepare($sql);
+    
+    if (!$stmt) {
+        $conn->close();
+        throw new Exception('Error preparando la consulta: ' . $conn->error);
+    }
+    
+    // Manejar valores NULL para año
+    $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
+    
+    // Solo campos mínimos requeridos
+    $stmt->bind_param(
+        "sssssis",
+        $placa_normalizada,
+        $datos['tipo_vehiculo'],
+        $datos['marca'],
+        $datos['modelo'],
+        $datos['color'],
+        $anio,
+        $datos['conductor_nombre'],
+        $datos['usuario_id']
+    );
+    
+    $resultado = $stmt->execute();
+    $id_insertado = $conn->insert_id;
+    
+    if (!$resultado) {
+        $error = $stmt->error;
+        $stmt->close();
+        $conn->close();
+        throw new Exception('Error ejecutando la consulta: ' . $error);
+    }
+    
+    $stmt->close();
+    $conn->close();
     
     return $id_insertado;
 }

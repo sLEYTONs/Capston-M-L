@@ -84,7 +84,24 @@
             margin-left: 280px; /* Compensar el sidebar fijo */
             width: calc(100% - 280px);
             min-height: calc(100vh - 140px);
-            transition: margin-left 0.3s ease, width 0.3s ease;
+            transition: margin-left 0.1s ease, width 0.1s ease; /* Transición más rápida */
+            }
+            
+            /* Reducir transición del sidebar para que no empuje tanto el contenido */
+            @media (min-width: 1025px) {
+            .pc-sidebar {
+                transition: transform 0.15s ease !important; /* Transición más rápida con transform */
+            }
+            .pc-sidebar.pc-sidebar-hide {
+                transform: translateX(-100%) !important; /* Ocultar con transform sin cambiar width */
+            }
+            .pc-sidebar ~ .pc-header {
+                transition: left 0.15s ease !important;
+            }
+            .pc-sidebar ~ .pc-footer,
+            .pc-sidebar ~ .pc-container {
+                transition: margin-left 0.15s ease !important; /* Transición más rápida */
+            }
             }
 
             /* Contenido centrado en la página */

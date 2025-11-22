@@ -1,4 +1,9 @@
 /* Estilos específicos para el módulo de Base de Datos */
+/* Espacio inferior para pc-content para evitar que el DataTable quede pegado al footer */
+.pc-content {
+    padding-bottom: 150px !important;
+}
+
 .base-datos-card {
     border: none;
     border-radius: 10px;
@@ -26,6 +31,19 @@
 .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+    border-color: #ffc107 !important;
+}
+
+.stat-card-warning .stat-icon {
+    color: #ff9800 !important;
+}
+
+.stat-card-warning .stat-content h3 {
+    color: #ff9800 !important;
 }
 
 .stat-icon {
@@ -78,12 +96,38 @@
     border: none;
 }
 
+/* Asegurar que las celdas de datos tengan texto oscuro, excepto badges */
+.table td {
+    color: #212529 !important;
+}
+
+/* Los badges dentro de las celdas deben mantener sus colores */
+.table td .badge {
+    color: inherit !important;
+}
+
 .table-striped tbody tr:nth-of-type(odd) {
     background-color: rgba(0, 75, 147, 0.05);
 }
 
+.table-striped tbody tr:nth-of-type(odd) td {
+    color: #212529 !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) td .badge {
+    color: inherit !important;
+}
+
 .table-hover tbody tr:hover {
     background-color: rgba(0, 75, 147, 0.1);
+}
+
+.table-hover tbody tr:hover td {
+    color: #212529 !important;
+}
+
+.table-hover tbody tr:hover td .badge {
+    color: inherit !important;
 }
 
 /* Badges */
@@ -128,6 +172,65 @@
 .badge-estado.badge-secondary {
     background-color: #6c757d;
     color: white !important;
+}
+
+/* Asegurar que los badges dentro de las tablas tengan buen contraste */
+/* Badges con fondo oscuro - texto blanco (máxima especificidad) */
+.table td .badge.badge-success,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-success,
+.table-hover tbody tr:hover td .badge.badge-success {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.table td .badge.badge-danger,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-danger,
+.table-hover tbody tr:hover td .badge.badge-danger {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.table td .badge.badge-primary,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-primary,
+.table-hover tbody tr:hover td .badge.badge-primary {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.table td .badge.badge-info,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-info,
+.table-hover tbody tr:hover td .badge.badge-info {
+    background-color: #17a2b8 !important;
+    color: white !important;
+}
+
+.table td .badge.badge-secondary,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-secondary,
+.table-hover tbody tr:hover td .badge.badge-secondary {
+    background-color: #6c757d !important;
+    color: white !important;
+}
+
+.table td .badge.badge-activo,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-activo,
+.table-hover tbody tr:hover td .badge.badge-activo {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.table td .badge.badge-inactivo,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-inactivo,
+.table-hover tbody tr:hover td .badge.badge-inactivo {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+/* Badge con fondo claro - texto oscuro */
+.table td .badge.badge-warning,
+.table-striped tbody tr:nth-of-type(odd) td .badge.badge-warning,
+.table-hover tbody tr:hover td .badge.badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
 }
 
 /* Gráficos */
@@ -227,6 +330,42 @@
 .dataTables_wrapper .dataTables_info,
 .dataTables_wrapper .dataTables_paginate {
     margin: 1rem 0;
+}
+
+/* Espacio inferior para DataTables para evitar que quede debajo del footer */
+.tab-content {
+    padding-bottom: 100px !important;
+}
+
+/* Eliminar scroll vertical de las tablas */
+.table-responsive {
+    margin-bottom: 2rem;
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
+/* Sobrescribir el CSS global de head.php que aplica max-height y overflow-y */
+.base-datos-card .card-body .table-responsive {
+    max-height: none !important;
+    overflow-y: visible !important;
+}
+
+/* Eliminar scroll vertical de DataTables */
+.dataTables_wrapper {
+    overflow-y: visible !important;
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
+.dataTables_scroll {
+    overflow-y: visible !important;
+}
+
+.dataTables_wrapper .dataTables_scrollBody table {
+    overflow-y: visible !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {

@@ -1,0 +1,177 @@
+/* Contenedor principal - evitar desplazamiento con sidebar */
+.pc-content {
+    position: relative;
+    width: 100%;
+    transition: none !important;
+}
+
+.repuestos-container {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.repuestos-container .row {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+}
+
+.repuestos-container .row > [class*="col-"] {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.repuestos-container .row > [class*="col-"]:first-child {
+    padding-left: 0;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h4,
+.card-header h5 {
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* DataTable más ancho */
+#repuestos-table {
+    width: 100% !important;
+}
+
+#repuestos-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    padding: 12px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+#repuestos-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Badges de stock */
+.badge {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Botones */
+.btn {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Resumen de inventario */
+#resumen-inventario {
+    font-size: 0.95rem;
+}
+
+#resumen-inventario .d-flex {
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#resumen-inventario .d-flex:last-child {
+    border-bottom: none;
+}
+
+/* Alertas de stock bajo */
+#alertas-stock .list-unstyled li {
+    transition: all 0.2s ease;
+}
+
+#alertas-stock .list-unstyled li:hover {
+    background-color: #fff3cd !important;
+    transform: translateX(5px);
+}
+
+/* Asegurar que el contenido no se desplace con el sidebar */
+.pc-container {
+    overflow-x: hidden;
+    position: relative;
+}
+
+.pc-content {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    transition: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Evitar que el page-header empuje el contenido */
+.page-header {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+}
+
+.page-block {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .repuestos-container {
+        padding: 0 10px;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .card-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+

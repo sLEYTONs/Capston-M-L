@@ -102,7 +102,7 @@ function obtenerNotificacionesUsuario($usuario_id, $limite = 10) {
     $notificaciones = [];
     
     try {
-        $sql = "SELECT id, titulo, mensaje, modulo, enlace, fecha_creacion 
+        $sql = "SELECT id, titulo, mensaje, modulo, enlace, fecha_creacion, leida, fecha_leida
                 FROM notificaciones 
                 WHERE usuario_id = ? AND leida = 0 
                 ORDER BY fecha_creacion DESC 
@@ -127,6 +127,49 @@ function obtenerNotificacionesUsuario($usuario_id, $limite = 10) {
         
     } catch (Exception $e) {
         error_log("Error obteniendo notificaciones: " . $e->getMessage());
+    }
+    
+    return $notificaciones;
+}
+
+/**
+ * Obtiene todas las notificaciones (leídas y no leídas) para un usuario
+ */
+function obtenerTodasNotificacionesUsuario($usuario_id, $limite = 50) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return [];
+    }
+
+    $notificaciones = [];
+    
+    try {
+        $sql = "SELECT id, titulo, mensaje, modulo, enlace, fecha_creacion, leida, fecha_leida
+                FROM notificaciones 
+                WHERE usuario_id = ? 
+                ORDER BY leida ASC, fecha_creacion DESC 
+                LIMIT ?";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            $conn->close();
+            return [];
+        }
+        
+        $stmt->bind_param("ii", $usuario_id, $limite);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        while ($row = $result->fetch_assoc()) {
+            $notificaciones[] = $row;
+        }
+        
+        $stmt->close();
+        $conn->close();
+        
+    } catch (Exception $e) {
+        error_log("Error obteniendo todas las notificaciones: " . $e->getMessage());
     }
     
     return $notificaciones;

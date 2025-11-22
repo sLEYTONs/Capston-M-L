@@ -2,7 +2,7 @@
 <section id="repuestos-section" class="section">
     <div class="repuestos-container">
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-9">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">
@@ -41,7 +41,7 @@
                 </div>
             </div>
             
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="card-title">
@@ -57,11 +57,14 @@
                 </div>
                 
                 <div class="card mt-3">
-                    <div class="card-header">
-                        <h5 class="card-title">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             Stock Bajo
                         </h5>
+                        <button class="btn btn-warning btn-sm" id="btn-alertar-stock">
+                            <i class="fas fa-bell me-1"></i>Alertar Jefe
+                        </button>
                     </div>
                     <div class="card-body">
                         <div id="alertas-stock">

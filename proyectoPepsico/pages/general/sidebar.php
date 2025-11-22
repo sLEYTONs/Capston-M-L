@@ -87,6 +87,18 @@
         </li>
         <?php endif; ?>
 
+        <!-- Vehículos Agendados - Solo para Guardia -->
+        <?php if (tiene_acceso('vehiculos_agendados.php')): ?>
+        <li class="pc-item">
+          <a href="vehiculos_agendados.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-calendar-check"></i>
+            </span>
+            <span class="pc-mtext">Vehículos Agendados</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Ingreso de Vehículos -->
         <?php if (tiene_acceso('ingreso_vehiculos.php')): ?>
         <li class="pc-item">
@@ -107,6 +119,18 @@
               <i class="fas fa-calendar-check"></i>
             </span>
             <span class="pc-mtext">Solicitudes de Agendamiento</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <!-- Mis Solicitudes - Solo para Chofer -->
+        <?php if (tiene_acceso('mis_solicitudes.php')): ?>
+        <li class="pc-item">
+          <a href="mis_solicitudes.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-list"></i>
+            </span>
+            <span class="pc-mtext">Mis Solicitudes</span>
           </a>
         </li>
         <?php endif; ?>
@@ -184,8 +208,8 @@
         </li>
         <?php endif; ?>
 
-        <!-- Menú desplegable para Taller (solo para roles con acceso a tareas, repuestos o mantenimiento) -->
-        <?php if (tiene_acceso('tareas.php') || tiene_acceso('repuestos.php') || tiene_acceso('mantenimiento.php')): ?>
+        <!-- Menú desplegable para Taller (solo para roles con acceso a tareas o mantenimiento) -->
+        <?php if (tiene_acceso('tareas.php') || tiene_acceso('mantenimiento.php') || tiene_acceso('gestion_pausas_repuestos.php')): ?>
         <li class="pc-item pc-hasmenu">
           <a href="#!" class="pc-link">
             <span class="pc-micon">
@@ -204,11 +228,10 @@
               </a>
             </li>
             <?php endif; ?>
-
-            <?php if (tiene_acceso('repuestos.php')): ?>
+            <?php if (tiene_acceso('gestion_pausas_repuestos.php')): ?>
             <li class="pc-item">
-              <a href="repuestos.php" class="pc-link">
-                <span class="pc-mtext">Repuestos</span>
+              <a href="gestion_pausas_repuestos.php" class="pc-link">
+                <span class="pc-mtext">Gestión de Pausas</span>
               </a>
             </li>
             <?php endif; ?>
@@ -225,6 +248,44 @@
             <li class="pc-item">
               <a href="calidad.php" class="pc-link">
                 <span class="pc-mtext">Control de Calidad</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <!-- Menú desplegable para Repuestos (separado de Taller) -->
+        <?php if (tiene_acceso('repuestos.php') || tiene_acceso('solicitar_repuestos.php') || tiene_acceso('estado_solicitudes_repuestos.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-cogs"></i>
+            </span>
+            <span class="pc-mtext">Repuestos</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="repuestos.php" class="pc-link">
+                <span class="pc-mtext">Inventario</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('solicitar_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="solicitar_repuestos.php" class="pc-link">
+                <span class="pc-mtext">Solicitar Repuestos</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('estado_solicitudes_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="estado_solicitudes_repuestos.php" class="pc-link">
+                <span class="pc-mtext">Estado de Solicitudes</span>
               </a>
             </li>
             <?php endif; ?>

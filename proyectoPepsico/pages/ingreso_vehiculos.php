@@ -1,12 +1,9 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Administrador', 'Chofer', 'Recepcionista'];
-if (!in_array($usuario_rol, $roles_permitidos)) {
-    // En lugar de redirigir a index.php, redirige a la página principal del usuario
-    $pagina_principal = obtener_pagina_principal($usuario_rol);
-    header('Location: ' . $pagina_principal);
-    exit();
+// Solo Administradores pueden acceder
+if ($usuario_rol !== 'Administrador') {
+    redirigir_no_autorizado();
 }
 ?>
 

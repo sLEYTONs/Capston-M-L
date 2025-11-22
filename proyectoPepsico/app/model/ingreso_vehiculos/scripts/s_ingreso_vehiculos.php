@@ -336,6 +336,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode($response);
                 break;
                 
+            case 'registrar_vehiculo':
+                // Solo administradores pueden registrar vehículos nuevos
+                session_start();
+                if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'Administrador') {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                // Validar campos requeridos
+                $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'color', 'conductor_nombre'];
+                $campos_faltantes = [];
+                foreach ($campos_requeridos as $campo) {
+                    if (empty($_POST[$campo])) {
+                        $campos_faltantes[] = $campo;
+                    }
+                }
+                
+                if (!empty($campos_faltantes)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Campos requeridos faltantes: ' . implode(', ', $campos_faltantes)
+                    ]);
+                    exit;
+                }
+
+                // Normalizar datos
+                $datos = [
+                    'placa' => strtoupper(trim($_POST['placa'])),
+                    'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
+                    'marca' => trim($_POST['marca']),
+                    'modelo' => trim($_POST['modelo']),
+                    'color' => trim($_POST['color']),
+                    'anio' => !empty($_POST['anio']) ? intval($_POST['anio']) : null,
+                    'conductor_nombre' => trim($_POST['conductor_nombre']),
+                    'usuario_id' => $_SESSION['usuario']['id']
+                ];
+
+                try {
+                    $id_vehiculo = registrarVehiculoPepsico($datos);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Vehículo registrado correctamente',
+                        'vehiculo_id' => $id_vehiculo
+                    ]);
+                } catch (Exception $e) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => $e->getMessage()
+                    ]);
+                }
+                break;
+
             default:
                 echo json_encode([
                     'success' => false, 

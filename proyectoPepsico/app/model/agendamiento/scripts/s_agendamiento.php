@@ -63,6 +63,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         switch ($accion) {
+            case 'obtener_vehiculo_por_patente':
+                // Verificar que el usuario esté autenticado
+                if (!isset($_SESSION['usuario'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $patente = trim($_POST['patente'] ?? '');
+                if (empty($patente)) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Patente requerida'
+                    ]);
+                    exit;
+                }
+
+                // Obtener el nombre del conductor desde la sesión para validar
+                $conductor_nombre = $_SESSION['usuario']['nombre'] ?? null;
+                
+                $resultado = obtenerVehiculoPorPatente($patente, $conductor_nombre);
+                echo json_encode($resultado);
+                break;
+
             case 'crear_solicitud':
                 // Verificar que el usuario sea chofer
                 if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'Chofer') {
@@ -73,6 +99,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
+                // Obtener el nombre del conductor desde la sesión (NombreUsuario)
+                $conductor_nombre = $_SESSION['usuario']['nombre'] ?? '';
+
+                // Procesar imágenes si existen
+                $fotos_procesadas = [];
+                if (!empty($_FILES['fotos']) && is_array($_FILES['fotos']['tmp_name'])) {
+                    foreach ($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+                        if ($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK) {
+                            $archivo = [
+                                'name' => $_FILES['fotos']['name'][$key],
+                                'type' => $_FILES['fotos']['type'][$key],
+                                'tmp_name' => $tmp_name,
+                                'error' => $_FILES['fotos']['error'][$key],
+                                'size' => $_FILES['fotos']['size'][$key]
+                            ];
+                            $resultado = subirArchivo($archivo, 'foto');
+                            if ($resultado['success']) {
+                                $fotos_procesadas[] = $resultado;
+                            }
+                        }
+                    }
+                }
+
                 $datos = [
                     'chofer_id' => $_SESSION['usuario']['id'],
                     'placa' => trim($_POST['placa'] ?? ''),
@@ -81,14 +130,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'modelo' => trim($_POST['modelo'] ?? ''),
                     'color' => trim($_POST['color'] ?? ''),
                     'anio' => !empty($_POST['anio']) ? intval($_POST['anio']) : null,
-                    'conductor_nombre' => trim($_POST['conductor_nombre'] ?? ''),
+                    'conductor_nombre' => $conductor_nombre, // Obtener automáticamente de la sesión
                     'conductor_telefono' => trim($_POST['conductor_telefono'] ?? ''),
                     'proposito' => trim($_POST['proposito'] ?? ''),
-                    'area' => trim($_POST['area'] ?? ''),
-                    'persona_contacto' => trim($_POST['persona_contacto'] ?? ''),
                     'observaciones' => trim($_POST['observaciones'] ?? ''),
                     'fecha_solicitada' => trim($_POST['fecha_solicitada'] ?? ''),
-                    'hora_solicitada' => trim($_POST['hora_solicitada'] ?? '')
+                    'hora_solicitada' => trim($_POST['hora_solicitada'] ?? ''),
+                    'fotos' => !empty($fotos_procesadas) ? $fotos_procesadas : null
                 ];
 
                 $resultado = crearSolicitudAgendamiento($datos);
@@ -174,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $horas = obtenerHorasDisponibles($fecha);
+                error_log("Horas disponibles para fecha $fecha: " . count($horas));
                 echo json_encode([
                     'status' => 'success',
                     'data' => $horas
@@ -274,12 +323,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                require_once __DIR__ . '/../consulta/functions/f_consulta.php';
-                $mecanicos = obtenerMecanicosDisponibles();
-                echo json_encode([
-                    'status' => 'success',
-                    'data' => $mecanicos
-                ]);
+                try {
+                    // Intentar con la ruta relativa desde scripts
+                    $consulta_functions1 = __DIR__ . '/../../consulta/functions/f_consulta.php';
+                    // Intentar con la ruta relativa desde functions (como en f_agendamiento.php)
+                    $consulta_functions2 = __DIR__ . '/../consulta/functions/f_consulta.php';
+                    
+                    $consulta_functions = null;
+                    if (file_exists($consulta_functions1)) {
+                        $consulta_functions = $consulta_functions1;
+                    } elseif (file_exists($consulta_functions2)) {
+                        $consulta_functions = $consulta_functions2;
+                    } else {
+                        throw new Exception("Archivo de funciones no encontrado. Intentó: $consulta_functions1 y $consulta_functions2");
+                    }
+                    
+                    require_once $consulta_functions;
+                    
+                    if (!function_exists('obtenerMecanicosDisponibles')) {
+                        throw new Exception("La función obtenerMecanicosDisponibles no está definida");
+                    }
+                    
+                    $mecanicos = obtenerMecanicosDisponibles();
+                    echo json_encode([
+                        'status' => 'success',
+                        'data' => $mecanicos
+                    ]);
+                } catch (Exception $e) {
+                    error_log("Error en obtener_mecanicos_disponibles: " . $e->getMessage());
+                    error_log("Stack trace: " . $e->getTraceAsString());
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Error al cargar mecánicos: ' . $e->getMessage()
+                    ]);
+                } catch (Error $e) {
+                    error_log("Error fatal en obtener_mecanicos_disponibles: " . $e->getMessage());
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Error fatal al cargar mecánicos: ' . $e->getMessage()
+                    ]);
+                }
                 break;
 
             default:

@@ -74,6 +74,27 @@ try {
             echo json_encode(['success' => true, 'data' => $datos]);
             break;
             
+        // Nuevas acciones para Jefe de Taller
+        case 'obtenerAgendas':
+            $agendas = obtenerAgendasTaller();
+            echo json_encode(['success' => true, 'data' => $agendas]);
+            break;
+            
+        case 'obtenerVehiculosIngresados':
+            $vehiculos = obtenerVehiculosIngresados();
+            echo json_encode(['success' => true, 'data' => $vehiculos]);
+            break;
+            
+        case 'obtenerRepuestos':
+            $repuestos = obtenerRepuestos();
+            echo json_encode(['success' => true, 'data' => $repuestos]);
+            break;
+            
+        case 'obtenerUsuarios':
+            $usuarios = obtenerUsuarios();
+            echo json_encode(['success' => true, 'data' => $usuarios]);
+            break;
+            
         // Exportaciones
         case 'exportarCSV':
             exportarCSVCompleto();

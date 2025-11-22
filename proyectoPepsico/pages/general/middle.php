@@ -23,21 +23,26 @@ $paginas_por_rol = [
         'control_ingreso.php', 'repuestos.php', 'calidad.php'
     ],
     'Mecánico' => [
-        'tareas.php'
+        'tareas.php',
+        'gestion_pausas_repuestos.php',
+        'solicitar_repuestos.php',
+        'estado_solicitudes_repuestos.php',
+        'repuestos.php'
     ],
     'Recepcionista' => [
         'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php'
     ],
     'Guardia' => [
-        'control_ingreso.php'
+        'control_ingreso.php',
+        'vehiculos_agendados.php'
     ],
     'Supervisor' => [
         'consulta.php',
         'gestion_solicitudes.php'
     ],
     'Chofer' => [
-        'ingreso_vehiculos.php',
-        'solicitudes_agendamiento.php'
+        'solicitudes_agendamiento.php',
+        'mis_solicitudes.php'
     ]
 ];
 
@@ -64,7 +69,7 @@ function obtener_pagina_principal($rol) {
         'Recepcionista' => 'consulta.php',
         'Guardia' => 'control_ingreso.php',
         'Supervisor' => 'consulta.php',
-        'Chofer' => 'ingreso_vehiculos.php'
+        'Chofer' => 'solicitudes_agendamiento.php'
     ];
     
     return $paginas_principales[$rol] ?? 'consulta.php';

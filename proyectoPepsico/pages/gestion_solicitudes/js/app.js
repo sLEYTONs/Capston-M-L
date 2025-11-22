@@ -5,6 +5,8 @@ class GestionSolicitudes {
     constructor() {
         this.solicitudActual = null;
         this.dataTable = null;
+        this.calendario = null;
+        this.horasDisponibles = [];
         // Calcular la ruta base del proyecto
         this.baseUrl = this.getBaseUrl();
         this.init();
@@ -56,12 +58,14 @@ class GestionSolicitudes {
             btnGuardarAgenda.addEventListener('click', () => this.guardarAgenda());
         }
 
-        // Cambio de fecha para cargar horas disponibles
-        const fechaDisponible = document.getElementById('fecha-disponible');
-        if (fechaDisponible) {
-            fechaDisponible.addEventListener('change', (e) => {
-                if (e.target.value) {
-                    this.cargarHorasDisponibles(e.target.value);
+        // Limpiar selección al cerrar modal
+        const gestionarModal = document.getElementById('gestionarSolicitudModal');
+        if (gestionarModal) {
+            gestionarModal.addEventListener('hidden.bs.modal', () => {
+                document.getElementById('agenda-id-seleccionada').value = '';
+                document.getElementById('info-seleccion-hora').style.display = 'none';
+                if (this.calendario) {
+                    this.calendario.removeAllEvents();
                 }
             });
         }
@@ -144,7 +148,7 @@ class GestionSolicitudes {
         tbody.innerHTML = '';
 
         if (solicitudes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center">No hay solicitudes disponibles</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay solicitudes disponibles</td></tr>';
             return;
         }
 
@@ -156,7 +160,6 @@ class GestionSolicitudes {
                 <td>${solicitud.ID}</td>
                 <td>${solicitud.Placa}</td>
                 <td>${solicitud.Marca} ${solicitud.Modelo}</td>
-                <td>${solicitud.ConductorNombre}</td>
                 <td>${solicitud.Proposito}</td>
                 <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
                 <td>${solicitud.ChoferNombre || 'N/A'}</td>
@@ -175,21 +178,32 @@ class GestionSolicitudes {
             tbody.appendChild(row);
         });
 
-        // Inicializar DataTable si no existe
-        if (!this.dataTable) {
-            if (typeof $ !== 'undefined' && $.fn.DataTable) {
-                this.dataTable = $('#solicitudes-table').DataTable({
-                    language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
-                    },
-                    order: [[0, 'desc']],
-                    pageLength: 10
-                });
-            }
-        } else {
-            if (typeof $ !== 'undefined' && $.fn.DataTable) {
-                this.dataTable.clear().rows.add($(tbody).find('tr')).draw();
-            }
+        // Destruir DataTable existente si existe
+        if (this.dataTable) {
+            this.dataTable.destroy();
+            this.dataTable = null;
+        }
+
+        // Inicializar DataTable
+        if (typeof $ !== 'undefined' && $.fn.DataTable) {
+            this.dataTable = $('#solicitudes-table').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                },
+                order: [[0, 'desc']],
+                pageLength: 10,
+                responsive: true,
+                autoWidth: false,
+                columnDefs: [
+                    { width: "60px", targets: 0 }, // ID
+                    { width: "100px", targets: 1 }, // Placa
+                    { width: "150px", targets: 2 }, // Vehículo
+                    { width: "120px", targets: 3 }, // Propósito
+                    { width: "100px", targets: 4 }, // Estado
+                    { width: "120px", targets: 5 }, // Chofer
+                    { width: "120px", targets: 6 }  // Acciones
+                ]
+            });
         }
     }
 
@@ -220,15 +234,17 @@ class GestionSolicitudes {
                 this.mostrarDetallesSolicitud(solicitud);
                 this.cargarMecanicosDisponibles();
                 
-                // Establecer fecha mínima como hoy
-                const fechaInput = document.getElementById('fecha-disponible');
-                if (fechaInput) {
-                    const hoy = new Date();
-                    fechaInput.min = hoy.toISOString().split('T')[0];
-                }
-                
                 const modal = new bootstrap.Modal(document.getElementById('gestionarSolicitudModal'));
                 modal.show();
+                
+                // Inicializar calendario y cargar horas cuando el modal esté completamente visible
+                modal._element.addEventListener('shown.bs.modal', () => {
+                    // Pequeño delay para asegurar que el DOM esté completamente renderizado
+                    setTimeout(() => {
+                        this.inicializarCalendario();
+                        this.cargarHorasDisponiblesCalendario();
+                    }, 100);
+                }, { once: true });
             }
         })
         .catch(error => {
@@ -250,7 +266,6 @@ class GestionSolicitudes {
                 <div class="col-md-6">
                     <h6>Información del Conductor</h6>
                     <p><strong>Nombre:</strong> ${solicitud.ConductorNombre}</p>
-                    <p><strong>Teléfono:</strong> ${solicitud.ConductorTelefono || 'N/A'}</p>
                 </div>
             </div>
             <div class="row mt-3">
@@ -263,54 +278,258 @@ class GestionSolicitudes {
         `;
     }
 
-    cargarHorasDisponibles(fecha) {
-        const formData = new FormData();
-        formData.append('accion', 'obtener_horas_disponibles');
-        formData.append('fecha', fecha);
+    inicializarCalendario() {
+        const calendarEl = document.getElementById('calendario-horas-disponibles');
+        if (!calendarEl) return;
 
-        fetch(this.baseUrl, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarHorasDisponibles(data.data);
-            } else {
-                document.getElementById('horas-disponibles-container').innerHTML = 
-                    '<p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>No hay horas disponibles para esta fecha. Puede crear nuevas horas en la agenda.</p>';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-
-    mostrarHorasDisponibles(horas) {
-        const container = document.getElementById('horas-disponibles-container');
-        
-        if (horas.length === 0) {
-            container.innerHTML = '<p class="text-warning">No hay horas disponibles para esta fecha.</p>';
-            return;
+        // Destruir calendario existente si existe
+        if (this.calendario) {
+            this.calendario.destroy();
         }
 
-        let html = '<div class="row">';
-        horas.forEach(hora => {
-            html += `
-                <div class="col-md-4 mb-2">
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="hora-disponible" 
-                               id="hora-${hora.ID}" value="${hora.ID}" required>
-                        <label class="form-check-label" for="hora-${hora.ID}">
-                            <i class="fas fa-clock me-1"></i>${hora.HoraInicio} - ${hora.HoraFin}
-                        </label>
-                    </div>
-                </div>
-            `;
+        this.calendario = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+            },
+            slotMinTime: '09:00:00',
+            slotMaxTime: '18:00:00',
+            slotDuration: '01:00:00',
+            allDaySlot: false,
+            height: 'auto',
+            locale: 'es',
+            firstDay: 1, // Lunes
+            weekends: true,
+            selectable: false,
+            editable: false,
+            eventClick: (info) => {
+                info.jsEvent.preventDefault();
+                this.seleccionarHora(info.event);
+            },
+            eventDisplay: 'block',
+            eventColor: '#28a745',
+            eventTextColor: '#fff',
+            eventCursor: 'pointer',
+            eventInteractive: true,
+            eventDidMount: (info) => {
+                // Agregar estilo de cursor pointer y hover
+                info.el.style.cursor = 'pointer';
+                info.el.title = 'Click para seleccionar esta hora';
+            }
         });
-        html += '</div>';
-        container.innerHTML = html;
+
+        this.calendario.render();
     }
+
+    cargarHorasDisponiblesCalendario() {
+        // Cargar horas disponibles para los próximos 14 días
+        const hoy = new Date();
+        const fechaFin = new Date();
+        fechaFin.setDate(hoy.getDate() + 14);
+
+        const fechas = [];
+        for (let d = new Date(hoy); d <= fechaFin; d.setDate(d.getDate() + 1)) {
+            fechas.push(new Date(d).toISOString().split('T')[0]);
+        }
+
+        // Cargar horas para todas las fechas
+        const promesas = fechas.map(fecha => {
+            const formData = new FormData();
+            formData.append('accion', 'obtener_horas_disponibles');
+            formData.append('fecha', fecha);
+
+            return fetch(this.baseUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Respuesta para fecha ${fecha}:`, data);
+                if (data.status === 'success' && Array.isArray(data.data)) {
+                    const horasConFecha = data.data.map(hora => ({
+                        ...hora,
+                        fecha: fecha
+                    }));
+                    console.log(`Horas encontradas para ${fecha}:`, horasConFecha.length);
+                    return horasConFecha;
+                } else {
+                    console.warn(`No se encontraron horas para ${fecha} o respuesta inválida:`, data);
+                    return [];
+                }
+            })
+            .catch(error => {
+                console.error('Error cargando horas para fecha', fecha, error);
+                return [];
+            });
+        });
+
+            Promise.all(promesas).then(todasLasHoras => {
+            const todasLasHorasFlat = todasLasHoras.flat();
+            console.log('Total de horas disponibles recibidas:', todasLasHorasFlat.length);
+            console.log('Horas por fecha:', todasLasHorasFlat);
+            
+            const eventos = [];
+            todasLasHorasFlat.forEach(hora => {
+                if (!hora.ID || !hora.HoraInicio || !hora.HoraFin || !hora.fecha) {
+                    console.warn('Hora con datos incompletos:', hora);
+                    return;
+                }
+                
+                // Asegurar que la hora tenga el formato correcto (HH:MM:SS)
+                let horaInicio = hora.HoraInicio;
+                let horaFin = hora.HoraFin;
+                
+                // Si la hora no tiene segundos, agregarlos
+                if (horaInicio.split(':').length === 2) {
+                    horaInicio += ':00';
+                }
+                if (horaFin.split(':').length === 2) {
+                    horaFin += ':00';
+                }
+                
+                const fechaHora = `${hora.fecha}T${horaInicio}`;
+                const fechaHoraFin = `${hora.fecha}T${horaFin}`;
+                
+                const evento = {
+                    id: hora.ID.toString(),
+                    title: `${horaInicio.substring(0, 5)} - ${horaFin.substring(0, 5)}`,
+                    start: fechaHora,
+                    end: fechaHoraFin,
+                    backgroundColor: '#28a745',
+                    borderColor: '#1e7e34',
+                    textColor: '#fff',
+                    extendedProps: {
+                        agendaId: hora.ID,
+                        horaInicio: horaInicio,
+                        horaFin: horaFin,
+                        observaciones: hora.Observaciones || ''
+                    }
+                };
+                
+                eventos.push(evento);
+                console.log('Evento creado:', evento);
+            });
+
+            this.horasDisponibles = todasLasHorasFlat;
+            console.log('Total de eventos creados:', eventos.length);
+            
+            if (this.calendario) {
+                // Limpiar eventos anteriores
+                this.calendario.removeAllEvents();
+                
+                // Agregar eventos - en FullCalendar v6 usamos addEvent (singular) para cada evento
+                if (eventos.length > 0) {
+                    eventos.forEach(evento => {
+                        try {
+                            this.calendario.addEvent(evento);
+                        } catch (error) {
+                            console.error('Error al agregar evento:', evento, error);
+                        }
+                    });
+                    console.log('Eventos agregados al calendario:', eventos.length);
+                } else {
+                    console.warn('No hay eventos para mostrar. Verifica que haya horas disponibles en la base de datos.');
+                }
+            } else {
+                console.error('Calendario no está inicializado');
+            }
+        }).catch(error => {
+            console.error('Error al cargar horas disponibles:', error);
+        });
+    }
+
+    seleccionarHora(evento) {
+        const agendaId = evento.extendedProps.agendaId;
+        const horaInicio = evento.extendedProps.horaInicio;
+        const horaFin = evento.extendedProps.horaFin;
+        const fecha = evento.start.toISOString().split('T')[0];
+
+        // Formatear hora para mostrar
+        function formatearHora(hora) {
+            const [horas, minutos] = hora.split(':');
+            const hora24 = parseInt(horas);
+            const ampm = hora24 >= 12 ? 'PM' : 'AM';
+            const hora12 = hora24 % 12 || 12;
+            return `${hora12}:${minutos} ${ampm}`;
+        }
+
+        // Guardar selección
+        const agendaInput = document.getElementById('agenda-id-seleccionada');
+        if (agendaInput) {
+            agendaInput.value = agendaId;
+        }
+        
+        // Mostrar información de selección
+        const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        const horaTexto = document.getElementById('hora-seleccionada-texto');
+        const infoSeleccion = document.getElementById('info-seleccion-hora');
+        
+        if (horaTexto) {
+            horaTexto.textContent = `${fechaFormateada} de ${formatearHora(horaInicio)} a ${formatearHora(horaFin)}`;
+        }
+        
+        if (infoSeleccion) {
+            infoSeleccion.style.display = 'block';
+        }
+
+        // Resaltar evento seleccionado - remover selección anterior
+        this.calendario.getEvents().forEach(evt => {
+            if (evt.id === agendaId.toString()) {
+                // Evento seleccionado - cambiar a azul
+                evt.setProp('backgroundColor', '#007bff');
+                evt.setProp('borderColor', '#0056b3');
+                evt.setProp('classNames', ['fc-event-selected']);
+            } else {
+                // Otros eventos - volver a verde
+                evt.setProp('backgroundColor', '#28a745');
+                evt.setProp('borderColor', '#1e7e34');
+                // Remover classNames de selección si existe
+                try {
+                    // Intentar obtener classNames de diferentes formas según la versión de FullCalendar
+                    let currentClassNames = [];
+                    if (evt.extendedProps && evt.extendedProps.classNames) {
+                        currentClassNames = evt.extendedProps.classNames;
+                    } else if (evt.classNames) {
+                        currentClassNames = Array.isArray(evt.classNames) ? evt.classNames : [evt.classNames];
+                    }
+                    
+                    if (Array.isArray(currentClassNames) && currentClassNames.length > 0) {
+                        const filteredClassNames = currentClassNames.filter(cn => cn !== 'fc-event-selected');
+                        evt.setProp('classNames', filteredClassNames.length > 0 ? filteredClassNames : null);
+                    } else {
+                        evt.setProp('classNames', null);
+                    }
+                } catch (e) {
+                    // Si no se puede obtener classNames, simplemente establecer null
+                    evt.setProp('classNames', null);
+                }
+            }
+        });
+        
+        // Scroll suave a la información de selección
+        if (infoSeleccion) {
+            infoSeleccion.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    cargarHorasDisponibles(fecha) {
+        // Esta función se mantiene para compatibilidad pero ya no se usa
+        // El calendario carga todas las horas automáticamente
+    }
+
 
     cargarMecanicosDisponibles() {
         const formData = new FormData();
@@ -365,20 +584,12 @@ class GestionSolicitudes {
     aprobarSolicitud() {
         if (!this.solicitudActual) return;
 
-        const fechaSeleccionada = document.getElementById('fecha-disponible').value;
-        const horaSeleccionada = document.querySelector('input[name="hora-disponible"]:checked');
+        const agendaId = document.getElementById('agenda-id-seleccionada').value;
 
-        if (!fechaSeleccionada) {
-            this.mostrarToast('Advertencia', 'Por favor seleccione una fecha', 'warning');
+        if (!agendaId) {
+            this.mostrarToast('Advertencia', 'Por favor seleccione una hora disponible del calendario', 'warning');
             return;
         }
-
-        if (!horaSeleccionada) {
-            this.mostrarToast('Advertencia', 'Por favor seleccione una hora disponible', 'warning');
-            return;
-        }
-
-        const agendaId = horaSeleccionada.value;
         const mecanicoSeleccionado = document.querySelector('input[name="mecanico-disponible"]:checked');
         const mecanicoId = mecanicoSeleccionado ? mecanicoSeleccionado.value : null;
 

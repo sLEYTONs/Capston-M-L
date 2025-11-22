@@ -14,6 +14,32 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     <title>Gestión de Solicitudes de Agendamiento - PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+    <style>
+        .fc-event {
+            cursor: pointer !important;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .fc-event:hover {
+            opacity: 0.8;
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .fc-event.fc-event-selected {
+            background-color: #007bff !important;
+            border-color: #0056b3 !important;
+            z-index: 10;
+        }
+        #calendario-horas-disponibles {
+            min-height: 400px;
+        }
+        #info-seleccion-hora {
+            margin-top: 15px;
+        }
+    </style>
+    
     <?php include 'general/head.php'; ?>
 </head>
 
@@ -49,5 +75,10 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
+    
+    <!-- FullCalendar JS -->
+    <script src='../assets/js/plugins/index.global.min.js'></script>
+    
+    <script src="gestion_solicitudes/js/app.js"></script>
 </body>
 </html>

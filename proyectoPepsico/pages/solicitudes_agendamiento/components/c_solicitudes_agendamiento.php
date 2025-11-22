@@ -21,38 +21,39 @@
                             <div class="form-row">
                                 <div class="form-field">
                                     <label for="plate">Placa del Vehículo *</label>
-                                    <input type="text" id="plate" name="plate" required>
-                                </div>
-                                <div class="form-field">
-                                    <label for="vehicle-type">Tipo de Vehículo *</label>
-                                    <select id="vehicle-type" name="vehicleType" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="camion">Camión</option>
-                                        <option value="furgon">Furgón</option>
-                                        <option value="van">Van</option>
-                                        <option value="pickup">Pickup</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
+                                    <input type="text" id="plate" name="plate" required 
+                                           placeholder="Ej: BCDF12 o BC1234" maxlength="6"
+                                           style="text-transform: uppercase;">
+                                    <small class="form-text text-muted">Formato: 4 letras + 2 números (BCDF12) o 2 letras + 4 números (BC1234). Solo consonantes permitidas.</small>
+                                    <small id="plate-error" class="form-text text-danger" style="display: none;"></small>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="brand">Marca *</label>
-                                    <input type="text" id="brand" name="brand" required>
+                            <div id="vehicle-info" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-field">
+                                        <label for="vehicle-type">Tipo de Vehículo *</label>
+                                        <input type="text" id="vehicle-type" name="vehicleType" readonly required>
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="brand">Marca *</label>
+                                        <input type="text" id="brand" name="brand" readonly required>
+                                    </div>
                                 </div>
-                                <div class="form-field">
-                                    <label for="model">Modelo *</label>
-                                    <input type="text" id="model" name="model" required>
+                                <div class="form-row">
+                                    <div class="form-field">
+                                        <label for="model">Modelo *</label>
+                                        <input type="text" id="model" name="model" readonly required>
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="color">Color</label>
+                                        <input type="text" id="color" name="color" readonly>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="color">Color</label>
-                                    <input type="text" id="color" name="color">
-                                </div>
-                                <div class="form-field">
-                                    <label for="year">Año</label>
-                                    <input type="number" id="year" name="year" min="1990" max="2025">
+                                <div class="form-row">
+                                    <div class="form-field">
+                                        <label for="year">Año</label>
+                                        <input type="number" id="year" name="year" readonly>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -62,47 +63,15 @@
                             <h3>Información del Conductor</h3>
                             <div class="form-row">
                                 <div class="form-field">
-                                    <label for="driver-name">Nombre Completo *</label>
-                                    <input type="text" id="driver-name" name="driverName" required>
-                                </div>
-                                <div class="form-field">
-                                    <label for="driver-id">Cédula de Identidad *</label>
-                                    <input type="text" id="driver-id" name="driverId" required>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="driver-phone">Teléfono</label>
-                                    <input type="tel" id="driver-phone" name="driverPhone">
-                                </div>
-                                <div class="form-field">
-                                    <input type="text" id="license" name="license">
+                                    <label for="driver-name">Nombre del Conductor *</label>
+                                    <input type="text" id="driver-name" name="driverName" readonly required 
+                                           value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>">
+                                    <small class="form-text text-muted">Se obtiene automáticamente del usuario logueado</small>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Información de la Empresa -->
-                        <div class="form-group">
-                            <h3>Información de la Empresa</h3>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="company">Empresa *</label>
-                                    <select id="company" name="company" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="pepsico">PepsiCo</option>
-                                        <option value="proveedor">Proveedor</option>
-                                        <option value="cliente">Cliente</option>
-                                        <option value="otro">Otro</option>
-                                    </select>
-                                </div>
-                                <div class="form-field">
-                                    <label for="company-name">Nombre de la Empresa</label>
-                                    <input type="text" id="company-name" name="companyName">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Información del Ingreso -->
+                        <!-- Información del Servicio -->
                         <div class="form-group">
                             <h3>Información del Servicio</h3>
                             <div class="form-row">
@@ -117,26 +86,26 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="area">Área</label>
-                                    <select id="area" name="area">
-                                        <option value="">Seleccionar...</option>
-                                        <option value="almacen">Almacén</option>
-                                        <option value="produccion">Producción</option>
-                                        <option value="oficinas">Oficinas</option>
-                                        <option value="mantenimiento">Mantenimiento</option>
-                                    </select>
-                                </div>
-                                <div class="form-field">
-                                    <label for="contact-person">Persona de Contacto</label>
-                                    <input type="text" id="contact-person" name="contactPerson">
-                                </div>
-                            </div>
                             <div class="form-field full-width">
                                 <label for="observations">Observaciones</label>
                                 <textarea id="observations" name="observations" rows="3" 
                                           placeholder="Describa el problema o servicio requerido..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Imágenes del Vehículo -->
+                        <div class="form-group">
+                            <h3>Imágenes del Vehículo</h3>
+                            <div class="form-field full-width">
+                                <label for="fotos">Fotos del Vehículo</label>
+                                <input type="file" id="fotos" name="fotos[]" multiple accept="image/*" 
+                                       class="form-control">
+                                <small class="form-text text-muted">
+                                    Puede seleccionar múltiples imágenes. Formatos permitidos: JPG, PNG, GIF, WEBP. Tamaño máximo: 5MB por imagen.
+                                </small>
+                                <div id="fotos-preview" class="mt-3" style="display: none;">
+                                    <div class="row" id="fotos-preview-container"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -160,34 +129,6 @@
                 </form>
             </div>
         </section>
-
-        <!-- Sección de Mis Solicitudes -->
-        <section id="mis-solicitudes-section" class="section">
-            <div class="form-container">
-                <h2>
-                    <i class="fas fa-list me-2"></i>
-                    Mis Solicitudes de Agendamiento
-                </h2>
-                <div class="results-container">
-                    <table id="mis-solicitudes-table" class="results-table display" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Placa</th>
-                                <th>Vehículo</th>
-                                <th>Fecha/Hora Solicitada</th>
-                                <th>Estado</th>
-                                <th>Fecha Respuesta</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Los datos se cargarán via Ajax -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
     </div>
 </main>
 
@@ -200,6 +141,27 @@
         <div class="modal-actions">
             <button class="btn btn-secondary" id="cancel-registration">Cancelar</button>
             <button class="btn btn-primary" id="confirm-registration">Enviar Solicitud</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Solicitud Pendiente -->
+<div id="solicitud-pendiente-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-pendiente-modal">&times;</span>
+        <div style="text-align: center; padding: 1rem;">
+            <i class="fas fa-clock" style="font-size: 3rem; color: #ff9800; margin-bottom: 1rem;"></i>
+            <h3 style="color: #333; margin-bottom: 1rem;">Solicitud Pendiente</h3>
+            <p style="color: #666; font-size: 1.1rem; line-height: 1.6;">
+                Ya ha realizado una solicitud de agendamiento para este vehículo.<br>
+                Por favor, espere la respuesta del supervisor.
+            </p>
+            <p style="color: #999; font-size: 0.9rem; margin-top: 1rem;">
+                Puede revisar el estado de su solicitud en la sección "Mis Solicitudes".
+            </p>
+        </div>
+        <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem;">
+            <button class="btn btn-primary" id="aceptar-pendiente-modal">Entendido</button>
         </div>
     </div>
 </div>

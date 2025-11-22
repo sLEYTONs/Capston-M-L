@@ -14,18 +14,39 @@ function obtenerTareasMecanico($mecanico_id) {
     $mecanico_id = mysqli_real_escape_string($conn, $mecanico_id);
     error_log("Mecánico ID escapado: " . $mecanico_id);
 
+    // Verificar si la columna MotivoPausa existe
+    $checkColumn = "SELECT COUNT(*) as existe 
+                   FROM information_schema.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'asignaciones_mecanico' 
+                   AND COLUMN_NAME = 'MotivoPausa'";
+    $resultCheck = mysqli_query($conn, $checkColumn);
+    $columnExists = false;
+    if ($resultCheck) {
+        $row = mysqli_fetch_assoc($resultCheck);
+        $columnExists = ($row['existe'] > 0);
+    }
+
+    // Si tiene MotivoPausa pero no tiene estado, considerar como "En Pausa"
+    $estadoField = $columnExists 
+        ? "COALESCE(NULLIF(a.Estado, ''), CASE WHEN a.MotivoPausa IS NOT NULL AND a.MotivoPausa != '' THEN 'En Pausa' ELSE 'Asignado' END) AS Estado"
+        : "COALESCE(NULLIF(a.Estado, ''), 'Asignado') AS Estado";
+
     $query = "SELECT 
                 a.ID AS AsignacionID,
                 v.ID AS VehiculoID,
-                v.Placa,
-                v.TipoVehiculo,
-                v.Marca,
-                v.Modelo,
-                v.Color,
-                v.ConductorNombre,
+                COALESCE(sa.Placa, v.Placa) AS Placa,
+                COALESCE(sa.TipoVehiculo, v.TipoVehiculo) AS TipoVehiculo,
+                COALESCE(sa.Marca, v.Marca) AS Marca,
+                COALESCE(sa.Modelo, v.Modelo) AS Modelo,
+                COALESCE(sa.Color, v.Color) AS Color,
+                COALESCE(sa.ConductorNombre, v.ConductorNombre) AS ConductorNombre,
+                sa.Proposito,
+                sa.Observaciones AS ObservacionesSolicitud,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion,
-                a.Estado,
+                $estadoField,
                 a.Observaciones,
+                " . ($columnExists ? "a.MotivoPausa," : "") . "
                 (SELECT DATE_FORMAT(am.FechaAvance, '%d/%m/%Y %H:%i') 
                  FROM avances_mecanico am 
                  WHERE am.AsignacionID = a.ID 
@@ -36,6 +57,8 @@ function obtenerTareasMecanico($mecanico_id) {
                  ORDER BY am.FechaAvance DESC LIMIT 1) as UltimaDescripcion
             FROM asignaciones_mecanico a
             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+            LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                AND sa.Estado IN ('Aprobada', 'Ingresado')
             WHERE a.MecanicoID = '$mecanico_id'
             ORDER BY a.FechaAsignacion DESC";
 
@@ -85,17 +108,23 @@ function obtenerDetallesAsignacion($asignacion_id) {
     $query = "SELECT 
                 a.ID,
                 v.ID AS VehiculoID,
-                v.Placa,
-                v.TipoVehiculo,
-                v.Marca,
-                v.Modelo,
-                v.Color,
-                v.ConductorNombre,
+                COALESCE(sa.Placa, v.Placa) AS Placa,
+                COALESCE(sa.TipoVehiculo, v.TipoVehiculo) AS TipoVehiculo,
+                COALESCE(sa.Marca, v.Marca) AS Marca,
+                COALESCE(sa.Modelo, v.Modelo) AS Modelo,
+                COALESCE(sa.Color, v.Color) AS Color,
+                COALESCE(sa.ConductorNombre, v.ConductorNombre) AS ConductorNombre,
+                sa.Proposito,
+                sa.Observaciones AS ObservacionesSolicitud,
                 a.Estado,
                 a.Observaciones
             FROM asignaciones_mecanico a
             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
-            WHERE a.ID = '$asignacion_id'";
+            LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                AND sa.Estado IN ('Aprobada', 'Ingresado')
+            WHERE a.ID = '$asignacion_id'
+            ORDER BY sa.FechaCreacion DESC
+            LIMIT 1";
 
     $result = mysqli_query($conn, $query);
     
@@ -120,14 +149,19 @@ function obtenerHistorialAvances($asignacion_id) {
 
     $asignacion_id = mysqli_real_escape_string($conn, $asignacion_id);
 
-    // Obtener información del vehículo
+    // Obtener información del vehículo desde solicitudes_agendamiento
     $queryVehiculo = "SELECT 
-                        v.Placa,
-                        v.Marca,
-                        v.Modelo
+                        COALESCE(sa.Placa, v.Placa) AS Placa,
+                        COALESCE(sa.Marca, v.Marca) AS Marca,
+                        COALESCE(sa.Modelo, v.Modelo) AS Modelo,
+                        sa.Proposito
                     FROM asignaciones_mecanico a
                     INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
-                    WHERE a.ID = '$asignacion_id'";
+                    LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                        AND sa.Estado IN ('Aprobada', 'Ingresado')
+                    WHERE a.ID = '$asignacion_id'
+                    ORDER BY sa.FechaCreacion DESC
+                    LIMIT 1";
     
     $resultVehiculo = mysqli_query($conn, $queryVehiculo);
     

@@ -150,6 +150,22 @@ class ConsultaVehiculos {
                         className: 'fecha-column'
                     },
                     { 
+                        data: 'MecanicoNombre',
+                        render: (data, type, row) => {
+                            if (data && data.trim() !== '') {
+                                return `
+                                    <div class="mechanic-info">
+                                        <i class="fas fa-user-cog me-1"></i>
+                                        <strong>${data}</strong>
+                                    </div>
+                                `;
+                            } else {
+                                return `<span class="text-muted">Sin asignar</span>`;
+                            }
+                        },
+                        className: 'mecanico-column'
+                    },
+                    { 
                         data: 'Estado',
                         render: (data) => {
                             const estadoClass = this.obtenerClaseEstado(data);
@@ -168,17 +184,8 @@ class ConsultaVehiculos {
                                     </button>
                             `;
 
-                            // Solo mostrar botón de asignar si está en estado "Ingresado" o "En espera"
-                            if (data.Estado === 'Ingresado' || data.Estado === 'En espera') {
-                                acciones += `
-                                    <button class="btn-action btn-assign" data-id="${data.ID}" title="Asignar Mecánico">
-                                        <i class="fas fa-user-cog"></i>
-                                    </button>
-                                `;
-                            }
-
-                            // Mostrar botón de seguimiento si está asignado o en reparación
-                            if (data.Estado === 'Asignado' || data.Estado === 'En progreso' || data.Estado === 'Completado') {
+                            // Mostrar botón de seguimiento si tiene mecánico asignado
+                            if (data.MecanicoNombre && data.MecanicoNombre.trim() !== '') {
                                 acciones += `
                                     <button class="btn-action btn-tracking" data-id="${data.ID}" title="Ver Seguimiento">
                                         <i class="fas fa-clipboard-list"></i>
@@ -191,7 +198,7 @@ class ConsultaVehiculos {
                         }
                     }
                 ],
-                order: [[4, 'desc']],
+                order: [[3, 'desc']],
                 responsive: true,
                 initComplete: () => {
                     $('.dataTables_length select').addClass('form-select form-select-sm');
@@ -208,16 +215,6 @@ class ConsultaVehiculos {
         $(document).on('click', '.btn-view', (e) => {
             const id = $(e.currentTarget).data('id');
             this.verDetalles(id);
-        });
-
-        $(document).on('click', '.btn-edit', (e) => {
-            const id = $(e.currentTarget).data('id');
-            this.editarVehiculo(id);
-        });
-
-        $(document).on('click', '.btn-assign', (e) => {
-            const id = $(e.currentTarget).data('id');
-            this.asignarMecanico(id);
         });
 
         $(document).on('click', '.btn-tracking', (e) => {
@@ -330,65 +327,13 @@ class ConsultaVehiculos {
                                     <p><strong>Color:</strong> ${vehiculo.Color}</p>
                                     <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
                                     <p><strong>Kilometraje:</strong> ${vehiculo.Kilometraje || 'N/A'}</p>
-                                    <p><strong>Estado Ingreso:</strong> ${vehiculo.EstadoIngreso || 'N/A'}</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Información del Conductor</h6>
                                     <p><strong>Nombre:</strong> ${vehiculo.ConductorNombre}</p>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6>Información de la Visita</h6>
-                                    <p><strong>Propósito:</strong> ${vehiculo.Proposito}</p>
-                                    <p><strong>Área:</strong> ${vehiculo.Area}</p>
-                                    <p><strong>Persona de Contacto:</strong> ${vehiculo.PersonaContacto}</p>
                                     <p><strong>Fecha Ingreso:</strong> ${vehiculo.FechaIngresoFormateada}</p>
-                                    ${vehiculo.Observaciones ? `<p><strong>Observaciones:</strong> ${vehiculo.Observaciones}</p>` : ''}
                                 </div>
                             </div>
-                            ${vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
-                            <div class="row mt-4">
-                                <div class="col-12">
-                                    <h6 class="section-title mb-3">
-                                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo
-                                    </h6>
-                                    <div class="row g-3" id="galeria-imagenes-vehiculo">
-                                        ${vehiculo.Fotos.map((foto, index) => {
-                                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
-                                            const tipoFoto = foto.tipo || foto.angulo || 'General';
-                                            return `
-                                                <div class="col-md-3 col-sm-4 col-6">
-                                                    <div class="card mb-3 imagen-vehiculo-card">
-                                                        <img src="${fotoData}" 
-                                                             class="card-img-top imagen-vehiculo" 
-                                                             alt="${tipoFoto}"
-                                                             style="height: 150px; object-fit: cover; cursor: pointer;"
-                                                             onclick="window.open('${fotoData}', '_blank')"
-                                                             data-bs-toggle="tooltip" 
-                                                             title="Click para ampliar">
-                                                        <div class="card-body p-2">
-                                                            <small class="text-muted">
-                                                                <i class="fas fa-camera me-1"></i>${tipoFoto}
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                            ` : `
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        No hay imágenes registradas para este vehículo
-                                    </div>
-                                </div>
-                            </div>
-                            `}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -460,10 +405,6 @@ class ConsultaVehiculos {
         $('#edit-color').val(vehiculo.Color);
         $('#edit-anio').val(vehiculo.Anio);
         $('#edit-conductor-nombre').val(vehiculo.ConductorNombre);
-        $('#edit-proposito').val(vehiculo.Proposito);
-        $('#edit-area').val(vehiculo.Area);
-        $('#edit-persona-contacto').val(vehiculo.PersonaContacto);
-        $('#edit-observaciones').val(vehiculo.Observaciones);
         $('#edit-estado').val(vehiculo.Estado);
 
         // Mostrar el modal
@@ -527,7 +468,7 @@ class ConsultaVehiculos {
     validarFormularioEdicion(datos) {
         const camposRequeridos = [
             'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 
-            'ConductorNombre', 'Proposito'
+            'ConductorNombre'
         ];
 
         for (const campo of camposRequeridos) {
@@ -716,28 +657,6 @@ class ConsultaVehiculos {
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     No hay asignación activa para este vehículo.
                 </div>
-                ${vehiculo && vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
-                <div class="mt-3">
-                    <h6 class="section-title mb-2">
-                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo
-                    </h6>
-                    <div class="row g-2">
-                        ${vehiculo.Fotos.map((foto, index) => {
-                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
-                            return `
-                                <div class="col-md-4 col-sm-6">
-                                    <img src="${fotoData}" 
-                                         class="img-thumbnail imagen-vehiculo-seguimiento" 
-                                         alt="Foto ${index + 1}"
-                                         style="cursor: pointer; width: 100%; height: 120px; object-fit: cover;"
-                                         onclick="window.open('${fotoData}', '_blank')"
-                                         title="Click para ampliar">
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-                ` : ''}
             `);
             return;
         }
@@ -747,8 +666,14 @@ class ConsultaVehiculos {
             'asignado': 'warning',
             'enproceso': 'info',
             'en proceso': 'info',
+            'enpausa': 'warning',
+            'en pausa': 'warning',
             'completado': 'success'
         }[estadoClass] || 'secondary';
+
+        // Determinar si está en pausa
+        const estaEnPausa = asignacion.Estado && asignacion.Estado.toLowerCase().includes('pausa') || 
+                           (asignacion.MotivoPausa && asignacion.MotivoPausa.trim && asignacion.MotivoPausa.trim() !== '');
 
         const html = `
             <div class="card border-0 shadow-sm mb-3">
@@ -768,10 +693,130 @@ class ConsultaVehiculos {
                         <tr>
                             <td class="fw-bold">Estado Actual:</td>
                             <td>
-                                <span class="badge bg-${estadoColor}">${asignacion.Estado}</span>
+                                <span class="badge bg-${estadoColor}">
+                                    ${estaEnPausa ? '<i class="fas fa-pause-circle me-1"></i>' : ''}
+                                    ${asignacion.Estado}
+                                </span>
                             </td>
                         </tr>
                     </table>
+                    ${estaEnPausa && asignacion.MotivoPausa && asignacion.MotivoPausa.trim && asignacion.MotivoPausa.trim() !== '' ? `
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="alert alert-warning mb-0">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-pause-circle fa-2x me-3 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <strong class="d-block mb-2">
+                                            <i class="fas fa-info-circle me-2"></i>Tarea en Pausa
+                                        </strong>
+                                        <p class="mb-2"><strong>Motivo:</strong> ${asignacion.MotivoPausa}</p>
+                                        ${asignacion.RepuestosSolicitados && Array.isArray(asignacion.RepuestosSolicitados) && asignacion.RepuestosSolicitados.length > 0 ? `
+                                            <div class="mt-2">
+                                                <strong class="d-block mb-2">
+                                                    <i class="fas fa-tools me-2"></i>Repuestos Solicitados:
+                                                </strong>
+                                                <ul class="list-unstyled mb-0">
+                                                    ${asignacion.RepuestosSolicitados.map(repuesto => {
+                                                        const urgenciaColor = {
+                                                            'Alta': 'danger',
+                                                            'Media': 'warning',
+                                                            'Baja': 'info'
+                                                        }[repuesto.Urgencia] || 'secondary';
+                                                        const estadoColor = repuesto.EstadoSolicitud === 'Aprobada' ? 'success' : 'warning';
+                                                        return `
+                                                            <li class="mb-2 p-2 bg-light rounded">
+                                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                                    <div class="mb-1 mb-md-0">
+                                                                        <strong>${repuesto.RepuestoNombre}</strong>
+                                                                        <span class="text-muted ms-2">(Cantidad: ${repuesto.Cantidad})</span>
+                                                                    </div>
+                                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                                        <div>
+                                                                            <small class="text-muted d-block d-md-inline me-1">Urgencia:</small>
+                                                                            <span class="badge bg-${urgenciaColor}">${repuesto.Urgencia}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <small class="text-muted d-block d-md-inline me-1">Estado:</small>
+                                                                            <span class="badge bg-${estadoColor}">${repuesto.EstadoSolicitud}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        `;
+                                                    }).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : asignacion.SolicitudesPendientes && parseInt(asignacion.SolicitudesPendientes) > 0 ? `
+                                            <div class="mt-2">
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    ${asignacion.SolicitudesPendientes} solicitud(es) de repuestos pendiente(s)
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : estaEnPausa ? `
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="alert alert-warning mb-0">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-pause-circle fa-2x me-3 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <strong class="d-block mb-2">
+                                            <i class="fas fa-info-circle me-2"></i>Tarea en Pausa
+                                        </strong>
+                                        <p class="mb-2 text-muted">La tarea se encuentra en pausa.</p>
+                                        ${asignacion.RepuestosSolicitados && Array.isArray(asignacion.RepuestosSolicitados) && asignacion.RepuestosSolicitados.length > 0 ? `
+                                            <div class="mt-2">
+                                                <strong class="d-block mb-2">
+                                                    <i class="fas fa-tools me-2"></i>Repuestos Solicitados:
+                                                </strong>
+                                                <ul class="list-unstyled mb-0">
+                                                    ${asignacion.RepuestosSolicitados.map(repuesto => {
+                                                        const urgenciaColor = {
+                                                            'Alta': 'danger',
+                                                            'Media': 'warning',
+                                                            'Baja': 'info'
+                                                        }[repuesto.Urgencia] || 'secondary';
+                                                        const estadoColor = repuesto.EstadoSolicitud === 'Aprobada' ? 'success' : 'warning';
+                                                        return `
+                                                            <li class="mb-2 p-2 bg-light rounded">
+                                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                                    <div class="mb-1 mb-md-0">
+                                                                        <strong>${repuesto.RepuestoNombre}</strong>
+                                                                        <span class="text-muted ms-2">(Cantidad: ${repuesto.Cantidad})</span>
+                                                                    </div>
+                                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                                        <div>
+                                                                            <small class="text-muted d-block d-md-inline me-1">Urgencia:</small>
+                                                                            <span class="badge bg-${urgenciaColor}">${repuesto.Urgencia}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <small class="text-muted d-block d-md-inline me-1">Estado:</small>
+                                                                            <span class="badge bg-${estadoColor}">${repuesto.EstadoSolicitud}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        `;
+                                                    }).join('')}
+                                                </ul>
+                                            </div>
+                                        ` : asignacion.SolicitudesPendientes && parseInt(asignacion.SolicitudesPendientes) > 0 ? `
+                                            <div class="mt-2">
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    ${asignacion.SolicitudesPendientes} solicitud(es) de repuestos pendiente(s)
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
                     ${asignacion.Observaciones ? `
                         <div class="mt-3 pt-3 border-top">
                             <strong>Observaciones:</strong>
@@ -780,37 +825,6 @@ class ConsultaVehiculos {
                     ` : ''}
                 </div>
             </div>
-            ${vehiculo && vehiculo.Fotos && Array.isArray(vehiculo.Fotos) && vehiculo.Fotos.length > 0 ? `
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title mb-3">
-                        <i class="fas fa-images me-2"></i>Imágenes del Vehículo al Ingreso
-                    </h6>
-                    <div class="row g-2">
-                        ${vehiculo.Fotos.map((foto, index) => {
-                            const fotoData = typeof foto === 'string' ? foto : (foto.data || foto.foto || foto);
-                            const tipoFoto = foto.tipo || foto.angulo || 'General';
-                            return `
-                                <div class="col-md-3 col-sm-4 col-6">
-                                    <div class="position-relative">
-                                        <img src="${fotoData}" 
-                                             class="img-thumbnail imagen-vehiculo-seguimiento" 
-                                             alt="${tipoFoto}"
-                                             style="cursor: pointer; width: 100%; height: 100px; object-fit: cover;"
-                                             onclick="window.open('${fotoData}', '_blank')"
-                                             data-bs-toggle="tooltip" 
-                                             title="${tipoFoto} - Click para ampliar">
-                                        <small class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white text-center p-1" style="font-size: 0.65rem;">
-                                            ${tipoFoto}
-                                        </small>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            </div>
-            ` : ''}
         `;
         $('#info-asignacion').html(html);
         
@@ -837,6 +851,8 @@ class ConsultaVehiculos {
                     'asignado': 'warning',
                     'enproceso': 'info',
                     'en progreso': 'info',
+                    'enpausa': 'warning',
+                    'en pausa': 'warning',
                     'completado': 'success'
                 }[estadoClass] || 'secondary';
                 

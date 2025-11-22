@@ -17,36 +17,32 @@ function obtenerEstadisticasGenerales() {
     $result2 = $conn->query($sql2);
     $vehiculosActivos = $result2->fetch_assoc()['total'];
     
-    // Marcas únicas
-    $sql3 = "SELECT COUNT(DISTINCT Marca) as total FROM ingreso_vehiculos";
-    $result3 = $conn->query($sql3);
-    $marcasUnicas = $result3->fetch_assoc()['total'];
+    // Repuestos con stock bajo (Stock <= StockMinimo)
+    $repuestosStockBajo = 0;
+    $checkTable = "SHOW TABLES LIKE 'repuestos'";
+    $resultCheck = $conn->query($checkTable);
     
-    // Empresas registradas - Columna eliminada
-    $empresasRegistradas = 0;
-    
-    // Conductores únicos - Columna eliminada
-    $conductoresUnicos = 0;
-    
-    // Ingresos hoy
-    $sql6 = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE DATE(FechaIngreso) = CURDATE()";
-    $result6 = $conn->query($sql6);
-    $ingresosHoy = $result6->fetch_assoc()['total'];
+    if ($resultCheck && $resultCheck->num_rows > 0) {
+        $sql3 = "SELECT COUNT(*) as total 
+                 FROM repuestos 
+                 WHERE Estado = 'Activo' AND Stock <= StockMinimo";
+        $result3 = $conn->query($sql3);
+        if ($result3) {
+            $repuestosStockBajo = $result3->fetch_assoc()['total'];
+        }
+    }
     
     $conn->close();
     
     return [
         'totalRegistros' => $totalRegistros,
         'vehiculosActivos' => $vehiculosActivos,
-        'marcasUnicas' => $marcasUnicas,
-        'empresasRegistradas' => $empresasRegistradas,
-        'conductoresUnicos' => $conductoresUnicos,
-        'ingresosHoy' => $ingresosHoy
+        'repuestosStockBajo' => $repuestosStockBajo
     ];
 }
 
 /**
- * Obtiene vehículos con filtros
+ * Obtiene vehículos con filtros (ahora trae todos los vehículos ingresados)
  */
 function obtenerVehiculosFiltrados($filtros) {
     $conn = conectar_Pepsico();
@@ -57,10 +53,7 @@ function obtenerVehiculosFiltrados($filtros) {
                 CONCAT(Marca, ' ', Modelo) as MarcaModelo,
                 ConductorNombre,
                 Estado,
-                FechaIngreso,
-                Proposito,
-                Area,
-                EstadoIngreso
+                FechaIngreso
             FROM ingreso_vehiculos 
             WHERE 1=1";
     
@@ -77,13 +70,6 @@ function obtenerVehiculosFiltrados($filtros) {
     if (!empty($filtros['estado'])) {
         $sql .= " AND Estado = ?";
         $params[] = $filtros['estado'];
-        $types .= 's';
-    }
-    
-    // Filtro por empresa eliminado - columna no existe
-    if (false && !empty($filtros['empresa'])) {
-        $sql .= " AND EmpresaNombre = ?";
-        $params[] = $filtros['empresa'];
         $types .= 's';
     }
     
@@ -189,11 +175,52 @@ function obtenerAnalisisEmpresas() {
 }
 
 /**
- * Obtiene análisis de conductores
+ * Obtiene análisis de conductores (usuarios con rol "Chofer")
  */
 function obtenerAnalisisConductores() {
-    // Función deshabilitada - columnas ConductorCedula y EmpresaNombre eliminadas
-    return [];
+    $conn = conectar_Pepsico();
+    
+    // Verificar si la tabla existe
+    $checkTable = "SHOW TABLES LIKE 'USUARIOS'";
+    $resultCheck = $conn->query($checkTable);
+    
+    if (!$resultCheck || $resultCheck->num_rows == 0) {
+        $conn->close();
+        return [];
+    }
+    
+    $sql = "SELECT 
+                UsuarioID as ID,
+                NombreUsuario as Nombre,
+                Correo,
+                Estado,
+                FechaCreacion,
+                UltimoAcceso as UltimaVisita
+            FROM USUARIOS 
+            WHERE Rol = 'Chofer'
+            ORDER BY NombreUsuario ASC";
+    
+    $result = $conn->query($sql);
+    
+    $conductores = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            // Contar vehículos asociados a este conductor
+            $sqlVehiculos = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE ConductorNombre = ?";
+            $stmt = $conn->prepare($sqlVehiculos);
+            $stmt->bind_param("s", $row['Nombre']);
+            $stmt->execute();
+            $resultVehiculos = $stmt->get_result();
+            $vehiculosData = $resultVehiculos->fetch_assoc();
+            $row['Vehiculos'] = $vehiculosData['total'] ?? 0;
+            $stmt->close();
+            
+            $conductores[] = $row;
+        }
+    }
+    
+    $conn->close();
+    return $conductores;
 }
 
 /**
@@ -597,5 +624,154 @@ function exportarEstadisticasCSV() {
     
     fclose($output);
     exit;
+}
+
+/**
+ * Obtiene todas las agendas del taller
+ */
+function obtenerAgendasTaller() {
+    $conn = conectar_Pepsico();
+    
+    // Verificar si la tabla existe
+    $checkTable = "SHOW TABLES LIKE 'agenda_taller'";
+    $resultCheck = $conn->query($checkTable);
+    
+    if (!$resultCheck || $resultCheck->num_rows == 0) {
+        $conn->close();
+        return [];
+    }
+    
+    $sql = "SELECT 
+                ID,
+                Fecha,
+                HoraInicio,
+                HoraFin,
+                Disponible,
+                Observaciones,
+                FechaCreacion,
+                FechaActualizacion
+            FROM agenda_taller 
+            ORDER BY Fecha DESC, HoraInicio DESC";
+    
+    $result = $conn->query($sql);
+    
+    $agendas = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $agendas[] = $row;
+        }
+    }
+    
+    $conn->close();
+    return $agendas;
+}
+
+/**
+ * Obtiene todos los vehículos ingresados
+ */
+function obtenerVehiculosIngresados() {
+    $conn = conectar_Pepsico();
+    
+    $sql = "SELECT 
+                ID,
+                Placa,
+                CONCAT(Marca, ' ', Modelo) as MarcaModelo,
+                ConductorNombre,
+                Estado,
+                FechaIngreso
+            FROM ingreso_vehiculos 
+            ORDER BY FechaIngreso DESC";
+    
+    $result = $conn->query($sql);
+    
+    $vehiculos = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+        }
+    }
+    
+    $conn->close();
+    return $vehiculos;
+}
+
+/**
+ * Obtiene todos los repuestos
+ */
+function obtenerRepuestos() {
+    $conn = conectar_Pepsico();
+    
+    // Verificar si la tabla existe
+    $checkTable = "SHOW TABLES LIKE 'repuestos'";
+    $resultCheck = $conn->query($checkTable);
+    
+    if (!$resultCheck || $resultCheck->num_rows == 0) {
+        $conn->close();
+        return [];
+    }
+    
+    $sql = "SELECT 
+                ID,
+                Nombre,
+                Descripcion,
+                Stock,
+                StockMinimo,
+                Precio,
+                Estado,
+                FechaCreacion
+            FROM repuestos 
+            WHERE Estado = 'Activo'
+            ORDER BY Nombre ASC";
+    
+    $result = $conn->query($sql);
+    
+    $repuestos = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $repuestos[] = $row;
+        }
+    }
+    
+    $conn->close();
+    return $repuestos;
+}
+
+/**
+ * Obtiene todos los usuarios del sistema
+ */
+function obtenerUsuarios() {
+    $conn = conectar_Pepsico();
+    
+    // Verificar si la tabla existe
+    $checkTable = "SHOW TABLES LIKE 'USUARIOS'";
+    $resultCheck = $conn->query($checkTable);
+    
+    if (!$resultCheck || $resultCheck->num_rows == 0) {
+        $conn->close();
+        return [];
+    }
+    
+    $sql = "SELECT 
+                UsuarioID as ID,
+                NombreUsuario,
+                Correo,
+                Rol,
+                Estado,
+                FechaCreacion,
+                UltimoAcceso
+            FROM USUARIOS 
+            ORDER BY FechaCreacion DESC";
+    
+    $result = $conn->query($sql);
+    
+    $usuarios = [];
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $usuarios[] = $row;
+        }
+    }
+    
+    $conn->close();
+    return $usuarios;
 }
 ?>

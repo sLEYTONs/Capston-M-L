@@ -1,6 +1,18 @@
 /* Estilos específicos para Tareas */
 .tareas-container {
     padding: 20px 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.tareas-container .card {
+    width: 100%;
+    max-width: 100%;
+}
+
+.tareas-container .card-body {
+    padding: 1.5rem;
+    overflow-x: auto;
 }
 
 .card-title {
@@ -36,6 +48,15 @@
     font-weight: 500;
 }
 
+.status-EnPausa {
+    background-color: #ffc107;
+    color: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
 /* Botones de acción */
 .btn-action {
     padding: 6px 12px;
@@ -44,6 +65,17 @@
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
+}
+
+.btn-pausar-tarea {
+    margin-left: 5px;
+}
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
 }
 
 .btn-avance {
@@ -68,16 +100,27 @@
 .table-responsive {
     border-radius: 8px;
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
 }
 
 #tareas-table {
     font-size: 0.9em;
+    width: 100% !important;
+    min-width: 1200px; /* Ancho mínimo para que la tabla sea más ancha */
 }
 
 #tareas-table th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #495057;
+    white-space: nowrap;
+    padding: 12px 15px;
+}
+
+#tareas-table td {
+    padding: 12px 15px;
+    vertical-align: middle;
 }
 
 /* Loading */
@@ -162,7 +205,50 @@
     white-space: normal !important;
     word-wrap: break-word;
     word-break: break-word;
-    max-width: 290px; /* Ajusta el ancho máximo que quieres permitir */
+}
+
+/* Anchos específicos para columnas */
+#tareas-table th:nth-child(1), /* Vehículo */
+#tareas-table td:nth-child(1) {
+    min-width: 200px;
+    max-width: 250px;
+}
+
+#tareas-table th:nth-child(2), /* Placa */
+#tareas-table td:nth-child(2) {
+    min-width: 100px;
+    max-width: 120px;
+}
+
+#tareas-table th:nth-child(3), /* Fecha Asignación */
+#tareas-table td:nth-child(3) {
+    min-width: 150px;
+    max-width: 180px;
+}
+
+#tareas-table th:nth-child(4), /* Estado */
+#tareas-table td:nth-child(4) {
+    min-width: 120px;
+    max-width: 150px;
+}
+
+#tareas-table th:nth-child(5), /* Observaciones */
+#tareas-table td:nth-child(5) {
+    min-width: 200px;
+    max-width: 350px;
+}
+
+#tareas-table th:nth-child(6), /* Último Avance */
+#tareas-table td:nth-child(6) {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+#tareas-table th:nth-child(7), /* Acciones */
+#tareas-table td:nth-child(7) {
+    min-width: 250px;
+    max-width: 350px;
+    white-space: nowrap;
 }
 
 /* Estilos para las fotos en tareas */

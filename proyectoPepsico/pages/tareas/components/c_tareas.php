@@ -10,6 +10,11 @@
                             Mis Vehículos Asignados
                         </h4>
                         <div class="card-actions">
+                            <?php if (tiene_acceso('gestion_pausas_repuestos.php')): ?>
+                            <a href="gestion_pausas_repuestos.php" class="btn btn-warning btn-sm me-2">
+                                <i class="fas fa-pause-circle me-1"></i> Gestionar Pausas y Repuestos
+                            </a>
+                            <?php endif; ?>
                             <button class="btn btn-primary btn-sm" id="btn-refresh">
                                 <i class="fas fa-sync-alt me-1"></i> Actualizar
                             </button>
@@ -259,6 +264,62 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Pausar Tarea -->
+<div class="modal fade" id="pausaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-pause-circle me-2"></i>
+                    Pausar Tarea - <span id="modal-placa-pausa"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="pausa-form">
+                    <input type="hidden" id="pausa-asignacion-id">
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Al pausar esta tarea, se detendrá el trabajo hasta que se resuelva el motivo de la pausa.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="pausa-motivo" class="form-label">Motivo de la Pausa *</label>
+                        <select class="form-select" id="pausa-motivo" required>
+                            <option value="">Selecciona un motivo</option>
+                            <option value="Espera de repuestos">Espera de repuestos</option>
+                            <option value="Sin stock de repuesto">Sin stock de repuesto</option>
+                            <option value="Esperando autorización">Esperando autorización</option>
+                            <option value="Problema técnico">Problema técnico</option>
+                            <option value="Falta de herramientas">Falta de herramientas</option>
+                            <option value="Esperando diagnóstico">Esperando diagnóstico</option>
+                            <option value="Otro">Otro (especificar)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="pausa-motivo-custom-group" style="display: none;">
+                        <label for="pausa-motivo-custom" class="form-label">Especificar motivo *</label>
+                        <textarea class="form-control" id="pausa-motivo-custom" rows="3" 
+                                  placeholder="Describe el motivo de la pausa..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Nota:</strong> Una vez pausada, podrás reanudar la tarea desde la sección "Gestión de Pausas y Repuestos" cuando el problema esté resuelto.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="confirmar-pausa">
+                    <i class="fas fa-pause me-2"></i>Confirmar Pausa
+                </button>
             </div>
         </div>
     </div>

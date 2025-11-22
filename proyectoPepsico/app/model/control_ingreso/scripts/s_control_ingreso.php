@@ -98,18 +98,29 @@ try {
         case 'verificarEstado':
             $placa = $_POST['placa'] ?? '';
             $fecha = $_POST['fecha'] ?? date('Y-m-d');
+            $tipoOperacion = $_POST['tipo_operacion'] ?? 'ingreso';
             
             if (empty($placa)) {
                 echo json_encode(['success' => false, 'message' => 'Placa requerida']);
                 exit();
             }
             
-            $resultado = verificarEstadoVehiculo($placa, $fecha);
+            $resultado = verificarEstadoVehiculo($placa, $fecha, $tipoOperacion);
             if ($resultado) {
                 echo json_encode(['success' => true, 'data' => $resultado]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Vehículo no encontrado o ya salió. No tiene agenda aprobada para hoy.']);
+                if ($tipoOperacion === 'ingreso') {
+                    echo json_encode(['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada para hoy. Solo se pueden ingresar vehículos con agenda aprobada.']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'No se encontró un vehículo ingresado con esta placa.']);
+                }
             }
+            break;
+            
+        case 'obtenerVehiculosAgendados':
+            $fecha = $_POST['fecha'] ?? date('Y-m-d');
+            $vehiculos = obtenerVehiculosAgendados($fecha);
+            echo json_encode(['success' => true, 'data' => $vehiculos]);
             break;
             
         default:

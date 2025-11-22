@@ -2,6 +2,141 @@
 require_once __DIR__ . '../../../../config/conexion.php';
 
 /**
+ * Sube un archivo (foto o documento) al servidor
+ */
+function subirArchivo($archivo, $tipo = 'foto') {
+    // Directorios de uploads
+    $directorio_base = __DIR__ . '/../../../../uploads/';
+    $directorio_tipo = $tipo === 'foto' ? 'fotos/' : 'documentos/';
+    $directorio_completo = $directorio_base . $directorio_tipo;
+    
+    // Crear directorios si no existen
+    if (!file_exists($directorio_base)) {
+        mkdir($directorio_base, 0755, true);
+    }
+    if (!file_exists($directorio_completo)) {
+        mkdir($directorio_completo, 0755, true);
+    }
+    
+    // Validar tipo de archivo
+    $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+    
+    if ($tipo === 'foto') {
+        $extensiones_permitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    } else {
+        $extensiones_permitidas = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'];
+    }
+    
+    if (!in_array($extension, $extensiones_permitidas)) {
+        return [
+            'success' => false,
+            'message' => 'Tipo de archivo no permitido. Extensiones permitidas: ' . implode(', ', $extensiones_permitidas)
+        ];
+    }
+    
+    // Validar tamaño (en bytes)
+    $tamanio_maximo = $tipo === 'foto' ? 5 * 1024 * 1024 : 10 * 1024 * 1024; // 5MB o 10MB
+    if ($archivo['size'] > $tamanio_maximo) {
+        return [
+            'success' => false,
+            'message' => 'El archivo es demasiado grande. Máximo: ' . ($tipo === 'foto' ? '5MB' : '10MB')
+        ];
+    }
+    
+    // Generar nombre único
+    $nombre_guardado = uniqid() . '_' . time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $archivo['name']);
+    $ruta_completa = $directorio_completo . $nombre_guardado;
+    
+    if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+        // Retornar ruta relativa desde la raíz del proyecto
+        $ruta_relativa = 'uploads/' . $directorio_tipo . $nombre_guardado;
+        return [
+            'success' => true,
+            'ruta' => $ruta_relativa,
+            'nombre_guardado' => $nombre_guardado,
+            'nombre_original' => $archivo['name'],
+            'tipo' => $tipo,
+            'extension' => $extension
+        ];
+    }
+    
+    return [
+        'success' => false,
+        'message' => 'Error al mover el archivo subido'
+    ];
+}
+
+/**
+ * Obtiene los datos de un vehículo registrado por su patente
+ * Verifica que el ConductorNombre del vehículo coincida con el conductor logueado
+ */
+function obtenerVehiculoPorPatente($patente, $conductor_nombre = null) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        $patente = mysqli_real_escape_string($conn, $patente);
+        
+        // Buscar en la tabla ingreso_vehiculos (vehículos registrados)
+        $query = "SELECT Placa, TipoVehiculo, Marca, Modelo, Color, Anio, ConductorNombre
+                  FROM ingreso_vehiculos
+                  WHERE Placa = '$patente'
+                  ORDER BY FechaIngreso DESC
+                  LIMIT 1";
+        
+        $result = mysqli_query($conn, $query);
+        
+        if (!$result) {
+            throw new Exception("Error en la consulta: " . mysqli_error($conn));
+        }
+        
+        if (mysqli_num_rows($result) == 0) {
+            mysqli_close($conn);
+            return [
+                'status' => 'error',
+                'message' => 'No se encontró un vehículo registrado con esa patente'
+            ];
+        }
+        
+        $vehiculo = mysqli_fetch_assoc($result);
+        
+        // Si se proporciona el nombre del conductor, verificar que coincida
+        if ($conductor_nombre !== null) {
+            $conductor_nombre_vehiculo = trim($vehiculo['ConductorNombre']);
+            $conductor_nombre_provisto = trim($conductor_nombre);
+            
+            // Comparar nombres (case-insensitive y sin espacios extra)
+            if (strcasecmp($conductor_nombre_vehiculo, $conductor_nombre_provisto) !== 0) {
+                mysqli_close($conn);
+                return [
+                    'status' => 'error',
+                    'message' => 'Esta placa no corresponde a su vehículo'
+                ];
+            }
+        }
+        
+        mysqli_close($conn);
+        
+        // No incluir ConductorNombre en la respuesta (ya está validado)
+        unset($vehiculo['ConductorNombre']);
+        
+        return [
+            'status' => 'success',
+            'data' => $vehiculo
+        ];
+        
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
  * Crea una nueva solicitud de agendamiento por parte del chofer
  */
 function crearSolicitudAgendamiento($datos) {
@@ -36,8 +171,6 @@ function crearSolicitudAgendamiento($datos) {
         $conductor_nombre = mysqli_real_escape_string($conn, $datos['conductor_nombre']);
         $conductor_telefono = !empty($datos['conductor_telefono']) ? mysqli_real_escape_string($conn, $datos['conductor_telefono']) : NULL;
         $proposito = mysqli_real_escape_string($conn, $datos['proposito']);
-        $area = !empty($datos['area']) ? mysqli_real_escape_string($conn, $datos['area']) : NULL;
-        $persona_contacto = !empty($datos['persona_contacto']) ? mysqli_real_escape_string($conn, $datos['persona_contacto']) : NULL;
         $observaciones = !empty($datos['observaciones']) ? mysqli_real_escape_string($conn, $datos['observaciones']) : NULL;
         // Fecha y hora se asignarán cuando el supervisor apruebe, usar valores por defecto
         $fecha_solicitada = !empty($datos['fecha_solicitada']) ? mysqli_real_escape_string($conn, $datos['fecha_solicitada']) : date('Y-m-d');
@@ -52,23 +185,47 @@ function crearSolicitudAgendamiento($datos) {
             throw new Exception("Ya existe una solicitud pendiente para esta placa");
         }
 
-        // Insertar solicitud
-        $query = "INSERT INTO solicitudes_agendamiento (
-            ChoferID, Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
-            ConductorNombre, ConductorTelefono, Proposito, Area, PersonaContacto,
-            Observaciones, FechaSolicitada, HoraSolicitada, Estado
-        ) VALUES (
-            $chofer_id, '$placa', '$tipo_vehiculo', '$marca', '$modelo',
+        // Procesar fotos si existen
+        $fotos_json = NULL;
+        if (!empty($datos['fotos']) && is_array($datos['fotos'])) {
+            $fotos_array = [];
+            foreach ($datos['fotos'] as $foto) {
+                if (is_array($foto) && isset($foto['ruta'])) {
+                    $fotos_array[] = $foto;
+                }
+            }
+            if (!empty($fotos_array)) {
+                $fotos_json = json_encode($fotos_array);
+            }
+        }
+
+        // Verificar si la columna Fotos existe en la tabla
+        $columna_fotos_existe = false;
+        $checkColumna = "SHOW COLUMNS FROM solicitudes_agendamiento LIKE 'Fotos'";
+        $resultColumna = mysqli_query($conn, $checkColumna);
+        if ($resultColumna && mysqli_num_rows($resultColumna) > 0) {
+            $columna_fotos_existe = true;
+        }
+        
+        // Insertar solicitud (sin PersonaContacto, Area y ConductorTelefono ya que se eliminaron)
+        $campos = "ChoferID, Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
+            ConductorNombre, Proposito,
+            Observaciones, FechaSolicitada, HoraSolicitada, Estado";
+        $valores = "$chofer_id, '$placa', '$tipo_vehiculo', '$marca', '$modelo',
             " . ($color ? "'$color'" : "NULL") . ",
             " . ($anio ? $anio : "NULL") . ",
             '$conductor_nombre',
-            " . ($conductor_telefono ? "'$conductor_telefono'" : "NULL") . ",
             '$proposito',
-            " . ($area ? "'$area'" : "NULL") . ",
-            " . ($persona_contacto ? "'$persona_contacto'" : "NULL") . ",
-            " . ($observaciones ? "'$observaciones'" : "NULL") . ",
-            '$fecha_solicitada', '$hora_solicitada', 'Pendiente'
-        )";
+            " . ($observaciones ? "'" . mysqli_real_escape_string($conn, $observaciones) . "'" : "NULL") . ",
+            '$fecha_solicitada', '$hora_solicitada', 'Pendiente'";
+        
+        // Agregar Fotos si existen y la columna existe
+        if ($fotos_json && $columna_fotos_existe) {
+            $campos .= ", Fotos";
+            $valores .= ", '" . mysqli_real_escape_string($conn, $fotos_json) . "'";
+        }
+        
+        $query = "INSERT INTO solicitudes_agendamiento ($campos) VALUES ($valores)";
 
         if (!mysqli_query($conn, $query)) {
             throw new Exception("Error al crear solicitud: " . mysqli_error($conn));
@@ -189,11 +346,18 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 sup.NombreUsuario as SupervisorNombre,
                 a.Fecha as FechaAgenda,
                 a.HoraInicio as HoraInicioAgenda,
-                a.HoraFin as HoraFinAgenda
+                a.HoraFin as HoraFinAgenda,
+                v.ID as VehiculoID,
+                asig.ID as AsignacionID,
+                asig.Estado as EstadoAsignacion,
+                mech.NombreUsuario as MecanicoNombre
             FROM solicitudes_agendamiento s
             LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
             LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
             LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
+            LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci AND v.Estado IN ('Ingresado', 'Asignado')
+            LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+            LEFT JOIN usuarios mech ON asig.MecanicoID = mech.UsuarioID
             $whereClause
             ORDER BY s.FechaCreacion DESC";
 
@@ -245,6 +409,7 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
 
 /**
  * Obtiene las horas disponibles en la agenda para una fecha específica
+ * Solo retorna horas en el rango laboral de 9:00 a 18:00 (6pm)
  */
 function obtenerHorasDisponibles($fecha) {
     // Crear conexión directamente sin usar die()
@@ -265,11 +430,14 @@ function obtenerHorasDisponibles($fecha) {
 
     $fecha = mysqli_real_escape_string($conn, $fecha);
 
-    // Obtener todas las horas disponibles para la fecha
+    // Obtener todas las horas disponibles para la fecha en el rango laboral (9:00 a 18:00)
     $query = "SELECT 
                 ID, HoraInicio, HoraFin, Disponible, Observaciones
             FROM agenda_taller
-            WHERE Fecha = '$fecha' AND Disponible = 1
+            WHERE Fecha = '$fecha' 
+            AND Disponible = 1
+            AND HoraInicio >= '09:00:00'
+            AND HoraFin <= '18:00:00'
             ORDER BY HoraInicio";
 
     $result = mysqli_query($conn, $query);
@@ -404,9 +572,33 @@ function aprobarSolicitudAgendamiento($solicitud_id, $supervisor_id, $agenda_id 
                 $vehiculo_id = $vehiculo['ID'];
                 
                 // Crear asignación al mecánico
-                require_once __DIR__ . '/../consulta/functions/f_consulta.php';
-                $observaciones = "Asignación automática desde solicitud de agendamiento #$solicitud_id";
-                asignarMecanico($vehiculo_id, $mecanico_id, $observaciones);
+                // Intentar diferentes rutas para encontrar f_consulta.php
+                $rutas_posibles = [
+                    __DIR__ . '/../../consulta/functions/f_consulta.php',
+                    __DIR__ . '/../consulta/functions/f_consulta.php'
+                ];
+                
+                $f_consulta_cargado = false;
+                foreach ($rutas_posibles as $ruta) {
+                    if (file_exists($ruta)) {
+                        require_once $ruta;
+                        $f_consulta_cargado = true;
+                        break;
+                    }
+                }
+                
+                if ($f_consulta_cargado && function_exists('asignarMecanico')) {
+                    $observaciones = "Asignación automática desde solicitud de agendamiento #$solicitud_id";
+                    $resultado_asignacion = asignarMecanico($vehiculo_id, $mecanico_id, $observaciones);
+                    
+                    if (isset($resultado_asignacion['status']) && $resultado_asignacion['status'] === 'error') {
+                        error_log("Error al asignar mecánico: " . $resultado_asignacion['message']);
+                        // No lanzar excepción, solo registrar el error
+                    }
+                } else {
+                    error_log("No se pudo cargar f_consulta.php o la función asignarMecanico no existe");
+                    // No lanzar excepción, solo registrar el error
+                }
             }
         }
 
@@ -598,9 +790,9 @@ function notificarNuevaSolicitud($solicitud_id) {
 
     // Crear mensaje de notificación
     $titulo = "Nueva Solicitud de Agendamiento";
-    $mensaje = "Solicitud #{$solicitud_id}: Vehículo {$solicitud['Placa']} - {$solicitud['Marca']} {$solicitud['Modelo']} solicitado por {$solicitud['ChoferNombre']} para el {$solicitud['FechaSolicitada']} a las {$solicitud['HoraSolicitada']}";
+    $mensaje = "Solicitud #{$solicitud_id}: Vehículo {$solicitud['Placa']} - {$solicitud['Marca']} {$solicitud['Modelo']} solicitado por {$solicitud['ChoferNombre']}. Propósito: {$solicitud['Proposito']}";
     $modulo = "agendamiento";
-    $enlace = "consulta.php";
+    $enlace = "gestion_solicitudes.php";
 
     // Crear notificación
     $resultado = crearNotificacion($usuarios_destino, $titulo, $mensaje, $modulo, $enlace);

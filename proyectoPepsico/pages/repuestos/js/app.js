@@ -1,265 +1,311 @@
-class TareasMecanico {
+class InventarioRepuestos {
     constructor() {
         this.dataTable = null;
-        this.isLoading = false;
-        this.init();
+        this.baseUrl = this.getBaseUrl();
+        this.inicializar();
     }
 
-    init() {
-        if (!$('#tareas-table').length) {
-            console.error('No se encontró la tabla tareas-table');
-            return;
+    /**
+     * Formatea un número al formato chileno (punto para miles, sin decimales)
+     */
+    formatearPrecioChileno(valor) {
+        const numero = parseFloat(valor) || 0;
+        return Math.round(numero).toLocaleString('es-CL', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
+
+    getBaseUrl() {
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/pages/')) {
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/'));
+            return basePath + '/app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php';
         }
-        
-        this.bindEvents();
-        this.inicializarDataTable();
-        this.cargarTareas();
+        return '../../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php';
     }
 
-    bindEvents() {
+    inicializar() {
+        this.inicializarEventos();
+        this.inicializarDataTable();
+        this.cargarRepuestos();
+        this.cargarStockBajo();
+    }
+
+    inicializarEventos() {
         $('#btn-refresh').on('click', () => {
-            this.cargarTareas();
+            this.cargarRepuestos();
+            this.cargarStockBajo();
         });
 
-        $(document).on('click', '.btn-registrar-avance', (e) => {
-            const asignacionId = $(e.currentTarget).data('id');
-            this.mostrarModalAvance(asignacionId);
-        });
-
-        $('#guardar-avance').on('click', () => {
-            this.guardarAvance();
+        $('#btn-alertar-stock').on('click', () => {
+            this.enviarAlertaStockBajo();
         });
     }
 
     inicializarDataTable() {
-        try {
-            if (typeof $.fn.DataTable === 'undefined') {
-                console.error('DataTables no está cargado');
-                return;
-            }
-
-            this.dataTable = $('#tareas-table').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-                },
-                pageLength: 10,
-                lengthMenu: [10, 25, 50],
-                dom: '<"table-header"lf>rt<"table-footer"ip>',
-                columns: [
-                    { 
-                        data: null,
-                        render: (data) => {
-                            return `
-                                <div class="vehicle-info">
-                                    <strong>${data.Marca} ${data.Modelo}</strong>
-                                    <div class="vehicle-details">
-                                        <small class="text-muted">${data.TipoVehiculo} • ${data.Color}</small>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    },
-                    { 
-                        data: 'Placa',
-                        render: (data) => {
-                            return `<span class="placa-badge">${data}</span>`;
-                        }
-                    },
-                    { 
-                        data: 'FechaAsignacion',
-                        className: 'fecha-column'
-                    },
-                    { 
-                        data: 'Estado',
-                        render: (data) => {
-                            const estadoClass = 'status-' + data.replace(' ', '');
-                            return `<span class="${estadoClass}">${data}</span>`;
-                        }
-                    },
-                    { 
-                        data: 'Observaciones',
-                        render: (data) => {
-                            return data || '<span class="text-muted">Sin observaciones</span>';
-                        }
-                    },
-                    { 
-                        data: null,
-                        orderable: false,
-                        render: (data) => {
-                            let botones = '';
-                            
-                            if (data.Estado !== 'Completado') {
-                                botones = `
-                                    <button class="btn btn-primary btn-sm btn-registrar-avance" 
-                                            data-id="${data.AsignacionID}" 
-                                            title="Registrar Avance">
-                                        <i class="fas fa-clipboard-check me-1"></i>Avance
-                                    </button>
-                                `;
-                            } else {
-                                botones = `
-                                    <span class="badge bg-success">Completado</span>
-                                `;
-                            }
-                            
-                            return `<div class="btn-group">${botones}</div>`;
-                        }
-                    }
-                ],
-                order: [[2, 'desc']],
-                responsive: true,
-                initComplete: () => {
-                    $('.dataTables_length select').addClass('form-select form-select-sm');
-                    $('.dataTables_filter input').addClass('form-control form-control-sm');
-                }
-            });
-        } catch (error) {
-            console.error('Error al inicializar DataTables:', error);
-        }
-    }
-
-    cargarTareas() {
-        if (this.isLoading) return;
-        
-        this.mostrarLoading();
-
-        $.ajax({
-            url: '../app/model/tareas/scripts/s_tareas.php',
-            type: 'GET',
-            dataType: 'json',
-            success: (response) => {
-                if (response.status === 'success') {
-                    this.cargarDataEnTabla(response.data);
-                } else {
-                    this.mostrarError(response.message);
-                }
-            },
-            error: (xhr, status, error) => {
-                this.mostrarError('Error de conexión: ' + error);
-            },
-            complete: () => {
-                this.ocultarLoading();
-            }
-        });
-    }
-
-    cargarDataEnTabla(data) {
-        if (this.dataTable) {
-            this.dataTable.clear();
-            this.dataTable.rows.add(data).draw();
-        }
-    }
-
-    mostrarModalAvance(asignacionId) {
-        // Cargar datos de la asignación
-        $.ajax({
-            url: '../app/model/tareas/scripts/s_detalles_asignacion.php',
-            type: 'POST',
-            data: { asignacion_id: asignacionId },
-            dataType: 'json',
-            success: (response) => {
-                if (response.status === 'success') {
-                    $('#avance-asignacion-id').val(asignacionId);
-                    $('#modal-placa-avance').text(response.data.Placa);
-                    $('#avance-descripcion').val('');
-                    $('#avance-estado').val('En progreso');
-                    
-                    const avanceModal = new bootstrap.Modal(document.getElementById('avanceModal'));
-                    avanceModal.show();
-                } else {
-                    this.mostrarError('Error al cargar datos: ' + response.message);
-                }
-            },
-            error: (xhr, status, error) => {
-                this.mostrarError('Error de conexión: ' + error);
-            }
-        });
-    }
-
-    guardarAvance() {
-        const asignacionId = $('#avance-asignacion-id').val();
-        const descripcion = $('#avance-descripcion').val().trim();
-        const estado = $('#avance-estado').val();
-
-        if (!descripcion) {
-            this.mostrarError('La descripción del avance es requerida');
+        if (typeof $.fn.DataTable === 'undefined') {
+            console.error('DataTables no está cargado');
             return;
         }
 
-        $('#guardar-avance').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
-
-        $.ajax({
-            url: '../app/model/tareas/scripts/s_guardar_avance.php',
-            type: 'POST',
-            data: {
-                asignacion_id: asignacionId,
-                descripcion: descripcion,
-                estado: estado
+        this.dataTable = $('#repuestos-table').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
             },
-            dataType: 'json',
-            success: (response) => {
-                if (response.status === 'success') {
-                    this.mostrarToast('Éxito', 'Avance registrado correctamente', 'success');
-                    this.cerrarModalAvance();
-                    this.cargarTareas(); // Recargar la tabla
-                } else {
-                    this.mostrarError('Error al guardar: ' + response.message);
-                    $('#guardar-avance').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Avance');
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            columns: [
+                { data: 'Codigo' },
+                { data: 'Nombre' },
+                { data: 'Categoria' },
+                { 
+                    data: 'Stock',
+                    render: (data, type, row) => {
+                        const stock = parseInt(data);
+                        const minimo = parseInt(row.StockMinimo);
+                        let badgeClass = 'success';
+                        let icon = 'check-circle';
+                        
+                        if (stock === 0) {
+                            badgeClass = 'danger';
+                            icon = 'times-circle';
+                        } else if (stock <= minimo) {
+                            badgeClass = 'warning';
+                            icon = 'exclamation-triangle';
+                        }
+                        
+                        return `<span class="badge bg-${badgeClass}">
+                                    <i class="fas fa-${icon} me-1"></i>${stock}
+                                </span>`;
+                    }
+                },
+                { 
+                    data: 'Precio',
+                    render: (data) => {
+                        return `$${this.formatearPrecioChileno(data)}`;
+                    }
+                },
+                { 
+                    data: 'Estado',
+                    render: (data) => {
+                        const estadoClass = data === 'Activo' ? 'success' : 'secondary';
+                        return `<span class="badge bg-${estadoClass}">${data}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: (data) => {
+                        return `
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-primary btn-editar" data-id="${data.ID}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-eliminar" data-id="${data.ID}" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
-            },
-            error: (xhr, status, error) => {
-                this.mostrarError('Error de conexión: ' + error);
-                $('#guardar-avance').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Avance');
-            }
+            ],
+            order: [[1, 'asc']],
+            responsive: true
         });
     }
 
-    cerrarModalAvance() {
-        const avanceModal = bootstrap.Modal.getInstance(document.getElementById('avanceModal'));
-        avanceModal.hide();
+    cargarRepuestos() {
+        fetch(this.baseUrl + '?action=obtenerTodosRepuestos', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                if (this.dataTable) {
+                    this.dataTable.clear();
+                    this.dataTable.rows.add(data.data);
+                    this.dataTable.draw();
+                }
+                this.actualizarResumen(data.data);
+            } else {
+                this.mostrarError('Error al cargar repuestos: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar repuestos:', error);
+            this.mostrarError('Error de conexión al cargar repuestos');
+        });
+    }
+
+    cargarStockBajo() {
+        fetch(this.baseUrl + '?action=obtenerRepuestosStockBajo', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                this.mostrarStockBajo(data.data);
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar stock bajo:', error);
+        });
+    }
+
+    mostrarStockBajo(repuestos) {
+        const container = $('#alertas-stock');
         
-        // Limpiar formulario
-        $('#avance-form')[0].reset();
-        $('#guardar-avance').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar Avance');
-    }
+        if (repuestos.length === 0) {
+            container.html(`
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    No hay repuestos con stock bajo
+                </div>
+            `);
+            return;
+        }
 
-    mostrarLoading() {
-        this.isLoading = true;
-        $('#btn-refresh').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Actualizando...');
-    }
-
-    ocultarLoading() {
-        this.isLoading = false;
-        $('#btn-refresh').prop('disabled', false).html('<i class="fas fa-sync-alt me-1"></i>Actualizar');
-    }
-
-    mostrarError(mensaje) {
-        this.mostrarToast('Error', mensaje, 'danger');
-    }
-
-    mostrarToast(titulo, mensaje, tipo = 'info') {
-        const toastHtml = `
-            <div class="toast align-items-center text-bg-${tipo} border-0" role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>${titulo}:</strong> ${mensaje}
+        let html = '<ul class="list-unstyled mb-0">';
+        repuestos.forEach(repuesto => {
+            const stock = parseInt(repuesto.Stock);
+            const minimo = parseInt(repuesto.StockMinimo);
+            const porcentaje = minimo > 0 ? (stock / minimo) * 100 : 0;
+            
+            html += `
+                <li class="mb-2 p-2 border rounded">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${repuesto.Nombre}</strong>
+                            <small class="text-muted d-block">${repuesto.Codigo}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-${stock === 0 ? 'danger' : 'warning'}">
+                                Stock: ${stock} / ${minimo}
+                            </span>
+                        </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        
+        container.html(html);
+    }
+
+    actualizarResumen(repuestos) {
+        const total = repuestos.length;
+        const activos = repuestos.filter(r => r.Estado === 'Activo').length;
+        const stockBajo = repuestos.filter(r => r.Estado === 'Activo' && parseInt(r.Stock) <= parseInt(r.StockMinimo)).length;
+        const sinStock = repuestos.filter(r => r.Estado === 'Activo' && parseInt(r.Stock) === 0).length;
+        
+        const html = `
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Total Repuestos:</span>
+                    <strong>${total}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Activos:</span>
+                    <strong class="text-success">${activos}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Stock Bajo:</span>
+                    <strong class="text-warning">${stockBajo}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Sin Stock:</span>
+                    <strong class="text-danger">${sinStock}</strong>
                 </div>
             </div>
         `;
+        
+        $('#resumen-inventario').html(html);
+    }
 
-        const $container = $('#toast-container');
-        if (!$container.length) {
-            $('body').append('<div id="toast-container"></div>');
+    enviarAlertaStockBajo() {
+        if (typeof Swal === 'undefined') {
+            if (!confirm('¿Desea enviar una alerta de stock bajo al jefe de taller?')) {
+                return;
+            }
+        } else {
+            Swal.fire({
+                title: '¿Enviar Alerta?',
+                text: 'Se enviará una notificación al jefe de taller sobre los repuestos con stock bajo',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, enviar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.procesarAlerta();
+                }
+            });
+            return;
         }
         
-        $('#toast-container').html(toastHtml);
-        $('.toast').toast('show');
+        this.procesarAlerta();
+    }
+
+    procesarAlerta() {
+        $('#btn-alertar-stock').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Enviando...');
+
+        fetch(this.baseUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=enviarAlertaStockBajo',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                this.mostrarExito(data.message);
+            } else {
+                this.mostrarError(data.message || 'Error al enviar alerta');
+            }
+        })
+        .catch(error => {
+            console.error('Error al enviar alerta:', error);
+            this.mostrarError('Error de conexión al enviar alerta');
+        })
+        .finally(() => {
+            $('#btn-alertar-stock').prop('disabled', false).html('<i class="fas fa-bell me-1"></i>Alertar Jefe');
+        });
+    }
+
+    mostrarExito(mensaje) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: mensaje,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } else {
+            alert(mensaje);
+        }
+    }
+
+    mostrarError(mensaje) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: mensaje
+            });
+        } else {
+            alert(mensaje);
+        }
     }
 }
 
-// Inicializar cuando el documento esté listo
-$(document).ready(function() {
-    window.tareas = new TareasMecanico();
+// Inicializar cuando el DOM esté listo
+let inventarioRepuestos;
+document.addEventListener('DOMContentLoaded', () => {
+    inventarioRepuestos = new InventarioRepuestos();
 });

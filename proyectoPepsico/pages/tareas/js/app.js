@@ -42,8 +42,18 @@ class TareasMecanico {
             this.mostrarFotosVehiculo(vehiculoId);
         });
 
+        $(document).on('click', '.btn-pausar-tarea', (e) => {
+            const asignacionId = $(e.currentTarget).data('id');
+            const placa = $(e.currentTarget).data('placa');
+            this.mostrarModalPausar(asignacionId, placa);
+        });
+
         $('#guardar-avance').on('click', () => {
             this.guardarAvance();
+        });
+
+        $('#confirmar-pausa').on('click', () => {
+            this.confirmarPausa();
         });
 
         // Manejar selección de fotos
@@ -66,6 +76,17 @@ class TareasMecanico {
                 pageLength: 10,
                 lengthMenu: [10, 25, 50],
                 dom: '<"table-header"lf>rt<"table-footer"ip>',
+                scrollX: true,
+                autoWidth: false,
+                columnDefs: [
+                    { width: "200px", targets: 0 }, // Vehículo
+                    { width: "100px", targets: 1 }, // Placa
+                    { width: "150px", targets: 2 }, // Fecha
+                    { width: "120px", targets: 3 }, // Estado
+                    { width: "300px", targets: 4 }, // Observaciones
+                    { width: "250px", targets: 5 }, // Último Avance
+                    { width: "280px", targets: 6 }  // Acciones
+                ],
                 columns: [
                     { 
                         data: null,
@@ -93,7 +114,7 @@ class TareasMecanico {
                     { 
                         data: 'Estado',
                         render: (data) => {
-                            const estadoClass = 'status-' + data.replace(' ', '');
+                            const estadoClass = 'status-' + data.replace(/\s+/g, '');
                             return `<span class="${estadoClass}">${data}</span>`;
                         }
                     },
@@ -137,13 +158,29 @@ class TareasMecanico {
                                 </button>
                             `;
                             
-                            if (data.Estado !== 'Completado') {
+                            if (data.Estado !== 'Completado' && data.Estado !== 'En Pausa') {
                                 botones += `
                                     <button class="btn btn-primary btn-sm btn-registrar-avance" 
                                             data-id="${data.AsignacionID}" 
                                             title="Registrar Avance">
                                         <i class="fas fa-clipboard-check me-1"></i>Avance
                                     </button>
+                                    <button class="btn btn-warning btn-sm btn-pausar-tarea" 
+                                            data-id="${data.AsignacionID}" 
+                                            data-placa="${data.Placa}"
+                                            title="Pausar Tarea">
+                                        <i class="fas fa-pause me-1"></i>Pausar
+                                    </button>
+                                `;
+                            } else if (data.Estado === 'En Pausa') {
+                                // Cuando está en pausa, solo mostrar el badge, sin botones de acción
+                                botones += `
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-pause-circle me-1"></i>En Pausa
+                                    </span>
+                                    <a href="gestion_pausas_repuestos.php" class="btn btn-sm btn-info ms-2" title="Ver en Gestión de Pausas">
+                                        <i class="fas fa-external-link-alt me-1"></i>Gestionar
+                                    </a>
                                 `;
                             } else {
                                 botones += `
@@ -210,14 +247,20 @@ class TareasMecanico {
 
     actualizarResumen(data) {
         const total = data.length;
-        const enProgreso = data.filter(item => item.Estado === 'En progreso').length;
+        const enProgreso = data.filter(item => item.Estado === 'En progreso' || item.Estado === 'En Proceso').length;
         const pendientes = data.filter(item => item.Estado === 'Asignado').length;
         const completados = data.filter(item => item.Estado === 'Completado').length;
+        const enPausa = data.filter(item => item.Estado === 'En Pausa').length;
 
         $('#total-asignados').text(total);
         $('#en-progreso').text(enProgreso);
         $('#pendientes').text(pendientes);
         $('#completados').text(completados);
+        
+        // Actualizar contador de pausas si existe
+        if ($('#en-pausa').length) {
+            $('#en-pausa').text(enPausa);
+        }
     }
 
     mostrarModalAvance(asignacionId) {
@@ -460,10 +503,6 @@ class TareasMecanico {
                                     <td><strong>Nombre:</strong></td>
                                     <td>${data.ConductorNombre}</td>
                                 </tr>
-                                <tr>
-                                    <td><strong>Teléfono:</strong></td>
-                                    <td>${data.ConductorTelefono || 'No registrado'}</td>
-                                </tr>
                             </table>
                         </div>
                     </div>
@@ -479,15 +518,7 @@ class TareasMecanico {
                             <table class="table table-sm table-borderless">
                                 <tr>
                                     <td><strong>Propósito:</strong></td>
-                                    <td>${data.Proposito}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Área:</strong></td>
-                                    <td>${data.Area}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Estado:</strong></td>
-                                    <td><span class="badge bg-${data.EstadoIngreso === 'Bueno' ? 'success' : data.EstadoIngreso === 'Regular' ? 'warning' : 'danger'}">${data.EstadoIngreso}</span></td>
+                                    <td>${data.Proposito || 'No especificado'}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Kilometraje:</strong></td>
@@ -665,6 +696,84 @@ class TareasMecanico {
         this.mostrarToast('Error', mensaje, 'danger');
     }
 
+    mostrarModalPausar(asignacionId, placa) {
+        $('#pausa-asignacion-id').val(asignacionId);
+        $('#modal-placa-pausa').text(placa);
+        $('#pausa-motivo').val('');
+        $('#pausa-motivo-custom').val('');
+        $('#pausa-motivo-custom-group').hide();
+        
+        const pausaModal = new bootstrap.Modal(document.getElementById('pausaModal'));
+        pausaModal.show();
+    }
+
+    confirmarPausa() {
+        const asignacionId = $('#pausa-asignacion-id').val();
+        const motivoSeleccionado = $('#pausa-motivo').val();
+        const motivoCustom = $('#pausa-motivo-custom').val().trim();
+        
+        let motivoPausa = motivoSeleccionado;
+        
+        if (motivoSeleccionado === 'Otro') {
+            if (!motivoCustom) {
+                this.mostrarError('Por favor, especifica el motivo de la pausa');
+                return;
+            }
+            motivoPausa = motivoCustom;
+        } else if (!motivoSeleccionado) {
+            this.mostrarError('Por favor, selecciona un motivo para pausar la tarea');
+            return;
+        }
+
+        $('#confirmar-pausa').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Pausando...');
+
+        $.ajax({
+            url: '../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php',
+            type: 'POST',
+            data: {
+                action: 'pausarTarea',
+                asignacion_id: asignacionId,
+                motivo_pausa: motivoPausa
+            },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarToast('Éxito', 'Tarea pausada correctamente', 'success');
+                    this.cerrarModalPausa();
+                    this.cargarTareas(); // Recargar la tabla
+                    
+                    // Notificar a otras pestañas/páginas que hay un cambio
+                    if (typeof Storage !== 'undefined') {
+                        localStorage.setItem('tareaPausada', Date.now().toString());
+                        localStorage.removeItem('tareaPausada'); // Limpiar inmediatamente
+                    }
+                    
+                    // Disparar evento personalizado
+                    window.dispatchEvent(new CustomEvent('tareaPausada', { 
+                        detail: { asignacionId: asignacionId } 
+                    }));
+                } else {
+                    this.mostrarError('Error al pausar: ' + response.message);
+                    $('#confirmar-pausa').prop('disabled', false).html('<i class="fas fa-pause me-2"></i>Confirmar Pausa');
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarError('Error de conexión: ' + error);
+                $('#confirmar-pausa').prop('disabled', false).html('<i class="fas fa-pause me-2"></i>Confirmar Pausa');
+            }
+        });
+    }
+
+    cerrarModalPausa() {
+        const pausaModal = bootstrap.Modal.getInstance(document.getElementById('pausaModal'));
+        pausaModal.hide();
+        
+        // Limpiar formulario
+        $('#pausa-form')[0].reset();
+        $('#pausa-motivo-custom-group').hide();
+        $('#confirmar-pausa').prop('disabled', false).html('<i class="fas fa-pause me-2"></i>Confirmar Pausa');
+    }
+
     mostrarToast(titulo, mensaje, tipo = 'info') {
         const toastHtml = `
             <div class="toast align-items-center text-bg-${tipo} border-0" role="alert">
@@ -691,6 +800,17 @@ class TareasMecanico {
 // Inicializar cuando el documento esté listo
 $(document).ready(function() {
     window.tareas = new TareasMecanico();
+    
+    // Manejar cambio en el select de motivo de pausa
+    $('#pausa-motivo').on('change', function() {
+        if ($(this).val() === 'Otro') {
+            $('#pausa-motivo-custom-group').show();
+            $('#pausa-motivo-custom').prop('required', true);
+        } else {
+            $('#pausa-motivo-custom-group').hide();
+            $('#pausa-motivo-custom').prop('required', false).val('');
+        }
+    });
     
     // Reinicializar dropdowns de Bootstrap después de cargar DataTables
     setTimeout(() => {

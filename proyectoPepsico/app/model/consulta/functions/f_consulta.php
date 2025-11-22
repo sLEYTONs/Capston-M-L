@@ -9,26 +9,32 @@ function buscarVehiculos($filtros) {
         return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
     }
 
-    // Construir la consulta base
+    // Construir la consulta base con LEFT JOIN para obtener el mecánico asignado
     $query = "SELECT 
-                ID,
-                Placa,
-                TipoVehiculo,
-                Marca,
-                Modelo,
-                Color,
-                Anio,
-                ConductorNombre,
-                DATE_FORMAT(FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
-                Proposito,
-                Area,
-                PersonaContacto,
-                Observaciones,
-                Estado,
-                EstadoIngreso,
-                Kilometraje,
-                DATE_FORMAT(FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada
-            FROM ingreso_vehiculos 
+                iv.ID,
+                iv.Placa,
+                iv.TipoVehiculo,
+                iv.Marca,
+                iv.Modelo,
+                iv.Color,
+                iv.Anio,
+                iv.ConductorNombre,
+                DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
+                iv.Estado,
+                iv.Kilometraje,
+                DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
+                COALESCE(u.NombreUsuario, '') as MecanicoNombre
+            FROM ingreso_vehiculos iv
+            LEFT JOIN (
+                SELECT a1.VehiculoID, a1.MecanicoID
+                FROM asignaciones_mecanico a1
+                INNER JOIN (
+                    SELECT VehiculoID, MAX(FechaAsignacion) as MaxFecha
+                    FROM asignaciones_mecanico
+                    GROUP BY VehiculoID
+                ) a2 ON a1.VehiculoID = a2.VehiculoID AND a1.FechaAsignacion = a2.MaxFecha
+            ) ultima_asignacion ON iv.ID = ultima_asignacion.VehiculoID
+            LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
             WHERE 1=1";
 
     $params = [];
@@ -91,17 +97,11 @@ function obtenerVehiculoPorID($id) {
                 TipoVehiculo,
                 Marca,
                 Modelo,
-                Fotos,
                 Color,
                 Anio,
                 ConductorNombre,
                 DATE_FORMAT(FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
-                Proposito,
-                Area,
-                PersonaContacto,
-                Observaciones,
                 Estado,
-                EstadoIngreso,
                 Kilometraje,
                 DATE_FORMAT(FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada
             FROM ingreso_vehiculos 
@@ -114,12 +114,7 @@ function obtenerVehiculoPorID($id) {
 
     $vehiculo = null;
     if ($row = mysqli_fetch_assoc($result)) {
-        // Decodificar JSON de fotos si existe
-        if (!empty($row['Fotos'])) {
-            $row['Fotos'] = json_decode($row['Fotos'], true);
-        } else {
-            $row['Fotos'] = [];
-        }
+        // Las fotos ya no están en ingreso_vehiculos, se obtienen de solicitudes_agendamiento
         $vehiculo = $row;
     }
 
@@ -164,10 +159,6 @@ function actualizarVehiculo($datos) {
                 Color = ?,
                 Anio = ?,
                 ConductorNombre = ?,
-                Proposito = ?,
-                Area = ?,
-                PersonaContacto = ?,
-                Observaciones = ?,
                 Estado = ?
             WHERE ID = ?";
 
@@ -178,9 +169,10 @@ function actualizarVehiculo($datos) {
     }
 
     // Bind parameters - USANDO LOS NOMBRES CORRECTOS
+    // Parámetros: Placa(s), TipoVehiculo(s), Marca(s), Modelo(s), Color(s), Anio(s), ConductorNombre(s), Estado(s), id(i)
     mysqli_stmt_bind_param(
         $stmt,
-        'sssssississssi',
+        'ssssssssi',
         $datos['Placa'],
         $datos['TipoVehiculo'],
         $datos['Marca'],
@@ -188,10 +180,6 @@ function actualizarVehiculo($datos) {
         $datos['Color'],
         $datos['Anio'],
         $datos['ConductorNombre'],
-        $datos['Proposito'],
-        $datos['Area'],
-        $datos['PersonaContacto'],
-        $datos['Observaciones'],
         $datos['Estado'],
         $datos['id']
     );
@@ -214,15 +202,18 @@ function obtenerMecanicosDisponibles() {
         return [];
     }
 
+    // Buscar mecánicos con ambos formatos posibles (con y sin tilde)
     $query = "SELECT UsuarioID, NombreUsuario, Correo 
               FROM usuarios 
-              WHERE Rol = 'Mecanico' AND Estado = 1 
+              WHERE (Rol = 'Mecánico' OR Rol = 'Mecanico') AND Estado = 1 
               ORDER BY NombreUsuario";
     $result = mysqli_query($conn, $query);
     $mecanicos = [];
 
-    while ($row = mysqli_fetch_assoc($result)) {
-        $mecanicos[] = $row;
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $mecanicos[] = $row;
+        }
     }
 
     mysqli_close($conn);
@@ -284,13 +275,53 @@ function obtenerAsignacionActiva($vehiculo_id) {
         return null;
     }
 
+    // Verificar si la columna MotivoPausa existe
+    $checkColumn = "SELECT COUNT(*) as existe 
+                   FROM information_schema.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'asignaciones_mecanico' 
+                   AND COLUMN_NAME = 'MotivoPausa'";
+    $resultCheck = mysqli_query($conn, $checkColumn);
+    $columnExists = false;
+    if ($resultCheck) {
+        $row = mysqli_fetch_assoc($resultCheck);
+        $columnExists = ($row['existe'] > 0);
+    }
+
+    // Verificar si la tabla solicitudes_repuestos existe
+    $checkTable = "SELECT COUNT(*) as existe 
+                  FROM information_schema.TABLES 
+                  WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'solicitudes_repuestos'";
+    $resultTable = mysqli_query($conn, $checkTable);
+    $tableExists = false;
+    if ($resultTable) {
+        $row = mysqli_fetch_assoc($resultTable);
+        $tableExists = ($row['existe'] > 0);
+    }
+
+    $motivoPausaField = $columnExists ? "a.MotivoPausa," : "NULL as MotivoPausa,";
+    $solicitudesSubquery = $tableExists 
+        ? "(SELECT COUNT(*) 
+            FROM solicitudes_repuestos sr 
+            WHERE sr.AsignacionID = a.ID 
+            AND sr.Estado IN ('Pendiente', 'Aprobada'))"
+        : "0";
+
+    // Construir la lógica del Estado según si existe la columna MotivoPausa
+    $estadoLogic = $columnExists 
+        ? "COALESCE(NULLIF(a.Estado, ''), CASE WHEN a.MotivoPausa IS NOT NULL AND a.MotivoPausa != '' THEN 'En Pausa' ELSE 'Asignado' END)"
+        : "COALESCE(NULLIF(a.Estado, ''), 'Asignado')";
+
     $query = "SELECT 
                 a.ID,
                 a.VehiculoID,
                 a.MecanicoID,
                 u.NombreUsuario as MecanicoNombre,
                 a.Observaciones,
-                a.Estado,
+                $estadoLogic AS Estado,
+                $motivoPausaField
+                $solicitudesSubquery as SolicitudesPendientes,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
             FROM asignaciones_mecanico a
             INNER JOIN usuarios u ON a.MecanicoID = u.UsuarioID
@@ -302,6 +333,57 @@ function obtenerAsignacionActiva($vehiculo_id) {
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     $asignacion = mysqli_fetch_assoc($result);
+
+    // Si hay asignación y la tabla de solicitudes existe, obtener detalles de repuestos solicitados
+    if ($asignacion && $tableExists && isset($asignacion['ID'])) {
+        $asignacion_id = $asignacion['ID'];
+        
+        // Verificar si la tabla repuestos existe
+        $checkRepuestos = "SELECT COUNT(*) as existe 
+                          FROM information_schema.TABLES 
+                          WHERE TABLE_SCHEMA = DATABASE() 
+                          AND TABLE_NAME = 'repuestos'";
+        $resultRepuestos = mysqli_query($conn, $checkRepuestos);
+        $repuestosTableExists = false;
+        if ($resultRepuestos) {
+            $row = mysqli_fetch_assoc($resultRepuestos);
+            $repuestosTableExists = ($row['existe'] > 0);
+        }
+        
+        if ($repuestosTableExists) {
+            $queryRepuestos = "SELECT 
+                                sr.Cantidad,
+                                r.Nombre as RepuestoNombre,
+                                sr.Urgencia,
+                                sr.Estado as EstadoSolicitud
+                              FROM solicitudes_repuestos sr
+                              INNER JOIN repuestos r ON sr.RepuestoID = r.ID
+                              WHERE sr.AsignacionID = ? 
+                              AND sr.Estado IN ('Pendiente', 'Aprobada')
+                              ORDER BY sr.Urgencia DESC, sr.FechaSolicitud DESC";
+            
+            $stmtRepuestos = mysqli_prepare($conn, $queryRepuestos);
+            if ($stmtRepuestos) {
+                mysqli_stmt_bind_param($stmtRepuestos, 'i', $asignacion_id);
+                mysqli_stmt_execute($stmtRepuestos);
+                $resultRepuestos = mysqli_stmt_get_result($stmtRepuestos);
+                
+                $repuestosSolicitados = [];
+                while ($row = mysqli_fetch_assoc($resultRepuestos)) {
+                    $repuestosSolicitados[] = $row;
+                }
+                
+                $asignacion['RepuestosSolicitados'] = $repuestosSolicitados;
+                mysqli_stmt_close($stmtRepuestos);
+            }
+        } else {
+            $asignacion['RepuestosSolicitados'] = [];
+        }
+    } else {
+        if ($asignacion) {
+            $asignacion['RepuestosSolicitados'] = [];
+        }
+    }
 
     mysqli_close($conn);
     return $asignacion;

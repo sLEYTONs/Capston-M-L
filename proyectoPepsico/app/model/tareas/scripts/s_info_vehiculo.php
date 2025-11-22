@@ -15,12 +15,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
         $vehiculo_id = mysqli_real_escape_string($conn, $vehiculo_id);
 
         $query = "SELECT 
-                    Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
-                    ConductorNombre, ConductorTelefono,
-                    Proposito, Area, EstadoIngreso, 
-                    Kilometraje, Observaciones
-                FROM ingreso_vehiculos 
-                WHERE ID = '$vehiculo_id'";
+                    COALESCE(sa.Placa, iv.Placa) AS Placa, 
+                    COALESCE(sa.TipoVehiculo, iv.TipoVehiculo) AS TipoVehiculo, 
+                    COALESCE(sa.Marca, iv.Marca) AS Marca, 
+                    COALESCE(sa.Modelo, iv.Modelo) AS Modelo, 
+                    COALESCE(sa.Color, iv.Color) AS Color, 
+                    COALESCE(sa.Anio, iv.Anio) AS Anio,
+                    COALESCE(sa.ConductorNombre, iv.ConductorNombre) AS ConductorNombre,
+                    sa.Proposito,
+                    iv.Kilometraje, 
+                    sa.Observaciones
+                FROM ingreso_vehiculos iv
+                LEFT JOIN solicitudes_agendamiento sa ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                    AND sa.Estado IN ('Aprobada', 'Ingresado')
+                WHERE iv.ID = '$vehiculo_id'
+                ORDER BY sa.FechaCreacion DESC
+                LIMIT 1";
 
         $result = mysqli_query($conn, $query);
         

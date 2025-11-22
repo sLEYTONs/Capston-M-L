@@ -2,3 +2,236 @@
 [20-Nov-2025 23:57:14 Europe/Berlin] PHP Parse error:  syntax error, unexpected token "->" in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 649
 [21-Nov-2025 00:03:51 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions/../../../../config/conexion.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 2
 [21-Nov-2025 00:04:08 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions/../../../../config/conexion.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 2
+[22-Nov-2025 14:20:44 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[22-Nov-2025 14:21:58 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:26:15 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:31:37 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:32:08 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:35:00 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:35:47 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:37:50 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 14:38:36 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php on line 301
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:08:54 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:09:31 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 1
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:12:14 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 1
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:12:34 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 1
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:13:21 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:13:22 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:13:22 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 1
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:23:02 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:28:42 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 15:29:40 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 15:29:51 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 33
+[22-Nov-2025 19:49:03 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 19:50:13 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 19:50:52 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 19:51:18 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 544
+[22-Nov-2025 19:51:40 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 19:51:40 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 19:51:40 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 19:51:41 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 19:51:47 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 544
+[22-Nov-2025 20:17:37 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[22-Nov-2025 20:22:51 Europe/Berlin] Excepción en obtenerSolicitudesAgendamiento: Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) and (utf8mb4_general_ci,IMPLICIT) for operation '='
+[22-Nov-2025 20:22:51 Europe/Berlin] Stack trace: #0 C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php(369): mysqli_query(Object(mysqli), 'SELECT \r\n      ...')
+#1 C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\scripts\s_agendamiento.php(174): obtenerSolicitudesAgendamiento(Array)
+#2 {main}
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 20:27:07 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 20:27:24 Europe/Berlin] PHP Warning:  require_once(C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions/../consulta/functions/f_consulta.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 578
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 20:30:30 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 20:30:57 Europe/Berlin] Notificación de rechazo enviada al chofer ID: 37
+[22-Nov-2025 20:31:45 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-22: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[22-Nov-2025 20:32:23 Europe/Berlin] Notificación enviada al mecánico ID: 36 para vehículo SSXD63
+[22-Nov-2025 20:32:23 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37

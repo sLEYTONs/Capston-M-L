@@ -44,8 +44,6 @@
                             <th>ID</th>
                             <th>Placa</th>
                             <th>Vehículo</th>
-                            <th>Conductor</th>
-                            <th>Empresa</th>
                             <th>Propósito</th>
                             <th>Estado</th>
                             <th>Chofer</th>
@@ -79,17 +77,27 @@
                 <hr>
                 <div id="acciones-solicitud">
                     <h6 class="mb-3">
-                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible:
+                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible (Horario laboral: 9:00 AM - 6:00 PM):
                     </h6>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="fecha-disponible" class="form-label">Fecha *</label>
-                            <input type="date" class="form-control" id="fecha-disponible" required>
-                        </div>
+                    
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Instrucciones:</strong> Haz clic en cualquier bloque de hora disponible (verde) en el calendario para seleccionarlo.
                     </div>
-                    <div id="horas-disponibles-container" class="mb-3">
-                        <p class="text-muted">Seleccione una fecha para ver las horas disponibles</p>
+                    
+                    <!-- Calendario con horas disponibles -->
+                    <div class="mb-3">
+                        <div id="calendario-horas-disponibles" style="min-height: 400px;"></div>
                     </div>
+                    
+                    <!-- Información de selección -->
+                    <div id="info-seleccion-hora" class="alert alert-success" style="display: none;">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Hora seleccionada:</strong> <span id="hora-seleccionada-texto"></span>
+                    </div>
+                    
+                    <!-- Input oculto para almacenar el ID de la agenda seleccionada -->
+                    <input type="hidden" id="agenda-id-seleccionada" name="hora-disponible" required>
                     
                     <hr class="my-4">
                     
