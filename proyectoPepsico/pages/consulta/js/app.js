@@ -335,7 +335,6 @@ class ConsultaVehiculos {
                                 <div class="col-md-6">
                                     <h6>Información del Conductor</h6>
                                     <p><strong>Nombre:</strong> ${vehiculo.ConductorNombre}</p>
-                                    <p><strong>Teléfono:</strong> ${vehiculo.ConductorTelefono}</p>
                                 </div>
                             </div>
                             <div class="row mt-3">
@@ -461,7 +460,6 @@ class ConsultaVehiculos {
         $('#edit-color').val(vehiculo.Color);
         $('#edit-anio').val(vehiculo.Anio);
         $('#edit-conductor-nombre').val(vehiculo.ConductorNombre);
-        $('#edit-conductor-telefono').val(vehiculo.ConductorTelefono);
         $('#edit-proposito').val(vehiculo.Proposito);
         $('#edit-area').val(vehiculo.Area);
         $('#edit-persona-contacto').val(vehiculo.PersonaContacto);

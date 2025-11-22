@@ -38,12 +38,29 @@ $pagina_titulo = "Mis Notificaciones";
     }
     </style>
 </head>
-<body>
+<body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
+      data-pc-theme_contrast="" data-pc-theme="light">
     <?php include 'general/sidebar.php'; ?>
     <?php include 'general/header.php'; ?>
 
     <div class="pc-container">
         <div class="pc-content">
+            <div class="page-header">
+                <div class="page-block">
+                    <div class="row align-items-center">
+                        <div class="col-md-12">
+                            <h5 class="mb-1">Mis Notificaciones</h5>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Notificaciones</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="notification-page">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -112,6 +129,8 @@ $pagina_titulo = "Mis Notificaciones";
                     </div>
                 </div>
             </div>
+            
+            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
 

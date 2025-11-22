@@ -215,7 +215,6 @@ class GestionAgendamiento {
                 <div class="col-md-6">
                     <h6>Información del Conductor</h6>
                     <p><strong>Nombre:</strong> ${solicitud.ConductorNombre}</p>
-                    <p><strong>Teléfono:</strong> ${solicitud.ConductorTelefono || 'N/A'}</p>
                 </div>
             </div>
             <div class="row mt-3">

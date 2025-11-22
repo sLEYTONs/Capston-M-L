@@ -1,19 +1,3 @@
-<div class="page-header">
-    <div class="page-block">
-        <div class="row align-items-center">
-            <div class="col-md-12">
-                <h5 class="mb-1">Reportes de Mantenimientos</h5>
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Reportes</li>
-                    </ol>
-                </nav>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="row">
     <!-- Panel de Estadísticas -->
     <div class="col-md-12 mb-4">
