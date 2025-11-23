@@ -45,8 +45,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
             
             <?php include 'reportes/contents.php'; ?>
-            
-            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

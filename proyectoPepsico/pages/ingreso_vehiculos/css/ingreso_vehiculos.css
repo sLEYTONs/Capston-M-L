@@ -20,8 +20,20 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    padding-bottom: 150px;
+    padding-bottom: 6rem !important;
     min-height: calc(100vh - 200px);
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
 }
 
 .pc-container {
@@ -746,10 +758,20 @@ html, body {
 /* Espacio adicional para el footer en móviles */
 @media (max-width: 768px) {
     .pc-content {
-        padding-bottom: 200px;
+        padding-bottom: 5rem !important;
     }
     
     .page-container {
-        padding-bottom: 150px;
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
+    
+    .page-container {
+        padding-bottom: 4rem !important;
     }
 }

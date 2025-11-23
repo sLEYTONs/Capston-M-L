@@ -51,9 +51,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
             
             <?php include 'consulta/contents.php'; ?>
-            
-            <!-- Espaciador para el footer -->
-            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

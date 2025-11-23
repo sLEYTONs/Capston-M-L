@@ -111,6 +111,7 @@
             margin-left: auto;
             margin-right: auto;
             padding: 0 1rem;
+            padding-bottom: 6rem !important; /* Espacio amplio para separar del footer */
             width: 100%;
             }
 
@@ -128,6 +129,7 @@
             }
             .pc-content {
                 margin-top: 85px;
+                padding-bottom: 6rem !important; /* Espacio amplio para separar del footer */
             }
             }
 
@@ -151,6 +153,7 @@
             .pc-content {
                 margin-top: 80px;
                 padding: 0 1rem;
+                padding-bottom: 5rem !important; /* Espacio amplio para separar del footer */
             }
             }
 
@@ -175,6 +178,7 @@
             .pc-content {
                 margin-top: 75px;
                 padding: 0 0.75rem;
+                padding-bottom: 5rem !important; /* Espacio amplio para separar del footer */
             }
             .page-header h5 {
                 font-size: 1rem;
@@ -201,6 +205,7 @@
             .pc-content {
                 margin-top: 70px;
                 padding: 0 0.5rem;
+                padding-bottom: 4rem !important; /* Espacio amplio para separar del footer */
             }
             .page-header h5 {
                 font-size: 0.9rem;

@@ -46,9 +46,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
             
             <?php include 'base_datos/components/c_basedatos.php'; ?>
-            
-            <!-- Espaciador para el footer -->
-            <div class="pc-footer-fix" style="height: 150px;"></div>
         </div>
     </div>
     

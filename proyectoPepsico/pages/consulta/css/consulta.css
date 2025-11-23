@@ -13,8 +13,20 @@ body {
 
 .pc-content {
     flex: 1;
-    padding-bottom: 120px; /* Espacio para el footer */
+    padding-bottom: 6rem !important; /* Espacio para separar del footer */
     position: relative;
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
 }
 
 .search-container {

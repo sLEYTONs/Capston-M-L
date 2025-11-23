@@ -123,23 +123,28 @@ function crearSolicitudRepuestos($datos) {
         $urgencia = mysqli_real_escape_string($conn, $datos['urgencia']);
         $motivo = mysqli_real_escape_string($conn, $datos['motivo'] ?? '');
 
-        // Validar que la asignación pertenece al mecánico solo si se proporciona
-        if ($asignacion_id !== null) {
-            $queryAsignacion = "SELECT ID FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
-            $resultAsignacion = mysqli_query($conn, $queryAsignacion);
-            if (!$resultAsignacion || mysqli_num_rows($resultAsignacion) == 0) {
-                return [
-                    'status' => 'error',
-                    'message' => 'La asignación no existe o no pertenece al mecánico'
-                ];
-            }
+        // Validar que la asignación pertenece al mecánico (obligatoria)
+        if ($asignacion_id === null || $asignacion_id === 0 || $asignacion_id === '') {
+            return [
+                'status' => 'error',
+                'message' => 'La asignación es requerida para crear una solicitud de repuestos'
+            ];
         }
 
-        // Insertar solicitud (AsignacionID puede ser NULL)
-        $asignacionValue = $asignacion_id !== null ? $asignacion_id : 'NULL';
+        $asignacion_id = intval($asignacion_id);
+        $queryAsignacion = "SELECT ID FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
+        $resultAsignacion = mysqli_query($conn, $queryAsignacion);
+        if (!$resultAsignacion || mysqli_num_rows($resultAsignacion) == 0) {
+            return [
+                'status' => 'error',
+                'message' => 'La asignación no existe o no pertenece al mecánico'
+            ];
+        }
+
+        // Insertar solicitud (AsignacionID es obligatorio)
         $query = "INSERT INTO solicitudes_repuestos 
                   (AsignacionID, MecanicoID, RepuestoID, Cantidad, Urgencia, Motivo, Estado) 
-                  VALUES ($asignacionValue, $mecanico_id, $repuesto_id, $cantidad, '$urgencia', '$motivo', 'Pendiente')";
+                  VALUES ($asignacion_id, $mecanico_id, $repuesto_id, $cantidad, '$urgencia', '$motivo', 'Pendiente')";
 
         if (!mysqli_query($conn, $query)) {
             throw new Exception("Error al crear solicitud: " . mysqli_error($conn));
@@ -243,6 +248,9 @@ function obtenerSolicitudesRepuestos($mecanico_id, $asignacion_id = null) {
                 sr.Estado,
                 DATE_FORMAT(sr.FechaSolicitud, '%d/%m/%Y %H:%i') as FechaSolicitud,
                 DATE_FORMAT(sr.FechaAprobacion, '%d/%m/%Y %H:%i') as FechaAprobacion,
+                DATE_FORMAT(sr.FechaEnProceso, '%d/%m/%Y %H:%i') as FechaEnProceso,
+                DATE_FORMAT(sr.FechaEnTransito, '%d/%m/%Y %H:%i') as FechaEnTransito,
+                DATE_FORMAT(sr.FechaRecibido, '%d/%m/%Y %H:%i') as FechaRecibido,
                 DATE_FORMAT(sr.FechaEntrega, '%d/%m/%Y %H:%i') as FechaEntrega,
                 r.Codigo as RepuestoCodigo,
                 r.Nombre as RepuestoNombre,
@@ -629,6 +637,118 @@ function obtenerRepuestosStockBajo() {
 
     mysqli_close($conn);
     return $repuestos;
+}
+
+/**
+ * Obtiene los movimientos de stock de un repuesto
+ */
+function obtenerMovimientosStock($repuesto_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return [];
+    }
+
+    $repuesto_id = intval($repuesto_id);
+    $movimientos = [];
+
+    // Verificar si existe la tabla repuestos_asignacion
+    $checkTable = "SELECT COUNT(*) as existe 
+                  FROM information_schema.TABLES 
+                  WHERE TABLE_SCHEMA = DATABASE() 
+                  AND TABLE_NAME = 'repuestos_asignacion'";
+    $resultTable = mysqli_query($conn, $checkTable);
+    $tablaAsignacionExiste = false;
+    if ($resultTable) {
+        $row = mysqli_fetch_assoc($resultTable);
+        $tablaAsignacionExiste = ($row['existe'] > 0);
+    }
+
+    // Obtener stock actual del repuesto
+    $queryStock = "SELECT Stock FROM repuestos WHERE ID = $repuesto_id";
+    $resultStock = mysqli_query($conn, $queryStock);
+    $stockActual = 0;
+    if ($resultStock && mysqli_num_rows($resultStock) > 0) {
+        $rowStock = mysqli_fetch_assoc($resultStock);
+        $stockActual = intval($rowStock['Stock']);
+    }
+
+    // Obtener salidas desde repuestos_asignacion (si existe)
+    if ($tablaAsignacionExiste) {
+        $querySalidas = "SELECT 
+                            ra.ID,
+                            ra.Cantidad,
+                            ra.FechaRegistro as Fecha,
+                            ra.Observaciones,
+                            a.ID as AsignacionID,
+                            v.Placa,
+                            u.NombreUsuario as Usuario
+                        FROM repuestos_asignacion ra
+                        INNER JOIN asignaciones_mecanico a ON ra.AsignacionID = a.ID
+                        INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                        LEFT JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+                        WHERE ra.RepuestoID = $repuesto_id
+                        ORDER BY ra.FechaRegistro ASC";
+        
+        $resultSalidas = mysqli_query($conn, $querySalidas);
+        $salidas = [];
+        if ($resultSalidas) {
+            while ($row = mysqli_fetch_assoc($resultSalidas)) {
+                $salidas[] = [
+                    'ID' => $row['ID'],
+                    'Fecha' => $row['Fecha'],
+                    'Cantidad' => intval($row['Cantidad']),
+                    'Observaciones' => $row['Observaciones'],
+                    'Placa' => $row['Placa'],
+                    'Usuario' => $row['Usuario'] ?? 'Sistema'
+                ];
+            }
+            mysqli_free_result($resultSalidas);
+        }
+        
+        // Calcular stock anterior y nuevo para cada salida (orden cronológico inverso)
+        // Empezamos desde el stock actual y vamos sumando las salidas hacia atrás
+        $stockAcumulado = $stockActual;
+        $movimientosTemporales = [];
+        
+        foreach (array_reverse($salidas) as $salida) {
+            $stockNuevo = $stockAcumulado;
+            $stockAcumulado += $salida['Cantidad']; // Sumamos la salida para obtener el stock anterior
+            $stockAnterior = $stockAcumulado;
+            
+            $movimientosTemporales[] = [
+                'ID' => $salida['ID'],
+                'Fecha' => date('d/m/Y H:i', strtotime($salida['Fecha'])),
+                'Tipo' => 'Salida',
+                'Cantidad' => $salida['Cantidad'],
+                'StockAnterior' => $stockAnterior,
+                'StockNuevo' => $stockNuevo,
+                'Usuario' => $salida['Usuario'],
+                'Observaciones' => $salida['Observaciones'] ?? ('Asignado a vehículo: ' . ($salida['Placa'] ?? 'N/A'))
+            ];
+        }
+        
+        // Invertir para mostrar los más recientes primero
+        $movimientos = array_reverse($movimientosTemporales);
+    }
+
+    // Obtener entradas desde solicitudes_repuestos cuando se entregan (si existe)
+    $checkTableSolicitudes = "SELECT COUNT(*) as existe 
+                             FROM information_schema.TABLES 
+                             WHERE TABLE_SCHEMA = DATABASE() 
+                             AND TABLE_NAME = 'solicitudes_repuestos'";
+    $resultTableSolicitudes = mysqli_query($conn, $checkTableSolicitudes);
+    $tablaSolicitudesExiste = false;
+    if ($resultTableSolicitudes) {
+        $row = mysqli_fetch_assoc($resultTableSolicitudes);
+        $tablaSolicitudesExiste = ($row['existe'] > 0);
+    }
+
+    // Nota: Las entradas reales de stock (compras, recepciones) deberían registrarse en una tabla específica
+    // Por ahora, solo mostramos las salidas desde repuestos_asignacion
+    // Los movimientos ya están ordenados por fecha descendente (más recientes primero)
+
+    mysqli_close($conn);
+    return $movimientos;
 }
 
 /**

@@ -63,6 +63,17 @@ class SolicitarRepuestos {
         const form = document.getElementById('form-solicitud-repuestos');
         const formData = new FormData(form);
 
+        // Obtener asignacion_id de la URL si existe (para mecánicos)
+        const urlParams = new URLSearchParams(window.location.search);
+        const asignacionId = urlParams.get('asignacion_id');
+        
+        // Si hay asignacion_id en la URL, agregarlo al formData
+        // Si no hay (como para Asistente de Repuestos), no agregar nada (será null)
+        if (asignacionId && asignacionId !== '0' && asignacionId !== '') {
+            formData.append('asignacion_id', asignacionId);
+        }
+        // Si no hay asignacion_id, no agregarlo al formData (el backend lo manejará como null)
+
         formData.append('action', 'crearSolicitudRepuestos');
 
         fetch(this.baseUrl, {

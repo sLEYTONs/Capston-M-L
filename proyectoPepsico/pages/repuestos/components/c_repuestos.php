@@ -56,6 +56,7 @@
                     </div>
                 </div>
                 
+                <?php if ($usuario_rol === 'Mecánico'): ?>
                 <div class="card mt-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">
@@ -72,6 +73,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

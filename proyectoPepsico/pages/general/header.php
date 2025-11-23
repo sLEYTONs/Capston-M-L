@@ -325,6 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !h
 .badge-guardia { background-color: #6C757D; color: white; }
 .badge-supervisor { background-color: #6F42C1; color: white; }
 .badge-chofer { background-color: #FD7E14; color: white; }
+.badge-asistente-repuestos { background-color: #20C997; color: white; }
 
 /* Cuerpo del dropdown */
 .dropdown-body {

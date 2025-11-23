@@ -58,7 +58,8 @@
                       'Recepcionista' => 'badge-recepcionista',
                       'Guardia' => 'badge-guardia',
                       'Supervisor' => 'badge-supervisor',
-                      'Chofer' => 'badge-chofer'
+                      'Chofer' => 'badge-chofer',
+                      'Asistente de Repuestos' => 'badge-asistente-repuestos'
                   ][$rol] ?? 'badge-secondary';
                   ?>
                   <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($rol); ?></span>
@@ -289,6 +290,34 @@
               </a>
             </li>
             <?php endif; ?>
+            <?php if (tiene_acceso('recepcion_entrega_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="recepcion_entrega_repuestos.php" class="pc-link">
+                <span class="pc-mtext">Recepción y Entrega</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('registro_insumos_vehiculo.php')): ?>
+            <li class="pc-item">
+              <a href="registro_insumos_vehiculo.php" class="pc-link">
+                <span class="pc-mtext">Registro de Insumos</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('comunicacion_proveedores.php')): ?>
+            <li class="pc-item">
+              <a href="comunicacion_proveedores.php" class="pc-link">
+                <span class="pc-mtext">Comunicación Proveedores</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('gestion_repuestos_jefe.php')): ?>
+            <li class="pc-item">
+              <a href="gestion_repuestos_jefe.php" class="pc-link">
+                <span class="pc-mtext">Gestión con Jefe</span>
+              </a>
+            </li>
+            <?php endif; ?>
           </ul>
         </li>
         <?php endif; ?>
@@ -426,6 +455,11 @@
 
 .badge-chofer {
   background-color: #FD7E14;
+  color: white;
+}
+
+.badge-asistente-repuestos {
+  background-color: #20C997;
   color: white;
 }
 

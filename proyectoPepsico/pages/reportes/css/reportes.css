@@ -470,3 +470,20 @@
         font-size: 0.9rem;
     }
 }
+
+/* Espacio para separar el contenido del footer */
+.pc-content {
+    padding-bottom: 6rem !important;
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
+}

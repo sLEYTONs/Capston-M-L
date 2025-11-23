@@ -56,6 +56,14 @@
     gap: 10px;
 }
 
+/* Card body específico que contiene el DataTable - solo dentro del contenedor de repuestos */
+.repuestos-container .card-body {
+    padding: 1.5rem;
+    min-height: auto; /* Altura dinámica según contenido */
+    padding-bottom: 2rem; /* Espacio base para la paginación del DataTable */
+}
+
+/* Card body general - sin afectar el sidebar */
 .card-body {
     padding: 1.5rem;
 }
@@ -79,8 +87,29 @@
 }
 
 .table-responsive {
-    overflow-x: auto;
+    overflow: visible !important;
     width: 100%;
+    margin-bottom: 3rem; /* Espacio adicional después del DataTable */
+}
+
+/* Espacio para el wrapper del DataTable y su paginación */
+.dataTables_wrapper {
+    margin-bottom: 3rem !important;
+    padding-bottom: 2rem !important; /* Espacio extra para la paginación */
+}
+
+/* Asegurar que la información y paginación del DataTable tengan espacio */
+.dataTables_info,
+.dataTables_paginate {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* Asegurar que el DataTable tenga espacio suficiente */
+#repuestos-table {
+    width: 100% !important;
+    table-layout: auto; /* Permite que las columnas se ajusten al contenido */
 }
 
 /* Badges de stock */
@@ -144,6 +173,22 @@
     transition: none !important;
     width: 100% !important;
     max-width: 100% !important;
+    padding-bottom: 12rem !important; /* Espacio muy amplio para separar del footer y la paginación */
+    min-height: calc(100vh - 200px); /* Altura mínima para que el contenido tenga espacio */
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 10rem !important;
+        min-height: calc(100vh - 150px);
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 8rem !important;
+        min-height: calc(100vh - 120px);
+    }
 }
 
 /* Evitar que el page-header empuje el contenido */

@@ -1,8 +1,8 @@
 <?php
 include 'general/middle.php';
 
-// Verificar acceso - Solo Mecánico y Administrador
-$roles_permitidos = ['Mecánico', 'Administrador'];
+// Verificar acceso - Mecánico, Administrador y Asistente de Repuestos
+$roles_permitidos = ['Mecánico', 'Administrador', 'Asistente de Repuestos'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     redirigir_no_autorizado();
 }
@@ -44,8 +44,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
             
             <?php include 'estado_solicitudes_repuestos/components/c_estado_solicitudes_repuestos.php'; ?>
-            
-            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

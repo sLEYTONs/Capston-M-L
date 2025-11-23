@@ -1,7 +1,19 @@
 /* Estilos específicos para el módulo de Base de Datos */
 /* Espacio inferior para pc-content para evitar que el DataTable quede pegado al footer */
 .pc-content {
-    padding-bottom: 150px !important;
+    padding-bottom: 6rem !important;
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
 }
 
 .base-datos-card {

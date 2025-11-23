@@ -289,12 +289,24 @@
 
 /* Ajustes para el footer en este módulo específico */
 .pc-content {
-    padding-bottom: 120px;
+    padding-bottom: 6rem !important;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 100%;
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
 }
 
 /* Asegurar que el footer no se desplace y esté centrado */

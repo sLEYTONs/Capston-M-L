@@ -75,8 +75,9 @@ try {
             break;
 
         case 'crearSolicitudRepuestos':
+            // Solo los mecánicos pueden crear solicitudes de repuestos
             if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
-                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                echo json_encode(['status' => 'error', 'message' => 'Solo los mecánicos pueden crear solicitudes de repuestos']);
                 exit();
             }
 
@@ -114,6 +115,16 @@ try {
             $usuario_id = $_SESSION['usuario']['id'];
             $resultado = enviarAlertaStockBajo($usuario_id);
             echo json_encode($resultado);
+            break;
+
+        case 'obtenerMovimientosStock':
+            $repuesto_id = intval($_GET['repuesto_id'] ?? $_POST['repuesto_id'] ?? 0);
+            if ($repuesto_id > 0) {
+                $movimientos = obtenerMovimientosStock($repuesto_id);
+                echo json_encode(['status' => 'success', 'data' => $movimientos]);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'ID de repuesto inválido']);
+            }
             break;
 
         case 'pausarTarea':

@@ -1,6 +1,6 @@
 <?php
 include 'general/middle.php';
-$roles_permitidos = ['Jefe de Taller', 'Administrador', 'Mecánico'];
+$roles_permitidos = ['Jefe de Taller', 'Administrador', 'Mecánico', 'Asistente de Repuestos'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
@@ -49,9 +49,6 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
             
             <?php include 'repuestos/contents.php'; ?>
-            
-            <!-- Espaciador para el footer -->
-            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

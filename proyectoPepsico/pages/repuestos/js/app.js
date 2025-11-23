@@ -41,6 +41,14 @@ class InventarioRepuestos {
         $('#btn-alertar-stock').on('click', () => {
             this.enviarAlertaStockBajo();
         });
+
+        // Event listener para ver movimientos del stock (usando delegación de eventos)
+        $(document).on('click', '.btn-ver-movimientos', (e) => {
+            const repuestoId = $(e.currentTarget).data('id');
+            const codigo = $(e.currentTarget).data('codigo');
+            const nombre = $(e.currentTarget).data('nombre');
+            this.verMovimientosStock(repuestoId, codigo, nombre);
+        });
     }
 
     inicializarDataTable() {
@@ -98,21 +106,105 @@ class InventarioRepuestos {
                     orderable: false,
                     render: (data) => {
                         return `
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-primary btn-editar" data-id="${data.ID}" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger btn-eliminar" data-id="${data.ID}" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
+                            <button class="btn btn-sm btn-info btn-ver-movimientos" data-id="${data.ID}" data-codigo="${data.Codigo}" data-nombre="${data.Nombre}" title="Ver Movimientos de Stock">
+                                <i class="fas fa-history me-1"></i> Ver Movimientos
+                            </button>
                         `;
                     }
                 }
             ],
             order: [[1, 'asc']],
-            responsive: true
+            responsive: true,
+            drawCallback: () => {
+                // Recalcular espacio después de cada redibujado
+                setTimeout(() => {
+                    this.ajustarEspacioFooter();
+                }, 100);
+            }
         });
+
+        // Event listeners para cambios en el DataTable
+        $(this.dataTable.table().container()).on('length.dt', () => {
+            setTimeout(() => {
+                this.ajustarEspacioFooter();
+            }, 100);
+        });
+
+        $(this.dataTable.table().container()).on('page.dt', () => {
+            setTimeout(() => {
+                this.ajustarEspacioFooter();
+            }, 100);
+        });
+
+        // Ajustar espacio inicial
+        setTimeout(() => {
+            this.ajustarEspacioFooter();
+        }, 500);
+    }
+
+    ajustarEspacioFooter() {
+        const pcContent = document.querySelector('.pc-content');
+        const dataTableWrapper = document.querySelector('#repuestos-table_wrapper');
+        const cardBody = document.querySelector('.repuestos-container .card-body');
+        const footer = document.querySelector('.pc-footer');
+        
+        if (!pcContent || !dataTableWrapper || !footer) {
+            return;
+        }
+
+        // Ajustar el padding-bottom del card-body según la altura del DataTable
+        if (cardBody) {
+            const dataTableHeight = dataTableWrapper.offsetHeight;
+            const espacioMinimoCardBody = 50; // Espacio mínimo en el card-body para la paginación
+            
+            // Calcular padding-bottom dinámico para el card-body
+            // Si el DataTable es muy alto, necesitamos más espacio
+            let paddingBottomCardBody = 2; // Base de 2rem
+            
+            if (dataTableHeight > 400) {
+                paddingBottomCardBody = 3; // 3rem para tablas medianas
+            }
+            if (dataTableHeight > 600) {
+                paddingBottomCardBody = 4; // 4rem para tablas grandes
+            }
+            if (dataTableHeight > 800) {
+                paddingBottomCardBody = 5; // 5rem para tablas muy grandes
+            }
+            
+            cardBody.style.paddingBottom = `${paddingBottomCardBody}rem`;
+        }
+
+        // Obtener posiciones después de ajustar el card-body
+        setTimeout(() => {
+            const dataTableBottom = dataTableWrapper.getBoundingClientRect().bottom;
+            const footerTop = footer.getBoundingClientRect().top;
+            
+            // Calcular espacio necesario
+            // Espacio mínimo deseado entre DataTable y footer (en píxeles)
+            const espacioMinimo = 100;
+            
+            // Calcular cuánto espacio necesitamos
+            const espacioActual = footerTop - dataTableBottom;
+            const espacioNecesario = espacioMinimo - espacioActual;
+            
+            // Obtener el padding-bottom actual (convertir rem a px)
+            const paddingBottomActual = parseFloat(getComputedStyle(pcContent).paddingBottom) || 0;
+            
+            // Calcular nuevo padding-bottom
+            // Si el espacio actual es menor al mínimo, aumentar el padding
+            let nuevoPaddingBottom = paddingBottomActual;
+            
+            if (espacioActual < espacioMinimo) {
+                nuevoPaddingBottom = paddingBottomActual + espacioNecesario;
+            } else {
+                // Mantener un mínimo de padding para evitar cambios bruscos
+                nuevoPaddingBottom = Math.max(paddingBottomActual, 192); // 12rem = 192px mínimo
+            }
+            
+            // Convertir a rem y aplicar
+            const nuevoPaddingRem = nuevoPaddingBottom / 16; // 1rem = 16px
+            pcContent.style.paddingBottom = `${nuevoPaddingRem}rem`;
+        }, 50);
     }
 
     cargarRepuestos() {
@@ -129,6 +221,10 @@ class InventarioRepuestos {
                     this.dataTable.draw();
                 }
                 this.actualizarResumen(data.data);
+                // Ajustar espacio después de cargar datos
+                setTimeout(() => {
+                    this.ajustarEspacioFooter();
+                }, 200);
             } else {
                 this.mostrarError('Error al cargar repuestos: ' + (data.message || 'Error desconocido'));
             }
@@ -302,10 +398,226 @@ class InventarioRepuestos {
             alert(mensaje);
         }
     }
+
+    verMovimientosStock(repuestoId, codigo, nombre) {
+        // Cargar movimientos del stock desde el servidor
+        fetch(this.baseUrl + '?action=obtenerMovimientosStock&repuesto_id=' + repuestoId, {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                this.mostrarModalMovimientos(repuestoId, codigo, nombre, data.data);
+            } else {
+                this.mostrarError('Error al cargar movimientos: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar movimientos:', error);
+            this.mostrarError('Error de conexión al cargar movimientos');
+        });
+    }
+
+    mostrarModalMovimientos(repuestoId, codigo, nombre, movimientos) {
+        // Eliminar modal anterior si existe y destruir DataTable si está inicializado
+        const modalAnterior = $('#modalMovimientosStock');
+        if (modalAnterior.length > 0) {
+            const tablaAnterior = $('#tabla-movimientos');
+            if (tablaAnterior.length > 0 && $.fn.DataTable.isDataTable('#tabla-movimientos')) {
+                try {
+                    tablaAnterior.DataTable().destroy();
+                } catch (e) {
+                    // Ignorar errores al destruir
+                }
+            }
+            modalAnterior.remove();
+        }
+
+        // Crear el contenido del tbody
+        let tbodyContent = '';
+        if (movimientos && movimientos.length > 0) {
+            movimientos.forEach(movimiento => {
+                const tipoClass = movimiento.Tipo === 'Entrada' ? 'success' : movimiento.Tipo === 'Salida' ? 'danger' : 'info';
+                const fecha = movimiento.Fecha || 'N/A';
+                const tipo = movimiento.Tipo || 'N/A';
+                const cantidad = movimiento.Cantidad || '0';
+                const stockAnterior = movimiento.StockAnterior || '0';
+                const stockNuevo = movimiento.StockNuevo || '0';
+                const usuario = movimiento.Usuario || 'N/A';
+                const observaciones = movimiento.Observaciones || '-';
+                
+                tbodyContent += `
+                    <tr>
+                        <td>${this.escapeHtml(fecha)}</td>
+                        <td><span class="badge bg-${tipoClass}">${this.escapeHtml(tipo)}</span></td>
+                        <td>${this.escapeHtml(cantidad)}</td>
+                        <td>${this.escapeHtml(stockAnterior)}</td>
+                        <td>${this.escapeHtml(stockNuevo)}</td>
+                        <td>${this.escapeHtml(usuario)}</td>
+                        <td>${this.escapeHtml(observaciones)}</td>
+                    </tr>
+                `;
+            });
+        } else {
+            tbodyContent = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        No hay movimientos registrados para este repuesto
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Crear el HTML del modal
+        const modalHtml = `
+            <div class="modal fade" id="modalMovimientosStock" tabindex="-1" aria-labelledby="modalMovimientosStockLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalMovimientosStockLabel">
+                                <i class="fas fa-history me-2"></i>
+                                Movimientos de Stock - ${this.escapeHtml(nombre)} (${this.escapeHtml(codigo)})
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="table-responsive">
+                                <table id="tabla-movimientos" class="table table-striped table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Tipo de Movimiento</th>
+                                            <th>Cantidad</th>
+                                            <th>Stock Anterior</th>
+                                            <th>Stock Nuevo</th>
+                                            <th>Usuario</th>
+                                            <th>Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tbodyContent}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar el nuevo modal al body
+        $('body').append(modalHtml);
+        
+        // Obtener el elemento del modal
+        const modalElement = document.getElementById('modalMovimientosStock');
+        if (!modalElement) {
+            console.error('No se pudo crear el modal');
+            return;
+        }
+
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true
+        });
+        
+        // Inicializar DataTable cuando el modal esté completamente visible
+        $(modalElement).one('shown.bs.modal', function () {
+            const tabla = $('#tabla-movimientos');
+            
+            // Verificar que la tabla existe
+            if (tabla.length === 0) {
+                console.error('La tabla no existe en el DOM');
+                return;
+            }
+
+            // Solo inicializar DataTable si hay datos (más de una fila y no es la fila de "sin datos")
+            const filas = tabla.find('tbody tr');
+            if (filas.length === 0 || (filas.length === 1 && filas.find('td[colspan]').length > 0)) {
+                // No hay datos, no inicializar DataTable
+                return;
+            }
+
+            // Verificar que no hay una instancia previa de DataTable
+            if ($.fn.DataTable.isDataTable('#tabla-movimientos')) {
+                try {
+                    tabla.DataTable().destroy();
+                } catch (e) {
+                    // Ignorar errores
+                }
+            }
+
+            // Inicializar DataTable
+            if (typeof $.fn.DataTable !== 'undefined') {
+                try {
+                    tabla.DataTable({
+                        language: {
+                            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                        },
+                        pageLength: 10,
+                        lengthMenu: [10, 25, 50, 100],
+                        order: [], // Sin ordenamiento inicial
+                        responsive: true,
+                        destroy: true,
+                        autoWidth: false,
+                        columnDefs: [
+                            { targets: '_all', orderable: true }
+                        ]
+                    });
+                } catch (error) {
+                    console.error('Error al inicializar DataTable:', error);
+                }
+            }
+        });
+
+        // Limpiar el modal cuando se cierre
+        $(modalElement).on('hidden.bs.modal', function () {
+            const tabla = $('#tabla-movimientos');
+            if (tabla.length > 0 && $.fn.DataTable.isDataTable('#tabla-movimientos')) {
+                try {
+                    tabla.DataTable().destroy();
+                } catch (e) {
+                    // Ignorar errores
+                }
+            }
+            $(this).remove();
+        });
+
+        // Mostrar el modal
+        modal.show();
+    }
+
+    escapeHtml(text) {
+        if (text === null || text === undefined) {
+            return '';
+        }
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
 }
 
 // Inicializar cuando el DOM esté listo
 let inventarioRepuestos;
 document.addEventListener('DOMContentLoaded', () => {
     inventarioRepuestos = new InventarioRepuestos();
+    
+    // Ajustar espacio cuando se redimensiona la ventana
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (inventarioRepuestos && inventarioRepuestos.ajustarEspacioFooter) {
+                inventarioRepuestos.ajustarEspacioFooter();
+            }
+        }, 250);
+    });
 });
