@@ -44,10 +44,6 @@
                                         <label for="model">Modelo *</label>
                                         <input type="text" id="model" name="model" readonly required>
                                     </div>
-                                    <div class="form-field">
-                                        <label for="color">Color</label>
-                                        <input type="text" id="color" name="color" readonly>
-                                    </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-field">

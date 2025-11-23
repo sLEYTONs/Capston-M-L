@@ -147,7 +147,6 @@ function registrarIngresoBasico($placa, $usuario_id) {
                     s.TipoVehiculo,
                     s.Marca,
                     s.Modelo,
-                    s.Color,
                     s.Anio,
                     s.ConductorNombre,
                     s.Proposito,
@@ -189,7 +188,6 @@ function registrarIngresoBasico($placa, $usuario_id) {
         TipoVehiculo, 
         Marca, 
         Modelo,
-        Color,
         Anio,
         ConductorNombre, 
         Proposito, 
@@ -199,19 +197,18 @@ function registrarIngresoBasico($placa, $usuario_id) {
         EstadoIngreso, 
         FechaIngreso,
         UsuarioRegistro
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?" . 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?" . 
         ($columna_fotos_existe ? ", ?" : "") . ", 'Ingresado', 'Bueno', NOW(), ?)";
     
     $stmt = $conn->prepare($sql);
     $anio = !empty($agenda['Anio']) ? intval($agenda['Anio']) : null;
     
     if ($columna_fotos_existe) {
-        $stmt->bind_param("sssssissisi", 
+        $stmt->bind_param("ssssissisi", 
             $agenda['Placa'],
             $agenda['TipoVehiculo'],
             $agenda['Marca'],
             $agenda['Modelo'],
-            $agenda['Color'],
             $anio,
             $agenda['ConductorNombre'],
             $agenda['Proposito'],
@@ -220,12 +217,11 @@ function registrarIngresoBasico($placa, $usuario_id) {
             $usuario_id
         );
     } else {
-        $stmt->bind_param("sssssissi", 
+        $stmt->bind_param("ssssissi", 
             $agenda['Placa'],
             $agenda['TipoVehiculo'],
             $agenda['Marca'],
             $agenda['Modelo'],
-            $agenda['Color'],
             $anio,
             $agenda['ConductorNombre'],
             $agenda['Proposito'],
@@ -309,7 +305,6 @@ function obtenerVehiculosAgendados($fecha = null) {
                     s.TipoVehiculo,
                     s.Marca,
                     s.Modelo,
-                    s.Color,
                     s.Anio,
                     s.ConductorNombre,
                     s.Proposito,
@@ -485,7 +480,6 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                     s.TipoVehiculo,
                     s.Marca,
                     s.Modelo,
-                    s.Color,
                     s.Anio,
                     s.ConductorNombre,
                     s.Proposito,
@@ -522,7 +516,6 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'TipoVehiculo' => $solicitud['TipoVehiculo'],
                 'Marca' => $solicitud['Marca'],
                 'Modelo' => $solicitud['Modelo'],
-                'Color' => $solicitud['Color'],
                 'Anio' => $solicitud['Anio'],
                 'ConductorNombre' => $solicitud['ConductorNombre'],
                 'Proposito' => $solicitud['Proposito'],

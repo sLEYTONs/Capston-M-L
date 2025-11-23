@@ -81,23 +81,50 @@
 }
 
 .detalles-vehiculo {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
 }
 
-.detalles-vehiculo h5 {
-    color: #667eea;
-    margin-bottom: 1rem;
+.detalles-vehiculo .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.detalles-vehiculo .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.detalles-vehiculo .card-header {
+    border-bottom: 2px solid #e9ecef;
     font-weight: 600;
 }
 
 .detalles-vehiculo .table th {
-    background-color: #f8f9fa;
     font-weight: 600;
-    color: #495057;
+    color: #6c757d;
+    padding: 0.75rem 0.5rem;
 }
 
-.modal-content.modal-lg {
-    max-width: 800px;
+.detalles-vehiculo .table td {
+    padding: 0.75rem 0.5rem;
+    color: #212529;
+}
+
+.detalles-vehiculo .badge {
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+#detalles-modal .modal-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+#detalles-modal .modal-footer {
+    border-top: 1px solid #dee2e6;
+}
+
+#detalles-modal .modal-body {
+    padding: 1.5rem;
 }
 
 @media (max-width: 768px) {

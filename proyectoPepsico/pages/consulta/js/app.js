@@ -324,7 +324,6 @@ class ConsultaVehiculos {
                                     <p><strong>Placa:</strong> ${vehiculo.Placa}</p>
                                     <p><strong>Tipo:</strong> ${vehiculo.TipoVehiculo}</p>
                                     <p><strong>Marca/Modelo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}</p>
-                                    <p><strong>Color:</strong> ${vehiculo.Color}</p>
                                     <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
                                     <p><strong>Kilometraje:</strong> ${vehiculo.Kilometraje || 'N/A'}</p>
                                 </div>
@@ -402,7 +401,6 @@ class ConsultaVehiculos {
         $('#edit-tipo-vehiculo').val(vehiculo.TipoVehiculo);
         $('#edit-marca').val(vehiculo.Marca);
         $('#edit-modelo').val(vehiculo.Modelo);
-        $('#edit-color').val(vehiculo.Color);
         $('#edit-anio').val(vehiculo.Anio);
         $('#edit-conductor-nombre').val(vehiculo.ConductorNombre);
         $('#edit-estado').val(vehiculo.Estado);

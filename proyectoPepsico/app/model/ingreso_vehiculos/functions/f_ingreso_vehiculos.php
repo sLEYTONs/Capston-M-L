@@ -57,7 +57,6 @@ function actualizarIngresoVehiculo($datos) {
         TipoVehiculo = ?,
         Marca = ?,
         Modelo = ?,
-        Color = ?,
         Anio = ?,
         ConductorNombre = ?,
         ConductorTelefono = ?,
@@ -91,11 +90,10 @@ function actualizarIngresoVehiculo($datos) {
     $kilometraje = !empty($datos['kilometraje']) ? intval($datos['kilometraje']) : NULL;
     
     $stmt->bind_param(
-        "ssssisssssssssissssi",
+        "sssisssssssssissssi",
         $datos['tipo_vehiculo'],
         $datos['marca'],
         $datos['modelo'],
-        $datos['color'],
         $anio,
         $datos['conductor_nombre'],
         $datos['conductor_telefono'],
@@ -200,9 +198,9 @@ function registrarIngresoVehiculo($datos) {
     // Función simplificada para registrar vehículos nuevos (solo campos mínimos)
     // Los demás campos se llenarán cuando se haga la solicitud de agendamiento
     $sql = "INSERT INTO ingreso_vehiculos (
-        Placa, TipoVehiculo, Marca, Modelo, Color, Anio, 
+        Placa, TipoVehiculo, Marca, Modelo, Anio, 
         ConductorNombre, UsuarioRegistro, FechaRegistro, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
     
     $stmt = $conn->prepare($sql);
     
@@ -221,12 +219,11 @@ function registrarIngresoVehiculo($datos) {
     
     // Solo campos mínimos requeridos
     $stmt->bind_param(
-        "sssssis",
+        "ssssis",
         $datos['placa'],
         $datos['tipo_vehiculo'],
         $datos['marca'],
         $datos['modelo'],
-        $datos['color'],
         $anio,
         $datos['conductor_nombre'],
         $datos['usuario_id']
@@ -265,7 +262,7 @@ function registrarVehiculoPepsico($datos) {
     }
 
     // Validar campos requeridos
-    $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'color', 'anio', 'conductor_nombre', 'usuario_id'];
+    $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'anio', 'conductor_nombre', 'usuario_id'];
     foreach ($campos_requeridos as $campo) {
         if (empty($datos[$campo]) && $campo !== 'anio') {
             $conn->close();
@@ -281,9 +278,9 @@ function registrarVehiculoPepsico($datos) {
     }
 
     $sql = "INSERT INTO ingreso_vehiculos (
-        Placa, TipoVehiculo, Marca, Modelo, Color, Anio, 
+        Placa, TipoVehiculo, Marca, Modelo, Anio, 
         ConductorNombre, UsuarioRegistro, FechaRegistro, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
     
     $stmt = $conn->prepare($sql);
     
@@ -297,12 +294,11 @@ function registrarVehiculoPepsico($datos) {
     
     // Solo campos mínimos requeridos
     $stmt->bind_param(
-        "sssssis",
+        "ssssis",
         $placa_normalizada,
         $datos['tipo_vehiculo'],
         $datos['marca'],
         $datos['modelo'],
-        $datos['color'],
         $anio,
         $datos['conductor_nombre'],
         $datos['usuario_id']

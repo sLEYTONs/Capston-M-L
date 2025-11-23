@@ -39,10 +39,6 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-field">
-                                    <label for="color">Color</label>
-                                    <input type="text" id="color" name="color">
-                                </div>
-                                <div class="form-field">
                                     <label for="year">Año</label>
                                     <input type="number" id="year" name="year" min="1990" max="2024">
                                 </div>

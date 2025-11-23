@@ -80,7 +80,7 @@ function obtenerVehiculoPorPatente($patente, $conductor_nombre = null) {
         $patente = mysqli_real_escape_string($conn, $patente);
         
         // Buscar en la tabla ingreso_vehiculos (vehículos registrados)
-        $query = "SELECT Placa, TipoVehiculo, Marca, Modelo, Color, Anio, ConductorNombre
+        $query = "SELECT Placa, TipoVehiculo, Marca, Modelo, Anio, ConductorNombre
                   FROM ingreso_vehiculos
                   WHERE Placa = '$patente'
                   ORDER BY FechaIngreso DESC
@@ -166,7 +166,6 @@ function crearSolicitudAgendamiento($datos) {
         $tipo_vehiculo = mysqli_real_escape_string($conn, $datos['tipo_vehiculo']);
         $marca = mysqli_real_escape_string($conn, $datos['marca']);
         $modelo = mysqli_real_escape_string($conn, $datos['modelo']);
-        $color = !empty($datos['color']) ? mysqli_real_escape_string($conn, $datos['color']) : NULL;
         $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
         $conductor_nombre = mysqli_real_escape_string($conn, $datos['conductor_nombre']);
         $conductor_telefono = !empty($datos['conductor_telefono']) ? mysqli_real_escape_string($conn, $datos['conductor_telefono']) : NULL;
@@ -208,11 +207,10 @@ function crearSolicitudAgendamiento($datos) {
         }
         
         // Insertar solicitud (sin PersonaContacto, Area y ConductorTelefono ya que se eliminaron)
-        $campos = "ChoferID, Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
+        $campos = "ChoferID, Placa, TipoVehiculo, Marca, Modelo, Anio,
             ConductorNombre, Proposito,
             Observaciones, FechaSolicitada, HoraSolicitada, Estado";
         $valores = "$chofer_id, '$placa', '$tipo_vehiculo', '$marca', '$modelo',
-            " . ($color ? "'$color'" : "NULL") . ",
             " . ($anio ? $anio : "NULL") . ",
             '$conductor_nombre',
             '$proposito',

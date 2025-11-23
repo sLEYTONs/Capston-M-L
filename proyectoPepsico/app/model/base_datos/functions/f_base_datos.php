@@ -412,10 +412,9 @@ function exportarCSVCompleto() {
     
     // Encabezados
     fputcsv($output, [
-        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Color', 'Anio',
-        'ConductorNombre', 'ConductorTelefono', 'FechaIngreso', 'Proposito', 'Area',
-        'PersonaContacto', 'Observaciones', 'Estado', 'FechaRegistro',
-        'EstadoIngreso', 'Kilometraje', 'UsuarioRegistro', 'Notificado'
+        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
+        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
+        'Kilometraje', 'UsuarioRegistro', 'Notificado'
     ]);
     
     $conn = conectar_Pepsico();
@@ -429,18 +428,11 @@ function exportarCSVCompleto() {
             $row['TipoVehiculo'],
             $row['Marca'],
             $row['Modelo'],
-            $row['Color'],
             $row['Anio'],
             $row['ConductorNombre'],
-            $row['ConductorTelefono'],
             $row['FechaIngreso'],
-            $row['Proposito'],
-            $row['Area'],
-            $row['PersonaContacto'],
-            $row['Observaciones'],
             $row['Estado'],
             $row['FechaRegistro'],
-            $row['EstadoIngreso'],
             $row['Kilometraje'],
             $row['UsuarioRegistro'],
             $row['Notificado']
@@ -490,13 +482,13 @@ function exportarVehiculosCSV() {
     
     $output = fopen('php://output', 'w');
     fputcsv($output, [
-        'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Color', 'Anio',
+        'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
         'EstadoIngreso', 'Kilometraje', 'Estado', 'FechaIngreso'
     ]);
     
     $conn = conectar_Pepsico();
     $sql = "SELECT 
-                Placa, TipoVehiculo, Marca, Modelo, Color, Anio,
+                Placa, TipoVehiculo, Marca, Modelo, Anio,
                 EstadoIngreso, Kilometraje, Estado, FechaIngreso
             FROM ingreso_vehiculos 
             ORDER BY Marca, Modelo";

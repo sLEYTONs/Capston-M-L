@@ -46,7 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 'vehicleType': 'tipo_vehiculo',
                 'brand': 'marca',
                 'model': 'modelo',
-                'color': 'color',
                 'year': 'anio',
                 'driverName': 'conductor_nombre',
                 'driverPhone': 'conductor_telefono',

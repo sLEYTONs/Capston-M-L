@@ -40,15 +40,25 @@
 </div>
 
 <!-- Modal para ver detalles -->
-<div id="detalles-modal" class="modal" style="display: none;">
-    <div class="modal-content modal-lg">
-        <span class="close" onclick="document.getElementById('detalles-modal').style.display='none'">&times;</span>
-        <h3><i class="fas fa-info-circle me-2"></i>Detalles del Vehículo Agendado</h3>
-        <div id="detalles-content">
-            <!-- Contenido se cargará aquí -->
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="document.getElementById('detalles-modal').style.display='none'">Cerrar</button>
+<div class="modal fade" id="detalles-modal" tabindex="-1" aria-labelledby="detalles-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detalles-modal-label">
+                    <i class="fas fa-info-circle me-2"></i>Detalles del Vehículo Agendado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalles-content">
+                    <!-- Contenido se cargará aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cerrar
+                </button>
+            </div>
         </div>
     </div>
 </div>

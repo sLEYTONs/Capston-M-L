@@ -13,7 +13,6 @@ function obtenerVehiculo() {
                         TipoVehiculo,
                         Marca,
                         Modelo,
-                        Color,
                         Anio,
                         ConductorNombre,
                         ConductorTelefono,
@@ -63,7 +62,6 @@ function ingresoVehiculo($vehiculo) {
     $tipoVehiculo = mysqli_real_escape_string($conn, $vehiculo['TipoVehiculo']);
     $marca = mysqli_real_escape_string($conn, $vehiculo['Marca']);
     $modelo = mysqli_real_escape_string($conn, $vehiculo['Modelo']);
-    $color = mysqli_real_escape_string($conn, $vehiculo['Color']);
     $anio = mysqli_real_escape_string($conn, $vehiculo['Anio']);
     $conductorNombre = mysqli_real_escape_string($conn, $vehiculo['ConductorNombre']);
     $conductorTelefono = mysqli_real_escape_string($conn, $vehiculo['ConductorTelefono']);
@@ -82,7 +80,6 @@ function ingresoVehiculo($vehiculo) {
             TipoVehiculo, 
             Marca, 
             Modelo, 
-            Color, 
             Anio,
             ConductorNombre, 
             ConductorTelefono, 
@@ -97,7 +94,6 @@ function ingresoVehiculo($vehiculo) {
             '$tipoVehiculo',
             '$marca',
             '$modelo',
-            " . ($color ? "'$color'" : "DEFAULT") . ",
             " . ($anio ? "'$anio'" : "NULL") . ",
             '$conductorNombre',
             " . ($conductorTelefono ? "'$conductorTelefono'" : "DEFAULT") . ",

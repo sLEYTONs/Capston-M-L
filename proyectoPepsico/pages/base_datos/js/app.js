@@ -538,7 +538,6 @@ class BaseDatosApp {
                     <table class="table table-sm">
                         <tr><td><strong>Placa:</strong></td><td>${vehiculo.Placa}</td></tr>
                         <tr><td><strong>Marca/Modelo:</strong></td><td>${vehiculo.Marca} ${vehiculo.Modelo}</td></tr>
-                        <tr><td><strong>Color:</strong></td><td>${vehiculo.Color}</td></tr>
                         <tr><td><strong>Año:</strong></td><td>${vehiculo.Anio}</td></tr>
                         <tr><td><strong>Tipo:</strong></td><td>${vehiculo.TipoVehiculo}</td></tr>
                     </table>

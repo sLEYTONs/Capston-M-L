@@ -125,7 +125,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
                     'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
@@ -265,7 +264,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'color' => trim($_POST['color'] ?? ''),
                     'anio' => $_POST['anio'] ?? '',
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
                     'conductor_telefono' => $_POST['conductor_telefono'] ?? '',
@@ -348,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Validar campos requeridos
-                $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'color', 'conductor_nombre'];
+                $campos_requeridos = ['placa', 'tipo_vehiculo', 'marca', 'modelo', 'conductor_nombre'];
                 $campos_faltantes = [];
                 foreach ($campos_requeridos as $campo) {
                     if (empty($_POST[$campo])) {
@@ -370,7 +368,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo']),
                     'marca' => trim($_POST['marca']),
                     'modelo' => trim($_POST['modelo']),
-                    'color' => trim($_POST['color']),
                     'anio' => !empty($_POST['anio']) ? intval($_POST['anio']) : null,
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
                     'usuario_id' => $_SESSION['usuario']['id']

@@ -112,7 +112,6 @@ $(document).ready(function() {
             tipo_vehiculo: $('#tipo_vehiculo').val(),
             marca: normalizarTexto($('#marca').val()),
             modelo: normalizarTexto($('#modelo').val()),
-            color: normalizarTexto($('#color').val()),
             anio: $('#anio').val() || null,
             conductor_nombre: capitalizarTexto(normalizarTexto($('#conductor_nombre').val()))
         };

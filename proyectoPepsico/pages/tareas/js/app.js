@@ -95,7 +95,7 @@ class TareasMecanico {
                                 <div class="vehicle-info">
                                     <strong>${data.Marca} ${data.Modelo}</strong>
                                     <div class="vehicle-details">
-                                        <small class="text-muted">${data.TipoVehiculo} • ${data.Color}</small>
+                                        <small class="text-muted">${data.TipoVehiculo}</small>
                                     </div>
                                 </div>
                             `;
@@ -282,7 +282,6 @@ class TareasMecanico {
                     // Información del vehículo
                     $('#info-placa').text(data.Placa);
                     $('#info-vehiculo').text(`${data.Marca} ${data.Modelo} - ${data.TipoVehiculo}`);
-                    $('#info-color').text(data.Color);
                     $('#info-conductor').text(data.ConductorNombre);
                     $('#info-estado').text(data.Estado);
                     $('#info-anio').text(data.Anio || 'No especificado');
@@ -479,10 +478,6 @@ class TareasMecanico {
                                 <tr>
                                     <td><strong>Marca/Modelo:</strong></td>
                                     <td>${data.Marca} ${data.Modelo}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Color:</strong></td>
-                                    <td>${data.Color}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Año:</strong></td>

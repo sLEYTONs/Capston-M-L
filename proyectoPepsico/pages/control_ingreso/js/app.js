@@ -185,7 +185,6 @@ class ControlIngresoApp {
         let infoVehiculo = '';
         if (vehiculo.TipoVehiculo) infoVehiculo += `<strong>Tipo:</strong> ${vehiculo.TipoVehiculo}<br>`;
         if (vehiculo.Marca && vehiculo.Modelo) infoVehiculo += `<strong>Vehículo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}<br>`;
-        if (vehiculo.Color) infoVehiculo += `<strong>Color:</strong> ${vehiculo.Color}<br>`;
         if (vehiculo.Proposito) infoVehiculo += `<strong>Propósito:</strong> ${vehiculo.Proposito}`;
         
         // Buscar o crear elemento para información del vehículo

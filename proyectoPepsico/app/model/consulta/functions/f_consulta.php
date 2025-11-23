@@ -16,7 +16,6 @@ function buscarVehiculos($filtros) {
                 iv.TipoVehiculo,
                 iv.Marca,
                 iv.Modelo,
-                iv.Color,
                 iv.Anio,
                 iv.ConductorNombre,
                 DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
@@ -97,7 +96,6 @@ function obtenerVehiculoPorID($id) {
                 TipoVehiculo,
                 Marca,
                 Modelo,
-                Color,
                 Anio,
                 ConductorNombre,
                 DATE_FORMAT(FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
@@ -156,7 +154,6 @@ function actualizarVehiculo($datos) {
                 TipoVehiculo = ?,
                 Marca = ?,
                 Modelo = ?,
-                Color = ?,
                 Anio = ?,
                 ConductorNombre = ?,
                 Estado = ?
@@ -169,15 +166,14 @@ function actualizarVehiculo($datos) {
     }
 
     // Bind parameters - USANDO LOS NOMBRES CORRECTOS
-    // Parámetros: Placa(s), TipoVehiculo(s), Marca(s), Modelo(s), Color(s), Anio(s), ConductorNombre(s), Estado(s), id(i)
+    // Parámetros: Placa(s), TipoVehiculo(s), Marca(s), Modelo(s), Anio(s), ConductorNombre(s), Estado(s), id(i)
     mysqli_stmt_bind_param(
         $stmt,
-        'ssssssssi',
+        'sssssssi',
         $datos['Placa'],
         $datos['TipoVehiculo'],
         $datos['Marca'],
         $datos['Modelo'],
-        $datos['Color'],
         $datos['Anio'],
         $datos['ConductorNombre'],
         $datos['Estado'],

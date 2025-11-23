@@ -80,7 +80,6 @@ function obtenerTareasEnPausa($mecanico_id) {
                 v.Marca,
                 v.Modelo,
                 v.TipoVehiculo,
-                v.Color,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
             FROM asignaciones_mecanico a
             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID

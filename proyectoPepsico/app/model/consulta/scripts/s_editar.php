@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'TipoVehiculo' => trim($_POST['TipoVehiculo'] ?? ''),
         'Marca' => trim($_POST['Marca'] ?? ''),
         'Modelo' => trim($_POST['Modelo'] ?? ''),
-        'Color' => trim($_POST['Color'] ?? ''),
         'Anio' => !empty($_POST['Anio']) ? intval($_POST['Anio']) : null,
         'ConductorNombre' => trim($_POST['ConductorNombre'] ?? ''),
         'Proposito' => trim($_POST['Proposito'] ?? ''),

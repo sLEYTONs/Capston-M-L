@@ -32,7 +32,6 @@ function obtenerReportesMantenimientos($filtros = []) {
                 v.TipoVehiculo,
                 v.Marca,
                 v.Modelo,
-                v.Color,
                 v.Anio,
                 v.ConductorNombre,
                 

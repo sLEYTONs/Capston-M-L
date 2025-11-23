@@ -19,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
                     COALESCE(sa.TipoVehiculo, iv.TipoVehiculo) AS TipoVehiculo, 
                     COALESCE(sa.Marca, iv.Marca) AS Marca, 
                     COALESCE(sa.Modelo, iv.Modelo) AS Modelo, 
-                    COALESCE(sa.Color, iv.Color) AS Color, 
                     COALESCE(sa.Anio, iv.Anio) AS Anio,
                     COALESCE(sa.ConductorNombre, iv.ConductorNombre) AS ConductorNombre,
                     sa.Proposito,

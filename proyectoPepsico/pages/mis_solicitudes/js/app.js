@@ -280,7 +280,6 @@ function mostrarSeguimiento(datos, placa) {
                         <p><strong>Tipo:</strong> ${vehiculo.TipoVehiculo || 'N/A'}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Color:</strong> ${vehiculo.Color || 'N/A'}</p>
                         <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
                         <p><strong>Conductor:</strong> ${vehiculo.ConductorNombre || 'N/A'}</p>
                     </div>

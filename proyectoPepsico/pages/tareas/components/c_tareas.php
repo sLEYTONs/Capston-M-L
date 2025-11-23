@@ -138,7 +138,6 @@
                                 <div class="col-md-6">
                                     <p><strong>Placa:</strong> <span id="info-placa"></span></p>
                                     <p><strong>Vehículo:</strong> <span id="info-vehiculo"></span></p>
-                                    <p><strong>Color:</strong> <span id="info-color"></span></p>
                                     <p><strong>Año:</strong> <span id="info-anio"></span></p>
                                 </div>
                                 <div class="col-md-6">

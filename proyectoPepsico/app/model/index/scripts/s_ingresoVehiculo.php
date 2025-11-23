@@ -9,7 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'TipoVehiculo'      => trim($_POST['vehicleType'] ?? ''),
         'Marca'             => trim($_POST['brand'] ?? ''),
         'Modelo'            => trim($_POST['model'] ?? ''),
-        'Color'             => trim($_POST['color'] ?? ''),
         'Anio'              => trim($_POST['year'] ?? ''),
         'ConductorNombre'   => trim($_POST['driverName'] ?? ''),
         'ConductorTelefono' => trim($_POST['driverPhone'] ?? ''),

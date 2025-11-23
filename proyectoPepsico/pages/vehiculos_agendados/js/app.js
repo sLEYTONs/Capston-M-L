@@ -163,13 +163,16 @@ class VehiculosAgendados {
     }
 
     verDetalles(solicitudId) {
-        const modal = document.getElementById('detalles-modal');
+        const modalElement = document.getElementById('detalles-modal');
         const content = document.getElementById('detalles-content');
 
-        if (!modal || !content) return;
+        if (!modalElement || !content) return;
 
-        content.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando detalles...</p>';
-        modal.style.display = 'block';
+        content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div><p class="mt-2">Cargando detalles...</p></div>';
+        
+        // Mostrar modal usando Bootstrap
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
 
         // Buscar el vehículo en los datos cargados
         let vehiculo = null;
@@ -205,74 +208,98 @@ class VehiculosAgendados {
 
         content.innerHTML = `
             <div class="detalles-vehiculo">
-                <div class="row mb-3">
+                <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <h5><i class="fas fa-car me-2"></i>Información del Vehículo</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <th width="40%">Placa:</th>
-                                <td><strong>${vehiculo.Placa}</strong></td>
-                            </tr>
-                            <tr>
-                                <th>Vehículo:</th>
-                                <td>${vehiculoCompleto}</td>
-                            </tr>
-                            ${vehiculo.Color ? `
-                            <tr>
-                                <th>Color:</th>
-                                <td>${vehiculo.Color}</td>
-                            </tr>
-                            ` : ''}
-                            ${vehiculo.Anio ? `
-                            <tr>
-                                <th>Año:</th>
-                                <td>${vehiculo.Anio}</td>
-                            </tr>
-                            ` : ''}
-                            <tr>
-                                <th>Conductor:</th>
-                                <td>${vehiculo.ConductorNombre || 'N/A'}</td>
-                            </tr>
-                        </table>
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-car me-2"></i>Información del Vehículo
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless table-sm mb-0">
+                                    <tr>
+                                        <th width="40%" class="text-muted">Placa:</th>
+                                        <td><strong class="text-dark">${vehiculo.Placa}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted">Vehículo:</th>
+                                        <td>${vehiculoCompleto}</td>
+                                    </tr>
+                                    ${vehiculo.Anio ? `
+                                    <tr>
+                                        <th class="text-muted">Año:</th>
+                                        <td>${vehiculo.Anio}</td>
+                                    </tr>
+                                    ` : ''}
+                                    <tr>
+                                        <th class="text-muted">Conductor:</th>
+                                        <td>${vehiculo.ConductorNombre || 'N/A'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h5><i class="fas fa-calendar me-2"></i>Información de Agenda</h5>
-                        <table class="table table-sm">
-                            <tr>
-                                <th width="40%">Fecha:</th>
-                                <td>${fechaFormateada}</td>
-                            </tr>
-                            <tr>
-                                <th>Hora:</th>
-                                <td><i class="fas fa-clock me-1"></i>${horaFormateada}</td>
-                            </tr>
-                            <tr>
-                                <th>Estado:</th>
-                                <td><span class="badge bg-${estadoClass}">${estadoTexto}</span></td>
-                            </tr>
-                            ${vehiculo.SupervisorNombre ? `
-                            <tr>
-                                <th>Supervisor:</th>
-                                <td>${vehiculo.SupervisorNombre}</td>
-                            </tr>
-                            ` : ''}
-                        </table>
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-calendar me-2"></i>Información de Agenda
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless table-sm mb-0">
+                                    <tr>
+                                        <th width="40%" class="text-muted">Fecha:</th>
+                                        <td><i class="fas fa-calendar-alt me-1 text-primary"></i>${fechaFormateada}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted">Hora:</th>
+                                        <td><i class="fas fa-clock me-1 text-primary"></i>${horaFormateada}</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-muted">Estado:</th>
+                                        <td><span class="badge bg-${estadoClass}">${estadoTexto}</span></td>
+                                    </tr>
+                                    ${vehiculo.SupervisorNombre ? `
+                                    <tr>
+                                        <th class="text-muted">Supervisor:</th>
+                                        <td><i class="fas fa-user-tie me-1 text-primary"></i>${vehiculo.SupervisorNombre}</td>
+                                    </tr>
+                                    ` : ''}
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row g-3">
                     <div class="col-12">
-                        <h5><i class="fas fa-info-circle me-2"></i>Propósito</h5>
-                        <p class="bg-light p-3 rounded">${vehiculo.Proposito || 'No especificado'}</p>
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-info-circle me-2"></i>Propósito
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${vehiculo.Proposito || 'No especificado'}</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                ${vehiculo.Observaciones ? `
-                <div class="row mt-3">
+                    ${vehiculo.Observaciones ? `
                     <div class="col-12">
-                        <h5><i class="fas fa-sticky-note me-2"></i>Observaciones</h5>
-                        <p class="bg-light p-3 rounded">${vehiculo.Observaciones}</p>
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-sticky-note me-2"></i>Observaciones
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${vehiculo.Observaciones}</p>
+                            </div>
+                        </div>
                     </div>
+                    ` : ''}
                 </div>
-                ` : ''}
             </div>
         `;
     }

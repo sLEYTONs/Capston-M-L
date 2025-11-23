@@ -260,7 +260,7 @@ class GestionSolicitudes {
                 <div class="col-md-6">
                     <h6>Información del Vehículo</h6>
                     <p><strong>Placa:</strong> ${solicitud.Placa}</p>
-                    <p><strong>Vehículo:</strong> ${solicitud.Marca} ${solicitud.Modelo} ${solicitud.Color || ''}</p>
+                    <p><strong>Vehículo:</strong> ${solicitud.Marca} ${solicitud.Modelo}</p>
                     <p><strong>Tipo:</strong> ${solicitud.TipoVehiculo}</p>
                 </div>
                 <div class="col-md-6">
@@ -692,7 +692,288 @@ class GestionSolicitudes {
     }
 
     verDetalles(solicitudId) {
-        this.mostrarToast('Info', 'Funcionalidad de detalles en desarrollo', 'info');
+        const formData = new FormData();
+        formData.append('accion', 'obtener_solicitudes');
+        formData.append('solicitud_id', solicitudId.toString());
+
+        fetch(this.baseUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data.length > 0) {
+                const solicitud = data.data[0];
+                this.mostrarModalDetalles(solicitud);
+            } else {
+                this.mostrarToast('Error', 'No se pudieron cargar los detalles de la solicitud', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.mostrarToast('Error', 'Error al cargar detalles de la solicitud', 'error');
+        });
+    }
+
+    mostrarModalDetalles(solicitud) {
+        // Formatear fechas
+        const fechaCreacion = solicitud.FechaCreacion 
+            ? new Date(solicitud.FechaCreacion).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+            : 'N/A';
+
+        const fechaSolicitada = solicitud.FechaSolicitada
+            ? new Date(solicitud.FechaSolicitada).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+            : 'N/A';
+
+        const fechaAgenda = (solicitud.FechaAgenda || solicitud.Fecha)
+            ? new Date(solicitud.FechaAgenda || solicitud.Fecha).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+            : 'N/A';
+
+        // Formatear horas
+        const horaSolicitada = solicitud.HoraSolicitada 
+            ? solicitud.HoraSolicitada.substring(0, 5)
+            : 'N/A';
+
+        const horaInicio = (solicitud.HoraInicioAgenda || solicitud.HoraInicio)
+            ? (solicitud.HoraInicioAgenda || solicitud.HoraInicio).substring(0, 5)
+            : 'N/A';
+
+        const horaFin = (solicitud.HoraFinAgenda || solicitud.HoraFin)
+            ? (solicitud.HoraFinAgenda || solicitud.HoraFin).substring(0, 5)
+            : 'N/A';
+
+        // Estado badge
+        const estadoClass = this.getEstadoClass(solicitud.Estado);
+        const estadoIcon = {
+            'Pendiente': 'fa-clock',
+            'Aprobada': 'fa-check-circle',
+            'Rechazada': 'fa-times-circle',
+            'Cancelada': 'fa-ban'
+        }[solicitud.Estado] || 'fa-info-circle';
+
+        // Construir HTML del modal
+        const modalHtml = `
+            <div class="modal fade" id="detallesSolicitudModal" tabindex="-1" aria-labelledby="detallesSolicitudModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="detallesSolicitudModalLabel">
+                                <i class="fas fa-info-circle me-2"></i>Detalles de la Solicitud #${solicitud.ID}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0 text-primary">
+                                                <i class="fas fa-car me-2"></i>Información del Vehículo
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-borderless table-sm mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Placa:</th>
+                                                    <td><strong class="text-dark">${solicitud.Placa}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Vehículo:</th>
+                                                    <td>${solicitud.Marca} ${solicitud.Modelo}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Tipo:</th>
+                                                    <td>${solicitud.TipoVehiculo || 'N/A'}</td>
+                                                </tr>
+                                                ${solicitud.Anio ? `
+                                                <tr>
+                                                    <th class="text-muted">Año:</th>
+                                                    <td>${solicitud.Anio}</td>
+                                                </tr>
+                                                ` : ''}
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0 text-primary">
+                                                <i class="fas fa-user me-2"></i>Información del Conductor
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-borderless table-sm mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Nombre:</th>
+                                                    <td>${solicitud.ConductorNombre || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Chofer:</th>
+                                                    <td>${solicitud.ChoferNombre || 'N/A'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0 text-primary">
+                                                <i class="fas fa-clipboard-list me-2"></i>Información de la Solicitud
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-borderless table-sm mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Estado:</th>
+                                                    <td>
+                                                        <span class="badge ${estadoClass}">
+                                                            <i class="fas ${estadoIcon} me-1"></i>${solicitud.Estado}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Propósito:</th>
+                                                    <td>${solicitud.Proposito || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Fecha Creación:</th>
+                                                    <td><i class="fas fa-calendar-alt me-1 text-primary"></i>${fechaCreacion}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Fecha Solicitada:</th>
+                                                    <td><i class="fas fa-calendar-check me-1 text-primary"></i>${fechaSolicitada}</td>
+                                                </tr>
+                                                ${solicitud.HoraSolicitada ? `
+                                                <tr>
+                                                    <th class="text-muted">Hora Solicitada:</th>
+                                                    <td><i class="fas fa-clock me-1 text-primary"></i>${horaSolicitada}</td>
+                                                </tr>
+                                                ` : ''}
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${solicitud.Estado === 'Aprobada' && solicitud.AgendaID ? `
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100 border-success">
+                                        <div class="card-header bg-success text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-calendar-check me-2"></i>Agenda Asignada
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-borderless table-sm mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Fecha:</th>
+                                                    <td><i class="fas fa-calendar-alt me-1 text-success"></i>${fechaAgenda}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Hora:</th>
+                                                    <td><i class="fas fa-clock me-1 text-success"></i>${horaInicio} - ${horaFin}</td>
+                                                </tr>
+                                                ${solicitud.SupervisorNombre ? `
+                                                <tr>
+                                                    <th class="text-muted">Supervisor:</th>
+                                                    <td><i class="fas fa-user-tie me-1 text-success"></i>${solicitud.SupervisorNombre}</td>
+                                                </tr>
+                                                ` : ''}
+                                                ${solicitud.MecanicoNombre ? `
+                                                <tr>
+                                                    <th class="text-muted">Mecánico:</th>
+                                                    <td><i class="fas fa-wrench me-1 text-success"></i>${solicitud.MecanicoNombre}</td>
+                                                </tr>
+                                                ` : ''}
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                ` : solicitud.Estado === 'Rechazada' ? `
+                                <div class="col-md-6">
+                                    <div class="card border-0 shadow-sm h-100 border-danger">
+                                        <div class="card-header bg-danger text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-times-circle me-2"></i>Motivo de Rechazo
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-0">${solicitud.MotivoRechazo || 'No se especificó motivo de rechazo'}</p>
+                                            ${solicitud.SupervisorNombre ? `
+                                            <hr>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-tie me-1"></i>Rechazado por: ${solicitud.SupervisorNombre}
+                                            </small>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            ${solicitud.Observaciones ? `
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0 text-primary">
+                                                <i class="fas fa-sticky-note me-2"></i>Observaciones
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-0">${solicitud.Observaciones}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('detallesSolicitudModal');
+        if (modalAnterior) {
+            modalAnterior.remove();
+        }
+
+        // Agregar modal al body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('detallesSolicitudModal'));
+        modal.show();
+
+        // Limpiar modal al cerrar
+        const modalElement = document.getElementById('detallesSolicitudModal');
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        }, { once: true });
     }
 
     mostrarToast(titulo, mensaje, tipo = 'info') {

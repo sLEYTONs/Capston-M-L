@@ -249,13 +249,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const vehicleType = document.getElementById("vehicle-type");
         const brand = document.getElementById("brand");
         const model = document.getElementById("model");
-        const color = document.getElementById("color");
         const year = document.getElementById("year");
 
         if (vehicleType) vehicleType.value = vehiculo.TipoVehiculo || '';
         if (brand) brand.value = vehiculo.Marca || '';
         if (model) model.value = vehiculo.Modelo || '';
-        if (color) color.value = vehiculo.Color || '';
         if (year) year.value = vehiculo.Anio || '';
 
         // Mostrar la sección de información del vehículo
@@ -317,7 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     'vehicleType': 'tipo_vehiculo',
                     'brand': 'marca',
                     'model': 'modelo',
-                    'color': 'color',
                     'year': 'anio',
                     'purpose': 'proposito',
                     'observations': 'observaciones',

@@ -209,7 +209,7 @@ class GestionAgendamiento {
                 <div class="col-md-6">
                     <h6>Información del Vehículo</h6>
                     <p><strong>Placa:</strong> ${solicitud.Placa}</p>
-                    <p><strong>Vehículo:</strong> ${solicitud.Marca} ${solicitud.Modelo} ${solicitud.Color || ''}</p>
+                    <p><strong>Vehículo:</strong> ${solicitud.Marca} ${solicitud.Modelo}</p>
                     <p><strong>Tipo:</strong> ${solicitud.TipoVehiculo}</p>
                 </div>
                 <div class="col-md-6">

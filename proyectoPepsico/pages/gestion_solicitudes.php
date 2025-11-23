@@ -38,6 +38,41 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
         #info-seleccion-hora {
             margin-top: 15px;
         }
+        /* Estilos para el modal de detalles */
+        #detallesSolicitudModal .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #detallesSolicitudModal .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+        #detallesSolicitudModal .card-header {
+            border-bottom: 2px solid #e9ecef;
+            font-weight: 600;
+        }
+        #detallesSolicitudModal .table th {
+            font-weight: 600;
+            color: #6c757d;
+            padding: 0.75rem 0.5rem;
+        }
+        #detallesSolicitudModal .table td {
+            padding: 0.75rem 0.5rem;
+            color: #212529;
+        }
+        #detallesSolicitudModal .badge {
+            padding: 0.5rem 0.75rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+        #detallesSolicitudModal .modal-header {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        #detallesSolicitudModal .modal-footer {
+            border-top: 1px solid #dee2e6;
+        }
+        #detallesSolicitudModal .modal-body {
+            padding: 1.5rem;
+        }
     </style>
     
     <?php include 'general/head.php'; ?>

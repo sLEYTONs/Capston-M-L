@@ -128,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'tipo_vehiculo' => trim($_POST['tipo_vehiculo'] ?? ''),
                     'marca' => trim($_POST['marca'] ?? ''),
                     'modelo' => trim($_POST['modelo'] ?? ''),
-                    'color' => trim($_POST['color'] ?? ''),
                     'anio' => !empty($_POST['anio']) ? intval($_POST['anio']) : null,
                     'conductor_nombre' => $conductor_nombre, // Obtener automáticamente de la sesión
                     'conductor_telefono' => trim($_POST['conductor_telefono'] ?? ''),

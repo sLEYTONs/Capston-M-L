@@ -63,14 +63,6 @@
                                                placeholder="Ej: Hilux">
                                     </div>
                                 </div>
-
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="color">Color *</label>
-                                        <input type="text" class="form-control" id="color" name="color" required 
-                                               placeholder="Ej: Blanco" maxlength="30">
-                                    </div>
-                                </div>
                                 
                                 <div class="col-md-3">
                                     <div class="form-group">
