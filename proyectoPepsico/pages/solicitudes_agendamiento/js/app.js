@@ -27,12 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const fotosPreview = document.getElementById("fotos-preview");
     const fotosPreviewContainer = document.getElementById("fotos-preview-container");
 
-    // Set default date for fecha solicitada (mínimo hoy)
-    const fechaSolicitada = document.getElementById("fecha-solicitada");
-    if (fechaSolicitada) {
-        const hoy = new Date();
-        fechaSolicitada.min = hoy.toISOString().split('T')[0];
-    }
 
     // Manejar preview de imágenes
     if (fotosInput) {
@@ -281,10 +275,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 fotosPreview.style.display = 'none';
                 fotosPreviewContainer.innerHTML = '';
             }
-            if (fechaSolicitada) {
-                const hoy = new Date();
-                fechaSolicitada.min = hoy.toISOString().split('T')[0];
-            }
         });
     }
 
@@ -319,8 +309,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     'purpose': 'proposito',
                     'observations': 'observaciones',
                     // Fecha y hora se asignarán cuando el supervisor apruebe
-                    'fechaSolicitada': 'fecha_solicitada',
-                    'horaSolicitada': 'hora_solicitada'
                 };
 
                 // Crear nuevo FormData con los datos mapeados y las imágenes
@@ -353,13 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 });
                 
-                // Si no hay fecha/hora, usar valores por defecto (serán actualizados por el supervisor)
-                if (!formDataCache.get('fechaSolicitada')) {
-                    newFormData.append('fecha_solicitada', new Date().toISOString().split('T')[0]);
-                }
-                if (!formDataCache.get('horaSolicitada')) {
-                    newFormData.append('hora_solicitada', '08:00');
-                }
+                // Fecha y hora se asignarán cuando el supervisor apruebe
                 
                 newFormData.append('accion', 'crear_solicitud');
 
@@ -392,10 +374,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (fotosPreview) {
                         fotosPreview.style.display = 'none';
                         fotosPreviewContainer.innerHTML = '';
-                    }
-                    if (fechaSolicitada) {
-                        const hoy = new Date();
-                        fechaSolicitada.min = hoy.toISOString().split('T')[0];
                     }
                 } else {
                     // Verificar si es el error de solicitud pendiente

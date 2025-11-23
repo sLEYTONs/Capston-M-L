@@ -9,56 +9,86 @@ function buscarVehiculos($filtros) {
         return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
     }
 
-    // Construir la consulta base con LEFT JOIN para obtener el mecánico asignado
+    // Construir la consulta para mostrar vehículos con solicitud aprobada y hora asignada
+    // Si el vehículo está en ingreso_vehiculos, usar esos datos, sino usar los de la solicitud
     $query = "SELECT 
-                iv.ID,
-                iv.Placa,
-                iv.TipoVehiculo,
-                iv.Marca,
-                iv.Modelo,
-                iv.Anio,
-                iv.ConductorNombre,
+                COALESCE(iv.ID, sa.ID) as ID,
+                COALESCE(iv.Placa, sa.Placa) as Placa,
+                COALESCE(iv.TipoVehiculo, sa.TipoVehiculo) as TipoVehiculo,
+                COALESCE(iv.Marca, sa.Marca) as Marca,
+                COALESCE(iv.Modelo, sa.Modelo) as Modelo,
+                COALESCE(iv.Anio, sa.Anio) as Anio,
+                COALESCE(iv.ConductorNombre, sa.ConductorNombre) as ConductorNombre,
                 DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
-                iv.Estado,
+                DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
+                COALESCE(iv.Estado, 'Pendiente Ingreso') as Estado,
                 iv.Kilometraje,
                 DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
-                COALESCE(u.NombreUsuario, '') as MecanicoNombre
-            FROM ingreso_vehiculos iv
+                COALESCE(u.NombreUsuario, '') as MecanicoNombre,
+                sa.ID as SolicitudID,
+                sa.Proposito,
+                sa.Observaciones as ObservacionesSolicitud,
+                sa.Estado as EstadoSolicitud,
+                DATE_FORMAT(a.Fecha, '%d/%m/%Y') as FechaAgendaFormateada,
+                a.Fecha as FechaAgenda,
+                TIME_FORMAT(a.HoraInicio, '%H:%i') as HoraInicioFormateada,
+                a.HoraInicio as HoraInicioAgenda,
+                TIME_FORMAT(a.HoraFin, '%H:%i') as HoraFinFormateada,
+                a.HoraFin as HoraFinAgenda,
+                sup.NombreUsuario as SupervisorNombre,
+                chofer.NombreUsuario as ChoferNombre,
+                DATE_FORMAT(sa.FechaActualizacion, '%d/%m/%Y %H:%i') as FechaAprobacionFormateada,
+                CASE 
+                    WHEN iv.ID IS NOT NULL THEN 1 
+                    ELSE 0 
+                END as VehiculoIngresado
+            FROM solicitudes_agendamiento sa
+            INNER JOIN agenda_taller a ON sa.AgendaID = a.ID
+            LEFT JOIN ingreso_vehiculos iv ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+            LEFT JOIN usuarios chofer ON sa.ChoferID = chofer.UsuarioID
+            LEFT JOIN usuarios sup ON sa.SupervisorID = sup.UsuarioID
             LEFT JOIN (
-                SELECT a1.VehiculoID, a1.MecanicoID
+                SELECT a1.VehiculoID, a1.MecanicoID, a1.FechaAsignacion, a1.Estado as EstadoAsignacion, iv2.Placa as VehiculoPlaca
                 FROM asignaciones_mecanico a1
+                INNER JOIN ingreso_vehiculos iv2 ON a1.VehiculoID = iv2.ID
                 INNER JOIN (
-                    SELECT VehiculoID, MAX(FechaAsignacion) as MaxFecha
-                    FROM asignaciones_mecanico
-                    GROUP BY VehiculoID
+                    SELECT a3.VehiculoID, MAX(a3.FechaAsignacion) as MaxFecha
+                    FROM asignaciones_mecanico a3
+                    GROUP BY a3.VehiculoID
                 ) a2 ON a1.VehiculoID = a2.VehiculoID AND a1.FechaAsignacion = a2.MaxFecha
-            ) ultima_asignacion ON iv.ID = ultima_asignacion.VehiculoID
+            ) ultima_asignacion ON (
+                (iv.ID IS NOT NULL AND iv.ID = ultima_asignacion.VehiculoID) OR
+                (iv.ID IS NULL AND sa.Placa COLLATE utf8mb4_unicode_ci = ultima_asignacion.VehiculoPlaca COLLATE utf8mb4_unicode_ci)
+            )
             LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
-            WHERE 1=1";
+            WHERE sa.Estado = 'Aprobada'";
 
     $params = [];
 
     // Aplicar filtros
     if (!empty($filtros['placa'])) {
         $placa = mysqli_real_escape_string($conn, $filtros['placa']);
-        $query .= " AND Placa LIKE ?";
+        $query .= " AND (COALESCE(iv.Placa, sa.Placa) LIKE ? OR sa.Placa LIKE ?)";
+        $params[] = "%$placa%";
         $params[] = "%$placa%";
     }
 
     if (!empty($filtros['conductor'])) {
         $conductor = mysqli_real_escape_string($conn, $filtros['conductor']);
-        $query .= " AND ConductorNombre LIKE ?";
+        $query .= " AND (COALESCE(iv.ConductorNombre, sa.ConductorNombre) LIKE ? OR sa.ConductorNombre LIKE ?)";
+        $params[] = "%$conductor%";
         $params[] = "%$conductor%";
     }
 
     if (!empty($filtros['fecha'])) {
         $fecha = mysqli_real_escape_string($conn, $filtros['fecha']);
-        $query .= " AND DATE(FechaIngreso) = ?";
+        $query .= " AND (DATE(iv.FechaIngreso) = ? OR DATE(a.Fecha) = ?)";
+        $params[] = $fecha;
         $params[] = $fecha;
     }
 
-    // Ordenar por fecha de ingreso descendente
-    $query .= " ORDER BY FechaIngreso DESC";
+    // Ordenar por fecha de agenda o fecha de ingreso descendente
+    $query .= " ORDER BY COALESCE(a.Fecha, iv.FechaIngreso, sa.FechaCreacion) DESC";
 
     // Preparar y ejecutar la consulta
     $stmt = mysqli_prepare($conn, $query);
@@ -90,29 +120,78 @@ function obtenerVehiculoPorID($id) {
         return null;
     }
 
+    // Primero intentar obtener desde solicitudes aprobadas (como en buscarVehiculos)
+    // Si no hay solicitud aprobada, obtener solo del vehículo
     $query = "SELECT 
-                ID,
-                Placa,
-                TipoVehiculo,
-                Marca,
-                Modelo,
-                Anio,
-                ConductorNombre,
-                DATE_FORMAT(FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
-                Estado,
-                Kilometraje,
-                DATE_FORMAT(FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada
-            FROM ingreso_vehiculos 
-            WHERE ID = ?";
+                COALESCE(iv.ID, sa.ID) as ID,
+                COALESCE(iv.Placa, sa.Placa) as Placa,
+                COALESCE(iv.TipoVehiculo, sa.TipoVehiculo) as TipoVehiculo,
+                COALESCE(iv.Marca, sa.Marca) as Marca,
+                COALESCE(iv.Modelo, sa.Modelo) as Modelo,
+                COALESCE(iv.Anio, sa.Anio) as Anio,
+                COALESCE(iv.ConductorNombre, sa.ConductorNombre) as ConductorNombre,
+                DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
+                DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
+                COALESCE(iv.Estado, 'Pendiente Ingreso') as Estado,
+                iv.Kilometraje,
+                DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
+                COALESCE(u.NombreUsuario, '') as MecanicoNombre,
+                sa.ID as SolicitudID,
+                sa.Proposito,
+                sa.Observaciones as ObservacionesSolicitud,
+                sa.Estado as EstadoSolicitud,
+                DATE_FORMAT(a.Fecha, '%d/%m/%Y') as FechaAgendaFormateada,
+                a.Fecha as FechaAgenda,
+                TIME_FORMAT(a.HoraInicio, '%H:%i') as HoraInicioFormateada,
+                a.HoraInicio as HoraInicioAgenda,
+                TIME_FORMAT(a.HoraFin, '%H:%i') as HoraFinFormateada,
+                a.HoraFin as HoraFinAgenda,
+                sup.NombreUsuario as SupervisorNombre,
+                chofer.NombreUsuario as ChoferNombre,
+                DATE_FORMAT(sa.FechaActualizacion, '%d/%m/%Y %H:%i') as FechaAprobacionFormateada,
+                CASE 
+                    WHEN iv.ID IS NOT NULL THEN 1 
+                    ELSE 0 
+                END as VehiculoIngresado
+            FROM ingreso_vehiculos iv
+            LEFT JOIN solicitudes_agendamiento sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci AND sa.Estado = 'Aprobada'
+            LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
+            LEFT JOIN usuarios chofer ON sa.ChoferID = chofer.UsuarioID
+            LEFT JOIN usuarios sup ON sa.SupervisorID = sup.UsuarioID
+            LEFT JOIN (
+                SELECT a1.VehiculoID, a1.MecanicoID, a1.FechaAsignacion, a1.Estado as EstadoAsignacion, iv2.Placa as VehiculoPlaca
+                FROM asignaciones_mecanico a1
+                INNER JOIN ingreso_vehiculos iv2 ON a1.VehiculoID = iv2.ID
+                INNER JOIN (
+                    SELECT a3.VehiculoID, MAX(a3.FechaAsignacion) as MaxFecha
+                    FROM asignaciones_mecanico a3
+                    GROUP BY a3.VehiculoID
+                ) a2 ON a1.VehiculoID = a2.VehiculoID AND a1.FechaAsignacion = a2.MaxFecha
+            ) ultima_asignacion ON iv.ID = ultima_asignacion.VehiculoID
+            LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
+            WHERE iv.ID = ?
+            LIMIT 1";
 
     $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        error_log("Error preparando consulta en obtenerVehiculoPorID: " . mysqli_error($conn));
+        mysqli_close($conn);
+        return null;
+    }
+    
     mysqli_stmt_bind_param($stmt, 'i', $id);
-    mysqli_stmt_execute($stmt);
+    
+    if (!mysqli_stmt_execute($stmt)) {
+        error_log("Error ejecutando consulta en obtenerVehiculoPorID: " . mysqli_stmt_error($stmt));
+        mysqli_stmt_close($stmt);
+        mysqli_close($conn);
+        return null;
+    }
+    
     $result = mysqli_stmt_get_result($stmt);
 
     $vehiculo = null;
     if ($row = mysqli_fetch_assoc($result)) {
-        // Las fotos ya no están en ingreso_vehiculos, se obtienen de solicitudes_agendamiento
         $vehiculo = $row;
     }
 

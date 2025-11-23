@@ -188,7 +188,28 @@ class GestionSolicitudes {
         if (typeof $ !== 'undefined' && $.fn.DataTable) {
             this.dataTable = $('#solicitudes-table').DataTable({
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                    "sProcessing": "Procesando...",
+                    "sLengthMenu": "Mostrar _MENU_ registros",
+                    "sZeroRecords": "No se encontraron resultados",
+                    "sEmptyTable": "Ningún dato disponible en esta tabla",
+                    "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                    "sInfoPostFix": "",
+                    "sSearch": "Buscar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Cargando...",
+                    "oPaginate": {
+                        "sFirst": "Primero",
+                        "sLast": "Último",
+                        "sNext": "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
                 },
                 order: [[0, 'desc']],
                 pageLength: 10,
@@ -215,6 +236,56 @@ class GestionSolicitudes {
             'Cancelada': 'bg-secondary'
         };
         return clases[estado] || 'bg-secondary';
+    }
+
+    actualizarFilaSolicitud(solicitudId, nuevoEstado) {
+        if (!this.dataTable) {
+            // Si no hay DataTable, recargar directamente
+            this.cargarSolicitudes();
+            return;
+        }
+
+        // Buscar la fila en el tbody por el ID
+        const tbody = document.querySelector('#solicitudes-table tbody');
+        if (!tbody) return;
+
+        const filas = tbody.querySelectorAll('tr');
+        let filaEncontrada = null;
+
+        for (let fila of filas) {
+            const primeraCelda = fila.cells[0];
+            if (primeraCelda && primeraCelda.textContent.trim() == solicitudId) {
+                filaEncontrada = fila;
+                break;
+            }
+        }
+
+        if (filaEncontrada) {
+            // Actualizar el badge de estado (columna 4, índice 4)
+            const estadoClass = this.getEstadoClass(nuevoEstado);
+            filaEncontrada.cells[4].innerHTML = `<span class="badge ${estadoClass}">${nuevoEstado}</span>`;
+            
+            // Actualizar el botón de acciones (columna 6, índice 6)
+            if (nuevoEstado === 'Pendiente') {
+                filaEncontrada.cells[6].innerHTML = `
+                    <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${solicitudId})">
+                        <i class="fas fa-edit"></i> Gestionar
+                    </button>
+                `;
+            } else {
+                filaEncontrada.cells[6].innerHTML = `
+                    <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${solicitudId})">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                `;
+            }
+            
+            // Redibujar el DataTable sin recargar datos
+            this.dataTable.draw(false);
+        } else {
+            // Si no se encuentra la fila, recargar todas las solicitudes
+            this.cargarSolicitudes();
+        }
     }
 
     abrirModalGestionar(solicitudId) {
@@ -609,8 +680,20 @@ class GestionSolicitudes {
         .then(data => {
             if (data.status === 'success') {
                 this.mostrarToast('Éxito', 'Solicitud aprobada correctamente' + (mecanicoId ? ' y mecánico asignado' : ''), 'success');
-                bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal')).hide();
-                this.cargarSolicitudes();
+                
+                // Actualizar la tabla inmediatamente
+                this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Aprobada');
+                
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Recargar todas las solicitudes para asegurar datos actualizados
+                setTimeout(() => {
+                    this.cargarSolicitudes();
+                }, 300);
             } else {
                 this.mostrarToast('Error', data.message || 'Error al aprobar la solicitud', 'error');
             }
@@ -643,8 +726,20 @@ class GestionSolicitudes {
         .then(data => {
             if (data.status === 'success') {
                 this.mostrarToast('Éxito', 'Solicitud rechazada correctamente', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal')).hide();
-                this.cargarSolicitudes();
+                
+                // Actualizar la tabla inmediatamente
+                this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Rechazada');
+                
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Recargar todas las solicitudes para asegurar datos actualizados
+                setTimeout(() => {
+                    this.cargarSolicitudes();
+                }, 300);
             } else {
                 this.mostrarToast('Error', data.message || 'Error al rechazar la solicitud', 'error');
             }
@@ -728,15 +823,6 @@ class GestionSolicitudes {
             })
             : 'N/A';
 
-        const fechaSolicitada = solicitud.FechaSolicitada
-            ? new Date(solicitud.FechaSolicitada).toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })
-            : 'N/A';
-
         const fechaAgenda = (solicitud.FechaAgenda || solicitud.Fecha)
             ? new Date(solicitud.FechaAgenda || solicitud.Fecha).toLocaleDateString('es-ES', {
                 weekday: 'long',
@@ -744,11 +830,6 @@ class GestionSolicitudes {
                 month: 'long',
                 day: 'numeric'
             })
-            : 'N/A';
-
-        // Formatear horas
-        const horaSolicitada = solicitud.HoraSolicitada 
-            ? solicitud.HoraSolicitada.substring(0, 5)
             : 'N/A';
 
         const horaInicio = (solicitud.HoraInicioAgenda || solicitud.HoraInicio)
@@ -771,7 +852,7 @@ class GestionSolicitudes {
         // Construir HTML del modal
         const modalHtml = `
             <div class="modal fade" id="detallesSolicitudModal" tabindex="-1" aria-labelledby="detallesSolicitudModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title" id="detallesSolicitudModalLabel">
@@ -825,10 +906,6 @@ class GestionSolicitudes {
                                                     <th width="40%" class="text-muted">Nombre:</th>
                                                     <td>${solicitud.ConductorNombre || 'N/A'}</td>
                                                 </tr>
-                                                <tr>
-                                                    <th class="text-muted">Chofer:</th>
-                                                    <td>${solicitud.ChoferNombre || 'N/A'}</td>
-                                                </tr>
                                             </table>
                                         </div>
                                     </div>
@@ -860,16 +937,6 @@ class GestionSolicitudes {
                                                     <th class="text-muted">Fecha Creación:</th>
                                                     <td><i class="fas fa-calendar-alt me-1 text-primary"></i>${fechaCreacion}</td>
                                                 </tr>
-                                                <tr>
-                                                    <th class="text-muted">Fecha Solicitada:</th>
-                                                    <td><i class="fas fa-calendar-check me-1 text-primary"></i>${fechaSolicitada}</td>
-                                                </tr>
-                                                ${solicitud.HoraSolicitada ? `
-                                                <tr>
-                                                    <th class="text-muted">Hora Solicitada:</th>
-                                                    <td><i class="fas fa-clock me-1 text-primary"></i>${horaSolicitada}</td>
-                                                </tr>
-                                                ` : ''}
                                             </table>
                                         </div>
                                     </div>

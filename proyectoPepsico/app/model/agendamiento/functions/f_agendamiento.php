@@ -171,9 +171,7 @@ function crearSolicitudAgendamiento($datos) {
         $conductor_telefono = !empty($datos['conductor_telefono']) ? mysqli_real_escape_string($conn, $datos['conductor_telefono']) : NULL;
         $proposito = mysqli_real_escape_string($conn, $datos['proposito']);
         $observaciones = !empty($datos['observaciones']) ? mysqli_real_escape_string($conn, $datos['observaciones']) : NULL;
-        // Fecha y hora se asignarán cuando el supervisor apruebe, usar valores por defecto
-        $fecha_solicitada = !empty($datos['fecha_solicitada']) ? mysqli_real_escape_string($conn, $datos['fecha_solicitada']) : date('Y-m-d');
-        $hora_solicitada = !empty($datos['hora_solicitada']) ? mysqli_real_escape_string($conn, $datos['hora_solicitada']) : '08:00';
+        // Fecha y hora se asignarán cuando el supervisor apruebe
 
         // Verificar que no exista una solicitud pendiente para la misma placa
         $checkQuery = "SELECT ID FROM solicitudes_agendamiento 
@@ -182,6 +180,27 @@ function crearSolicitudAgendamiento($datos) {
         $checkResult = mysqli_query($conn, $checkQuery);
         if (mysqli_num_rows($checkResult) > 0) {
             throw new Exception("Ya existe una solicitud pendiente para esta placa");
+        }
+
+        // Verificar si el vehículo ya está en mantenimiento
+        // Un vehículo está en mantenimiento si tiene una asignación activa con mecánico
+        $checkMantenimiento = "SELECT iv.ID, iv.Placa, iv.Estado as EstadoVehiculo, 
+                              a.ID as AsignacionID, a.Estado as EstadoAsignacion,
+                              u.NombreUsuario as MecanicoNombre
+                              FROM ingreso_vehiculos iv
+                              LEFT JOIN asignaciones_mecanico a ON iv.ID = a.VehiculoID 
+                                  AND a.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+                              LEFT JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+                              WHERE iv.Placa = '$placa'
+                              AND a.ID IS NOT NULL
+                              LIMIT 1";
+        $resultMantenimiento = mysqli_query($conn, $checkMantenimiento);
+        if ($resultMantenimiento && mysqli_num_rows($resultMantenimiento) > 0) {
+            $vehiculoMantenimiento = mysqli_fetch_assoc($resultMantenimiento);
+            $mecanico = !empty($vehiculoMantenimiento['MecanicoNombre']) 
+                       ? $vehiculoMantenimiento['MecanicoNombre'] 
+                       : 'un mecánico';
+            throw new Exception("El vehículo con placa $placa ya está en mantenimiento asignado a $mecanico. No se puede crear una nueva solicitud mientras el vehículo esté en mantenimiento.");
         }
 
         // Procesar fotos si existen
@@ -209,13 +228,13 @@ function crearSolicitudAgendamiento($datos) {
         // Insertar solicitud (sin PersonaContacto, Area y ConductorTelefono ya que se eliminaron)
         $campos = "ChoferID, Placa, TipoVehiculo, Marca, Modelo, Anio,
             ConductorNombre, Proposito,
-            Observaciones, FechaSolicitada, HoraSolicitada, Estado";
+            Observaciones, Estado";
         $valores = "$chofer_id, '$placa', '$tipo_vehiculo', '$marca', '$modelo',
             " . ($anio ? $anio : "NULL") . ",
             '$conductor_nombre',
             '$proposito',
             " . ($observaciones ? "'" . mysqli_real_escape_string($conn, $observaciones) . "'" : "NULL") . ",
-            '$fecha_solicitada', '$hora_solicitada', 'Pendiente'";
+            'Pendiente'";
         
         // Agregar Fotos si existen y la columna existe
         if ($fotos_json && $columna_fotos_existe) {
@@ -322,12 +341,12 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
 
     if (!empty($filtros['fecha_desde'])) {
         $fecha_desde = mysqli_real_escape_string($conn, $filtros['fecha_desde']);
-        $where[] = "s.FechaSolicitada >= '$fecha_desde'";
+        $where[] = "COALESCE(a.Fecha, s.FechaCreacion) >= '$fecha_desde'";
     }
 
     if (!empty($filtros['fecha_hasta'])) {
         $fecha_hasta = mysqli_real_escape_string($conn, $filtros['fecha_hasta']);
-        $where[] = "s.FechaSolicitada <= '$fecha_hasta'";
+        $where[] = "COALESCE(a.Fecha, s.FechaCreacion) <= '$fecha_hasta'";
     }
 
     if (!empty($filtros['solicitud_id'])) {
@@ -408,8 +427,9 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
 /**
  * Obtiene las horas disponibles en la agenda para una fecha específica
  * Solo retorna horas en el rango laboral de 9:00 a 18:00 (6pm)
+ * Opcionalmente puede filtrar por mecánico para excluir horas ya asignadas a ese mecánico
  */
-function obtenerHorasDisponibles($fecha) {
+function obtenerHorasDisponibles($fecha, $mecanico_id = null) {
     // Crear conexión directamente sin usar die()
     $mysqli = @new mysqli("localhost", "root", "", "Pepsico");
     
@@ -427,6 +447,7 @@ function obtenerHorasDisponibles($fecha) {
     $conn = $mysqli;
 
     $fecha = mysqli_real_escape_string($conn, $fecha);
+    $mecanico_id = $mecanico_id ? intval($mecanico_id) : null;
 
     // Obtener todas las horas disponibles para la fecha en el rango laboral (9:00 a 18:00)
     $query = "SELECT 
@@ -443,8 +464,11 @@ function obtenerHorasDisponibles($fecha) {
 
     if ($result) {
         while ($row = mysqli_fetch_assoc($result)) {
-            // Verificar que no esté asignada a otra solicitud aprobada
             $agenda_id = $row['ID'];
+            $hora_inicio = $row['HoraInicio'];
+            $hora_fin = $row['HoraFin'];
+            
+            // Verificar que no esté asignada a otra solicitud aprobada
             $checkQuery = "SELECT COUNT(*) as total 
                           FROM solicitudes_agendamiento 
                           WHERE AgendaID = $agenda_id 
@@ -452,9 +476,34 @@ function obtenerHorasDisponibles($fecha) {
             $checkResult = mysqli_query($conn, $checkQuery);
             $checkRow = mysqli_fetch_assoc($checkResult);
             
-            if ($checkRow['total'] == 0) {
-                $horas[] = $row;
+            if ($checkRow['total'] > 0) {
+                continue; // Ya está asignada, saltar
             }
+            
+            // Si se especifica un mecánico, verificar que no tenga conflicto de horario
+            if ($mecanico_id) {
+                $queryConflictoMecanico = "SELECT COUNT(*) as total
+                    FROM solicitudes_agendamiento sa
+                    INNER JOIN agenda_taller a ON sa.AgendaID = a.ID
+                    INNER JOIN ingreso_vehiculos iv ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
+                    INNER JOIN asignaciones_mecanico am ON iv.ID = am.VehiculoID
+                    WHERE sa.Estado = 'Aprobada'
+                    AND am.MecanicoID = $mecanico_id
+                    AND am.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+                    AND a.Fecha = '$fecha'
+                    AND (
+                        (a.HoraInicio < '$hora_fin' AND a.HoraFin > '$hora_inicio')
+                    )";
+                
+                $resultConflictoMecanico = mysqli_query($conn, $queryConflictoMecanico);
+                $conflictoMecanico = mysqli_fetch_assoc($resultConflictoMecanico);
+                
+                if ($conflictoMecanico['total'] > 0) {
+                    continue; // El mecánico ya tiene una asignación en este horario, saltar
+                }
+            }
+            
+            $horas[] = $row;
         }
     }
 
@@ -492,32 +541,12 @@ function aprobarSolicitudAgendamiento($solicitud_id, $supervisor_id, $agenda_id 
             throw new Exception("La solicitud ya fue procesada");
         }
 
-        // Si no se proporciona agenda_id, buscar una hora disponible
+        // El agenda_id debe ser proporcionado por el supervisor al seleccionar del calendario
         if (empty($agenda_id)) {
-            $fecha_solicitada = $solicitud['FechaSolicitada'];
-            $hora_solicitada = $solicitud['HoraSolicitada'];
-            
-            // Buscar una hora disponible que coincida o esté cerca
-            $queryAgenda = "SELECT ID FROM agenda_taller 
-                           WHERE Fecha = '$fecha_solicitada' 
-                           AND Disponible = 1
-                           AND HoraInicio <= '$hora_solicitada'
-                           AND HoraFin >= '$hora_solicitada'
-                           AND ID NOT IN (
-                               SELECT AgendaID FROM solicitudes_agendamiento 
-                               WHERE AgendaID IS NOT NULL AND Estado = 'Aprobada'
-                           )
-                           LIMIT 1";
-            
-            $resultAgenda = mysqli_query($conn, $queryAgenda);
-            
-            if (mysqli_num_rows($resultAgenda) == 0) {
-                throw new Exception("No hay horas disponibles para la fecha y hora solicitada");
-            }
-            
-            $agenda = mysqli_fetch_assoc($resultAgenda);
-            $agenda_id = $agenda['ID'];
-        } else {
+            throw new Exception("Debe seleccionar una hora disponible del calendario");
+        }
+        
+        {
             // Verificar que la agenda esté disponible
             $agenda_id = intval($agenda_id);
             $queryCheck = "SELECT * FROM agenda_taller WHERE ID = $agenda_id AND Disponible = 1";
@@ -551,25 +580,97 @@ function aprobarSolicitudAgendamiento($solicitud_id, $supervisor_id, $agenda_id 
             throw new Exception("Error al aprobar solicitud: " . mysqli_error($conn));
         }
 
-        // Si se proporciona un mecánico, crear una asignación automática
+        // Si se proporciona un mecánico, verificar que no tenga conflictos de horario
         if ($mecanico_id) {
             $mecanico_id = intval($mecanico_id);
             
-            // Obtener información del vehículo de la solicitud
-            $queryVehiculo = "SELECT Placa, Marca, Modelo, TipoVehiculo FROM solicitudes_agendamiento WHERE ID = $solicitud_id";
-            $resultVehiculo = mysqli_query($conn, $queryVehiculo);
-            $solicitud = mysqli_fetch_assoc($resultVehiculo);
+            // Obtener información de la agenda asignada
+            $queryAgenda = "SELECT Fecha, HoraInicio, HoraFin FROM agenda_taller WHERE ID = $agenda_id";
+            $resultAgenda = mysqli_query($conn, $queryAgenda);
+            if (mysqli_num_rows($resultAgenda) > 0) {
+                $agenda = mysqli_fetch_assoc($resultAgenda);
+                $fecha_agenda = $agenda['Fecha'];
+                $hora_inicio = $agenda['HoraInicio'];
+                $hora_fin = $agenda['HoraFin'];
+                
+                // Verificar si el mecánico ya tiene otra asignación en el mismo rango de tiempo
+                $queryConflicto = "SELECT COUNT(*) as total
+                    FROM solicitudes_agendamiento sa
+                    INNER JOIN agenda_taller a ON sa.AgendaID = a.ID
+                    INNER JOIN ingreso_vehiculos iv ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
+                    INNER JOIN asignaciones_mecanico am ON iv.ID = am.VehiculoID
+                    WHERE sa.Estado = 'Aprobada'
+                    AND sa.ID != $solicitud_id
+                    AND am.MecanicoID = $mecanico_id
+                    AND am.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+                    AND a.Fecha = '$fecha_agenda'
+                    AND (
+                        (a.HoraInicio < '$hora_fin' AND a.HoraFin > '$hora_inicio')
+                    )";
+                
+                $resultConflicto = mysqli_query($conn, $queryConflicto);
+                $conflicto = mysqli_fetch_assoc($resultConflicto);
+                
+                if ($conflicto['total'] > 0) {
+                    throw new Exception("El mecánico ya tiene una asignación en el rango de tiempo seleccionado ($fecha_agenda de $hora_inicio a $hora_fin). Por favor, seleccione otra hora.");
+                }
+            }
             
-            // Verificar si el vehículo ya existe en ingreso_vehiculos
-            $placa = mysqli_real_escape_string($conn, $solicitud['Placa']);
-            $queryCheckVehiculo = "SELECT ID FROM ingreso_vehiculos WHERE Placa = '$placa' AND Estado = 'Ingresado' LIMIT 1";
+            // Obtener información completa de la solicitud
+            $querySolicitudCompleta = "SELECT * FROM solicitudes_agendamiento WHERE ID = $solicitud_id";
+            $resultSolicitudCompleta = mysqli_query($conn, $querySolicitudCompleta);
+            $solicitudCompleta = mysqli_fetch_assoc($resultSolicitudCompleta);
+            
+            $placa = mysqli_real_escape_string($conn, $solicitudCompleta['Placa']);
+            $marca = mysqli_real_escape_string($conn, $solicitudCompleta['Marca']);
+            $modelo = mysqli_real_escape_string($conn, $solicitudCompleta['Modelo']);
+            $tipoVehiculo = mysqli_real_escape_string($conn, $solicitudCompleta['TipoVehiculo']);
+            $anio = !empty($solicitudCompleta['Anio']) ? intval($solicitudCompleta['Anio']) : 'NULL';
+            $conductorNombre = mysqli_real_escape_string($conn, $solicitudCompleta['ConductorNombre']);
+            $proposito = mysqli_real_escape_string($conn, $solicitudCompleta['Proposito']);
+            $observacionesSolicitud = !empty($solicitudCompleta['Observaciones']) ? 
+                "'" . mysqli_real_escape_string($conn, $solicitudCompleta['Observaciones']) . "'" : 'NULL';
+            
+            // Verificar si el vehículo ya existe en ingreso_vehiculos (cualquier estado)
+            $queryCheckVehiculo = "SELECT ID, Estado FROM ingreso_vehiculos WHERE Placa = '$placa' ORDER BY FechaRegistro DESC LIMIT 1";
             $resultCheckVehiculo = mysqli_query($conn, $queryCheckVehiculo);
             
+            $vehiculo_id = null;
+            
             if (mysqli_num_rows($resultCheckVehiculo) > 0) {
+                // El vehículo ya existe, usar ese ID
                 $vehiculo = mysqli_fetch_assoc($resultCheckVehiculo);
                 $vehiculo_id = $vehiculo['ID'];
                 
-                // Crear asignación al mecánico
+                // Si el estado no es 'Ingresado' o 'Asignado', actualizarlo a 'Asignado'
+                if (!in_array($vehiculo['Estado'], ['Ingresado', 'Asignado'])) {
+                    $queryUpdateEstado = "UPDATE ingreso_vehiculos SET Estado = 'Asignado' WHERE ID = $vehiculo_id";
+                    if (!mysqli_query($conn, $queryUpdateEstado)) {
+                        error_log("Error al actualizar estado del vehículo: " . mysqli_error($conn));
+                    }
+                }
+            } else {
+                // El vehículo no existe, crearlo en ingreso_vehiculos
+                // Estado inicial: 'Asignado' (porque ya tiene mecánico asignado)
+                $queryInsertVehiculo = "INSERT INTO ingreso_vehiculos (
+                    Placa, TipoVehiculo, Marca, Modelo, Anio, 
+                    ConductorNombre, Proposito, Observaciones, 
+                    Estado, FechaRegistro
+                ) VALUES (
+                    '$placa', '$tipoVehiculo', '$marca', '$modelo', $anio,
+                    '$conductorNombre', '$proposito', $observacionesSolicitud,
+                    'Asignado', NOW()
+                )";
+                
+                if (mysqli_query($conn, $queryInsertVehiculo)) {
+                    $vehiculo_id = mysqli_insert_id($conn);
+                } else {
+                    throw new Exception("Error al crear registro de vehículo: " . mysqli_error($conn));
+                }
+            }
+            
+            // Crear asignación al mecánico
+            if ($vehiculo_id) {
                 // Intentar diferentes rutas para encontrar f_consulta.php
                 $rutas_posibles = [
                     __DIR__ . '/../../consulta/functions/f_consulta.php',
@@ -590,12 +691,26 @@ function aprobarSolicitudAgendamiento($solicitud_id, $supervisor_id, $agenda_id 
                     $resultado_asignacion = asignarMecanico($vehiculo_id, $mecanico_id, $observaciones);
                     
                     if (isset($resultado_asignacion['status']) && $resultado_asignacion['status'] === 'error') {
-                        error_log("Error al asignar mecánico: " . $resultado_asignacion['message']);
-                        // No lanzar excepción, solo registrar el error
+                        throw new Exception("Error al asignar mecánico: " . $resultado_asignacion['message']);
                     }
                 } else {
-                    error_log("No se pudo cargar f_consulta.php o la función asignarMecanico no existe");
-                    // No lanzar excepción, solo registrar el error
+                    // Si no se puede usar la función, crear la asignación directamente
+                    $observaciones = "Asignación automática desde solicitud de agendamiento #$solicitud_id";
+                    $queryInsertAsignacion = "INSERT INTO asignaciones_mecanico (
+                        VehiculoID, MecanicoID, Estado, Observaciones, FechaAsignacion
+                    ) VALUES (
+                        $vehiculo_id, $mecanico_id, 'Asignado', '$observaciones', NOW()
+                    )";
+                    
+                    if (!mysqli_query($conn, $queryInsertAsignacion)) {
+                        throw new Exception("Error al crear asignación de mecánico: " . mysqli_error($conn));
+                    }
+                    
+                    // Actualizar estado del vehículo a 'Asignado'
+                    $queryUpdateVehiculo = "UPDATE ingreso_vehiculos SET Estado = 'Asignado' WHERE ID = $vehiculo_id";
+                    if (!mysqli_query($conn, $queryUpdateVehiculo)) {
+                        error_log("Error al actualizar estado del vehículo: " . mysqli_error($conn));
+                    }
                 }
             }
         }
@@ -703,13 +818,90 @@ function gestionarAgendaTaller($datos) {
         $disponible = isset($datos['disponible']) ? intval($datos['disponible']) : 1;
         $observaciones = !empty($datos['observaciones']) ? mysqli_real_escape_string($conn, $datos['observaciones']) : NULL;
 
+        // Validar que hora_inicio sea menor que hora_fin
+        if (strtotime($hora_inicio) >= strtotime($hora_fin)) {
+            throw new Exception("La hora de inicio debe ser menor que la hora de fin");
+        }
+
         if (empty($datos['id'])) {
+            // Verificar que no exista una hora duplicada (misma fecha, misma hora inicio, misma hora fin)
+            $queryCheckDuplicado = "SELECT COUNT(*) as total 
+                FROM agenda_taller 
+                WHERE Fecha = '$fecha' 
+                AND HoraInicio = '$hora_inicio' 
+                AND HoraFin = '$hora_fin'";
+            $resultCheckDuplicado = mysqli_query($conn, $queryCheckDuplicado);
+            $duplicado = mysqli_fetch_assoc($resultCheckDuplicado);
+            
+            if ($duplicado['total'] > 0) {
+                throw new Exception("Ya existe una hora con la misma fecha y rango horario ($fecha de $hora_inicio a $hora_fin)");
+            }
+            
+            // Verificar solapamiento de horarios (que no se solape con otra hora existente)
+            $queryCheckSolapamiento = "SELECT COUNT(*) as total 
+                FROM agenda_taller 
+                WHERE Fecha = '$fecha' 
+                AND Disponible = 1
+                AND (
+                    (HoraInicio < '$hora_fin' AND HoraFin > '$hora_inicio')
+                )";
+            $resultCheckSolapamiento = mysqli_query($conn, $queryCheckSolapamiento);
+            $solapamiento = mysqli_fetch_assoc($resultCheckSolapamiento);
+            
+            if ($solapamiento['total'] > 0) {
+                throw new Exception("La hora se solapa con otra hora existente en la misma fecha. Verifique que no haya conflictos de horario.");
+            }
+            
             // Crear nueva hora
             $query = "INSERT INTO agenda_taller (Fecha, HoraInicio, HoraFin, Disponible, Observaciones)
                      VALUES ('$fecha', '$hora_inicio', '$hora_fin', $disponible, " . ($observaciones ? "'$observaciones'" : "NULL") . ")";
         } else {
             // Actualizar hora existente
             $id = intval($datos['id']);
+            
+            // Verificar que no exista otra hora duplicada (excluyendo la actual)
+            $queryCheckDuplicado = "SELECT COUNT(*) as total 
+                FROM agenda_taller 
+                WHERE Fecha = '$fecha' 
+                AND HoraInicio = '$hora_inicio' 
+                AND HoraFin = '$hora_fin'
+                AND ID != $id";
+            $resultCheckDuplicado = mysqli_query($conn, $queryCheckDuplicado);
+            $duplicado = mysqli_fetch_assoc($resultCheckDuplicado);
+            
+            if ($duplicado['total'] > 0) {
+                throw new Exception("Ya existe otra hora con la misma fecha y rango horario ($fecha de $hora_inicio a $hora_fin)");
+            }
+            
+            // Verificar solapamiento con otras horas (excluyendo la actual)
+            $queryCheckSolapamiento = "SELECT COUNT(*) as total 
+                FROM agenda_taller 
+                WHERE Fecha = '$fecha' 
+                AND Disponible = 1
+                AND ID != $id
+                AND (
+                    (HoraInicio < '$hora_fin' AND HoraFin > '$hora_inicio')
+                )";
+            $resultCheckSolapamiento = mysqli_query($conn, $queryCheckSolapamiento);
+            $solapamiento = mysqli_fetch_assoc($resultCheckSolapamiento);
+            
+            if ($solapamiento['total'] > 0) {
+                throw new Exception("La hora se solapa con otra hora existente en la misma fecha. Verifique que no haya conflictos de horario.");
+            }
+            
+            // Verificar si la hora está asignada a alguna solicitud aprobada
+            $queryCheckAsignada = "SELECT COUNT(*) as total 
+                FROM solicitudes_agendamiento 
+                WHERE AgendaID = $id 
+                AND Estado = 'Aprobada'";
+            $resultCheckAsignada = mysqli_query($conn, $queryCheckAsignada);
+            $asignada = mysqli_fetch_assoc($resultCheckAsignada);
+            
+            if ($asignada['total'] > 0 && $disponible == 0) {
+                throw new Exception("No se puede marcar como no disponible una hora que está asignada a una solicitud aprobada");
+            }
+            
+            // Actualizar hora existente
             $query = "UPDATE agenda_taller 
                      SET Fecha = '$fecha',
                          HoraInicio = '$hora_inicio',
@@ -846,10 +1038,10 @@ function notificarAprobacionSolicitud($solicitud_id) {
         $fecha_obj = new DateTime($solicitud['FechaAgenda']);
         $fecha_agenda = $fecha_obj->format('d/m/Y');
     } else {
-        $fecha_agenda = $solicitud['FechaSolicitada'];
+        $fecha_agenda = !empty($solicitud['FechaAgenda']) ? $solicitud['FechaAgenda'] : date('Y-m-d');
     }
     
-    $hora_agenda = !empty($solicitud['HoraInicio']) ? $solicitud['HoraInicio'] : $solicitud['HoraSolicitada'];
+    $hora_agenda = !empty($solicitud['HoraInicioAgenda']) ? $solicitud['HoraInicioAgenda'] : (!empty($solicitud['HoraInicio']) ? $solicitud['HoraInicio'] : 'N/A');
 
     $titulo = "Solicitud de Agendamiento Aprobada";
     $mensaje = "Su solicitud #{$solicitud_id} para el vehículo {$solicitud['Placa']} ha sido aprobada. Fecha asignada: {$fecha_agenda} a las {$hora_agenda}";

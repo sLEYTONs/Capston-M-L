@@ -177,7 +177,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !h
                                             'Recepcionista' => 'badge-recepcionista',
                                             'Guardia' => 'badge-guardia',
                                             'Supervisor' => 'badge-supervisor',
-                                            'Chofer' => 'badge-chofer'
+                                            'Chofer' => 'badge-chofer',
+                                            'Asistente de Repuestos' => 'badge-asistente-repuestos',
+                                            'Coordinador de Zona' => 'badge-coordinador-zona',
+                                            'Ejecutivo/a de Ventas' => 'badge-ejecutivo-ventas',
+                                            'Supervisor de Flotas' => 'badge-supervisor-flotas',
+                                            'Encargado de Llaves' => 'badge-encargado-llaves'
                                         ][$rol] ?? 'badge-secondary';
                                         ?>
                                         <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($rol); ?></span>
@@ -326,6 +331,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !h
 .badge-supervisor { background-color: #6F42C1; color: white; }
 .badge-chofer { background-color: #FD7E14; color: white; }
 .badge-asistente-repuestos { background-color: #20C997; color: white; }
+.badge-coordinador-zona { background-color: #9C27B0; color: white; }
+.badge-ejecutivo-ventas { background-color: #2196F3; color: white; }
+.badge-supervisor-flotas { background-color: #FF9800; color: white; }
+.badge-encargado-llaves { background-color: #795548; color: white; }
 
 /* Cuerpo del dropdown */
 .dropdown-body {

@@ -235,3 +235,151 @@
 [22-Nov-2025 20:32:14 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
 [22-Nov-2025 20:32:23 Europe/Berlin] Notificación enviada al mecánico ID: 36 para vehículo SSXD63
 [22-Nov-2025 20:32:23 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37
+[23-Nov-2025 23:02:14 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 1
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[23-Nov-2025 23:15:16 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[23-Nov-2025 23:15:52 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[23-Nov-2025 23:15:52 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[23-Nov-2025 23:15:52 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[23-Nov-2025 23:15:52 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[23-Nov-2025 23:15:53 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[23-Nov-2025 23:15:59 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37
+[23-Nov-2025 23:35:45 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 3
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[23-Nov-2025 23:37:22 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[23-Nov-2025 23:37:31 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[23-Nov-2025 23:37:38 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[23-Nov-2025 23:50:40 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 3
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[23-Nov-2025 23:54:43 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[23-Nov-2025 23:54:55 Europe/Berlin] Notificación enviada al mecánico ID: 36 para vehículo SSXD63
+[23-Nov-2025 23:54:55 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37
+[24-Nov-2025 00:00:06 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 3
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[24-Nov-2025 00:00:56 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[24-Nov-2025 00:01:01 Europe/Berlin] Notificación enviada al mecánico ID: 36 para vehículo SSXD63
+[24-Nov-2025 00:01:01 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 37
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[24-Nov-2025 00:01:08 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[24-Nov-2025 00:06:51 Europe/Berlin] Notificaciones enviadas a 10 supervisores
+[24-Nov-2025 00:07:00 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 2
+[24-Nov-2025 00:07:00 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[24-Nov-2025 00:07:00 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[24-Nov-2025 00:07:00 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[24-Nov-2025 00:07:01 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-23: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-29: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-27: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-28: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-26: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-25: 1
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-24: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-11-30: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-01: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-02: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-03: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-04: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-05: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-06: 0
+[24-Nov-2025 00:18:17 Europe/Berlin] Horas disponibles para fecha 2025-12-07: 0
+[24-Nov-2025 00:18:22 Europe/Berlin] Notificación enviada al mecánico ID: 36 para vehículo SSXD39
+[24-Nov-2025 00:18:22 Europe/Berlin] Notificación de aprobación enviada al chofer ID: 47

@@ -34,7 +34,7 @@
                         <th>Placa</th>
                         <th>Vehículo</th>
                         <th>Conductor</th>
-                        <th>Fecha Ingreso</th>
+                        <th>Fecha Solicitud</th>
                         <th>Mecánico</th>
                         <th>Estado</th>
                         <th>Acciones</th>

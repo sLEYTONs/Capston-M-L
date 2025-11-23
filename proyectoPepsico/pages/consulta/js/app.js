@@ -146,8 +146,11 @@ class ConsultaVehiculos {
                         }
                     },
                     { 
-                        data: 'FechaIngresoFormateada',
-                        className: 'fecha-column'
+                        data: 'FechaSolicitudFormateada',
+                        className: 'fecha-column',
+                        render: (data, type, row) => {
+                            return data || 'N/A';
+                        }
                     },
                     { 
                         data: 'MecanicoNombre',
@@ -305,34 +308,183 @@ class ConsultaVehiculos {
         });
     }
 
+    getEstadoClass(estado) {
+        const clases = {
+            'Pendiente Ingreso': 'bg-warning',
+            'Ingresado': 'bg-info',
+            'Asignado': 'bg-primary',
+            'En Proceso': 'bg-info',
+            'En Revisión': 'bg-warning',
+            'Completado': 'bg-success',
+            'Aprobada': 'bg-success',
+            'Rechazada': 'bg-danger',
+            'Pendiente': 'bg-warning'
+        };
+        return clases[estado] || 'bg-secondary';
+    }
+
     mostrarDetallesEnModal(vehiculo) {
+        const estadoClass = this.getEstadoClass(vehiculo.Estado || vehiculo.EstadoSolicitud || 'Pendiente');
         const modalHtml = `
             <div class="modal fade" id="detallesModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
+                <div class="modal-dialog modal-xl">
                     <div class="modal-content">
-                        <div class="modal-header">
+                        <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
                                 <i class="fas fa-car me-2"></i>
                                 Detalles del Vehículo - ${vehiculo.Placa}
                             </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Información del Vehículo</h6>
-                                    <p><strong>Placa:</strong> ${vehiculo.Placa}</p>
-                                    <p><strong>Tipo:</strong> ${vehiculo.TipoVehiculo}</p>
-                                    <p><strong>Marca/Modelo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}</p>
-                                    <p><strong>Año:</strong> ${vehiculo.Anio || 'N/A'}</p>
-                                    <p><strong>Kilometraje:</strong> ${vehiculo.Kilometraje || 'N/A'}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Información del Conductor</h6>
-                                    <p><strong>Nombre:</strong> ${vehiculo.ConductorNombre}</p>
-                                    <p><strong>Fecha Ingreso:</strong> ${vehiculo.FechaIngresoFormateada}</p>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <span class="badge ${estadoClass} fs-6">${vehiculo.Estado || vehiculo.EstadoSolicitud || 'N/A'}</span>
                                 </div>
                             </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-car me-2"></i>Información del Vehículo</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Placa:</th>
+                                                    <td><strong>${vehiculo.Placa}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Tipo:</th>
+                                                    <td>${vehiculo.TipoVehiculo || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Marca:</th>
+                                                    <td>${vehiculo.Marca || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Modelo:</th>
+                                                    <td>${vehiculo.Modelo || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Año:</th>
+                                                    <td>${vehiculo.Anio || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Kilometraje:</th>
+                                                    <td>${vehiculo.Kilometraje ? vehiculo.Kilometraje.toLocaleString() + ' km' : 'N/A'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-user me-2"></i>Información del Conductor</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Nombre:</th>
+                                                    <td><strong>${vehiculo.ConductorNombre || 'N/A'}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Chofer:</th>
+                                                    <td>${vehiculo.ChoferNombre || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Fecha de Solicitud:</th>
+                                                    <td>${vehiculo.FechaSolicitudFormateada || 'N/A'}</td>
+                                                </tr>
+                                                ${vehiculo.VehiculoIngresado ? `
+                                                <tr>
+                                                    <th class="text-muted">Fecha de Ingreso:</th>
+                                                    <td>${vehiculo.FechaIngresoFormateada || 'N/A'}</td>
+                                                </tr>
+                                                ` : `
+                                                <tr>
+                                                    <td colspan="2" class="text-muted">
+                                                        <small><i class="fas fa-info-circle me-1"></i>El vehículo aún no ha sido ingresado por el guardia</small>
+                                                    </td>
+                                                </tr>
+                                                `}
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Información de la Agenda</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Fecha Agendada:</th>
+                                                    <td><strong>${vehiculo.FechaAgendaFormateada || 'N/A'}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Hora:</th>
+                                                    <td>${vehiculo.HoraInicioFormateada && vehiculo.HoraFinFormateada ? `${vehiculo.HoraInicioFormateada} - ${vehiculo.HoraFinFormateada}` : 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Propósito:</th>
+                                                    <td>${vehiculo.Proposito || 'N/A'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-tools me-2"></i>Información de Mantenimiento</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm table-borderless mb-0">
+                                                <tr>
+                                                    <th width="40%" class="text-muted">Mecánico Asignado:</th>
+                                                    <td><strong>${vehiculo.MecanicoNombre || 'Sin asignar'}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Supervisor:</th>
+                                                    <td>${vehiculo.SupervisorNombre || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">Fecha de Aprobación:</th>
+                                                    <td>${vehiculo.FechaAprobacionFormateada || 'N/A'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-muted">ID Solicitud:</th>
+                                                    <td>#${vehiculo.SolicitudID || 'N/A'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            ${vehiculo.ObservacionesSolicitud ? `
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Observaciones</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="mb-0">${vehiculo.ObservacionesSolicitud}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>

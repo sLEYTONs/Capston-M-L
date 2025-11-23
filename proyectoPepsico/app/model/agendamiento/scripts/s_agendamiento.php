@@ -133,8 +133,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'conductor_telefono' => trim($_POST['conductor_telefono'] ?? ''),
                     'proposito' => trim($_POST['proposito'] ?? ''),
                     'observaciones' => trim($_POST['observaciones'] ?? ''),
-                    'fecha_solicitada' => trim($_POST['fecha_solicitada'] ?? ''),
-                    'hora_solicitada' => trim($_POST['hora_solicitada'] ?? ''),
                     'fotos' => !empty($fotos_procesadas) ? $fotos_procesadas : null
                 ];
 
@@ -220,8 +218,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                $horas = obtenerHorasDisponibles($fecha);
-                error_log("Horas disponibles para fecha $fecha: " . count($horas));
+                // Obtener mecanico_id opcional para filtrar horas ya asignadas a ese mecánico
+                $mecanico_id = !empty($_POST['mecanico_id']) ? intval($_POST['mecanico_id']) : null;
+
+                $horas = obtenerHorasDisponibles($fecha, $mecanico_id);
+                error_log("Horas disponibles para fecha $fecha" . ($mecanico_id ? " (mecánico ID: $mecanico_id)" : "") . ": " . count($horas));
                 echo json_encode([
                     'status' => 'success',
                     'data' => $horas

@@ -93,8 +93,21 @@ function mostrarSolicitudes(solicitudes) {
             fechaHoraAsignada = `${fecha} ${horaInicio}${horaFin ? ' - ' + horaFin : ''}`;
         }
         
-        const fechaActualizacion = solicitud.FechaActualizacion ? 
-            new Date(solicitud.FechaActualizacion).toLocaleDateString('es-ES') : '-';
+        // Mostrar fecha y hora de respuesta (cuando el supervisor aprobó/rechazó)
+        // Solo mostrar si el estado es Aprobada o Rechazada (cuando el supervisor respondió)
+        let fechaRespuesta = '-';
+        if ((solicitud.Estado === 'Aprobada' || solicitud.Estado === 'Rechazada') && solicitud.FechaActualizacion) {
+            const fechaResp = new Date(solicitud.FechaActualizacion);
+            fechaRespuesta = fechaResp.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }) + ' ' + fechaResp.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
 
         // Determinar qué botones mostrar en acciones
         let accionesHTML = '';
@@ -122,7 +135,7 @@ function mostrarSolicitudes(solicitudes) {
             <td>${solicitud.Marca} ${solicitud.Modelo}</td>
             <td>${fechaHoraAsignada}</td>
             <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
-            <td>${fechaActualizacion}</td>
+            <td>${fechaRespuesta}</td>
             <td>${accionesHTML}</td>
         `;
         tbody.appendChild(row);

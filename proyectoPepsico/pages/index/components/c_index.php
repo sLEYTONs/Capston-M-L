@@ -102,18 +102,7 @@
 
                         <!-- Información de Agendamiento -->
                         <div class="form-group">
-                            <h3>Fecha y Hora Solicitada</h3>
-                            <div class="form-row">
-                                <div class="form-field">
-                                    <label for="fecha-solicitada">Fecha Solicitada *</label>
-                                    <input type="date" id="fecha-solicitada" name="fechaSolicitada" required min="<?php echo date('Y-m-d'); ?>">
-                                </div>
-                                <div class="form-field">
-                                    <label for="hora-solicitada">Hora Solicitada *</label>
-                                    <input type="time" id="hora-solicitada" name="horaSolicitada" required>
-                                </div>
-                            </div>
-                            <p class="help-text">Seleccione la fecha y hora en la que desea agendar su visita al taller. El supervisor verificará la disponibilidad y le notificará.</p>
+                            <p class="help-text">El supervisor revisará su solicitud y le asignará una fecha y hora disponible en la agenda del taller.</p>
                         </div>
                     </div>
 

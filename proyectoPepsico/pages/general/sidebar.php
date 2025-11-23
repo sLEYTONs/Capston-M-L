@@ -59,7 +59,11 @@
                       'Guardia' => 'badge-guardia',
                       'Supervisor' => 'badge-supervisor',
                       'Chofer' => 'badge-chofer',
-                      'Asistente de Repuestos' => 'badge-asistente-repuestos'
+                      'Asistente de Repuestos' => 'badge-asistente-repuestos',
+                      'Coordinador de Zona' => 'badge-coordinador-zona',
+                      'Ejecutivo/a de Ventas' => 'badge-ejecutivo-ventas',
+                      'Supervisor de Flotas' => 'badge-supervisor-flotas',
+                      'Encargado de Llaves' => 'badge-encargado-llaves'
                   ][$rol] ?? 'badge-secondary';
                   ?>
                   <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($rol); ?></span>
@@ -346,6 +350,186 @@
         </li>
         <?php endif; ?>
 
+        <!-- Menú para Coordinador de Zona -->
+        <?php if (tiene_acceso('inventario_coordinador.php') || tiene_acceso('coordinacion_jefe_taller.php') || tiene_acceso('control_gastos_vehiculos.php') || tiene_acceso('reportes_semanales.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-map-marked-alt"></i>
+            </span>
+            <span class="pc-mtext">Coordinación de Zona</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('inventario_coordinador.php')): ?>
+            <li class="pc-item">
+              <a href="inventario_coordinador.php" class="pc-link">
+                <span class="pc-mtext">Inventario</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('coordinacion_jefe_taller.php')): ?>
+            <li class="pc-item">
+              <a href="coordinacion_jefe_taller.php" class="pc-link">
+                <span class="pc-mtext">Coordinación Jefe Taller</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('control_gastos_vehiculos.php')): ?>
+            <li class="pc-item">
+              <a href="control_gastos_vehiculos.php" class="pc-link">
+                <span class="pc-mtext">Control Gastos</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('reportes_semanales.php')): ?>
+            <li class="pc-item">
+              <a href="reportes_semanales.php" class="pc-link">
+                <span class="pc-mtext">Reportes Semanales</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('reportes.php')): ?>
+            <li class="pc-item">
+              <a href="reportes.php" class="pc-link">
+                <span class="pc-mtext">Reportes</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <!-- Menú para Ejecutivo/a de Ventas -->
+        <?php if (tiene_acceso('recepcion_devolucion_vehiculos.php') || tiene_acceso('coordinacion_taller_fallas.php') || tiene_acceso('vehiculos_asignados.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-handshake"></i>
+            </span>
+            <span class="pc-mtext">Ventas Terreno</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('recepcion_devolucion_vehiculos.php')): ?>
+            <li class="pc-item">
+              <a href="recepcion_devolucion_vehiculos.php" class="pc-link">
+                <span class="pc-mtext">Recepción/Devolución</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('coordinacion_taller_fallas.php')): ?>
+            <li class="pc-item">
+              <a href="coordinacion_taller_fallas.php" class="pc-link">
+                <span class="pc-mtext">Coordinación Taller</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('vehiculos_asignados.php')): ?>
+            <li class="pc-item">
+              <a href="vehiculos_asignados.php" class="pc-link">
+                <span class="pc-mtext">Vehículos Asignados</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <!-- Menú para Supervisor de Flotas -->
+        <?php if (tiene_acceso('supervisar_politicas_uso.php') || tiene_acceso('gestion_incidentes_siniestros.php') || tiene_acceso('coordinacion_jefe_flota.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-truck"></i>
+            </span>
+            <span class="pc-mtext">Supervisión Flotas</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('supervisar_politicas_uso.php')): ?>
+            <li class="pc-item">
+              <a href="supervisar_politicas_uso.php" class="pc-link">
+                <span class="pc-mtext">Políticas de Uso</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('gestion_incidentes_siniestros.php')): ?>
+            <li class="pc-item">
+              <a href="gestion_incidentes_siniestros.php" class="pc-link">
+                <span class="pc-mtext">Incidentes/Siniestros</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('coordinacion_jefe_flota.php')): ?>
+            <li class="pc-item">
+              <a href="coordinacion_jefe_flota.php" class="pc-link">
+                <span class="pc-mtext">Coordinación Jefe Flota</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('reportes.php')): ?>
+            <li class="pc-item">
+              <a href="reportes.php" class="pc-link">
+                <span class="pc-mtext">Reportes</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <!-- Menú para Encargado de Llaves -->
+        <?php if (tiene_acceso('control_llaves.php') || tiene_acceso('registro_prestamos_temporales.php') || tiene_acceso('control_duplicados_chapas.php') || tiene_acceso('gestion_cambios_perdidas.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-key"></i>
+            </span>
+            <span class="pc-mtext">Control Llaves</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('control_llaves.php')): ?>
+            <li class="pc-item">
+              <a href="control_llaves.php" class="pc-link">
+                <span class="pc-mtext">Control de Llaves</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('registro_prestamos_temporales.php')): ?>
+            <li class="pc-item">
+              <a href="registro_prestamos_temporales.php" class="pc-link">
+                <span class="pc-mtext">Préstamos Temporales</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('control_duplicados_chapas.php')): ?>
+            <li class="pc-item">
+              <a href="control_duplicados_chapas.php" class="pc-link">
+                <span class="pc-mtext">Duplicados/Chapas</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('gestion_cambios_perdidas.php')): ?>
+            <li class="pc-item">
+              <a href="gestion_cambios_perdidas.php" class="pc-link">
+                <span class="pc-mtext">Cambios/Pérdidas</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
       </ul>
     </div>
   </div>
@@ -460,6 +644,26 @@
 
 .badge-asistente-repuestos {
   background-color: #20C997;
+  color: white;
+}
+
+.badge-coordinador-zona {
+  background-color: #9C27B0;
+  color: white;
+}
+
+.badge-ejecutivo-ventas {
+  background-color: #2196F3;
+  color: white;
+}
+
+.badge-supervisor-flotas {
+  background-color: #FF9800;
+  color: white;
+}
+
+.badge-encargado-llaves {
+  background-color: #795548;
   color: white;
 }
 

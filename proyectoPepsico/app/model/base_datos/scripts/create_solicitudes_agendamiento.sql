@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS `solicitudes_agendamiento` (
     `TipoVehiculo` VARCHAR(50) NOT NULL,
     `Marca` VARCHAR(100) NOT NULL,
     `Modelo` VARCHAR(100) NOT NULL,
-    `Color` VARCHAR(50) DEFAULT NULL,
     `Anio` INT(4) DEFAULT NULL,
     `ConductorNombre` VARCHAR(255) NOT NULL,
     `ConductorCedula` VARCHAR(20) NOT NULL,
@@ -37,8 +36,6 @@ CREATE TABLE IF NOT EXISTS `solicitudes_agendamiento` (
     `Area` VARCHAR(100) DEFAULT NULL,
     `PersonaContacto` VARCHAR(255) DEFAULT NULL,
     `Observaciones` TEXT DEFAULT NULL,
-    `FechaSolicitada` DATE NOT NULL,
-    `HoraSolicitada` TIME NOT NULL,
     `Estado` ENUM('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada') NOT NULL DEFAULT 'Pendiente',
     `AgendaID` INT(11) DEFAULT NULL COMMENT 'ID de la hora asignada en agenda_taller',
     `SupervisorID` INT(11) DEFAULT NULL COMMENT 'ID del supervisor que aprobó/rechazó',
@@ -48,7 +45,6 @@ CREATE TABLE IF NOT EXISTS `solicitudes_agendamiento` (
     PRIMARY KEY (`ID`),
     KEY `ChoferID` (`ChoferID`),
     KEY `Estado` (`Estado`),
-    KEY `FechaSolicitada` (`FechaSolicitada`),
     KEY `AgendaID` (`AgendaID`),
     KEY `SupervisorID` (`SupervisorID`),
     CONSTRAINT `fk_solicitudes_chofer` FOREIGN KEY (`ChoferID`) 
@@ -65,6 +61,6 @@ CREATE TABLE IF NOT EXISTS `solicitudes_agendamiento` (
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Índice compuesto para búsquedas por estado y fecha
-CREATE INDEX `idx_estado_fecha` ON `solicitudes_agendamiento` (`Estado`, `FechaSolicitada`);
+-- Índice compuesto para búsquedas por estado y fecha de creación
+CREATE INDEX `idx_estado_fecha` ON `solicitudes_agendamiento` (`Estado`, `FechaCreacion`);
 

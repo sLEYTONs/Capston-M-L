@@ -20,7 +20,9 @@ $paginas_por_rol = [
     ],
     'Jefe de Taller' => [
         'consulta.php', 'reportes.php', 'base_datos.php',
-        'control_ingreso.php', 'repuestos.php', 'calidad.php'
+        'control_ingreso.php', 'repuestos.php', 'calidad.php',
+        'ingreso_vehiculos.php', 'recepcion_tecnica.php',
+        'tareas.php', 'gestion_pausas_repuestos.php'
     ],
     'Mecánico' => [
         'tareas.php',
@@ -30,7 +32,8 @@ $paginas_por_rol = [
         'repuestos.php'
     ],
     'Recepcionista' => [
-        'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php'
+        'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php',
+        'reportes.php'
     ],
     'Guardia' => [
         'control_ingreso.php',
@@ -38,7 +41,9 @@ $paginas_por_rol = [
     ],
     'Supervisor' => [
         'consulta.php',
-        'gestion_solicitudes.php'
+        'gestion_solicitudes.php',
+        'reportes.php',
+        'base_datos.php'
     ],
     'Chofer' => [
         'solicitudes_agendamiento.php',
@@ -51,6 +56,36 @@ $paginas_por_rol = [
         'comunicacion_proveedores.php',
         'gestion_repuestos_jefe.php',
         'estado_solicitudes_repuestos.php'
+    ],
+    'Coordinador de Zona' => [
+        'inventario_coordinador.php',
+        'coordinacion_jefe_taller.php',
+        'control_gastos_vehiculos.php',
+        'reportes_semanales.php',
+        'reportes.php',
+        'consulta.php',
+        'base_datos.php'
+    ],
+    'Ejecutivo/a de Ventas' => [
+        'recepcion_devolucion_vehiculos.php',
+        'coordinacion_taller_fallas.php',
+        'vehiculos_asignados.php',
+        'consulta.php'
+    ],
+    'Supervisor de Flotas' => [
+        'supervisar_politicas_uso.php',
+        'gestion_incidentes_siniestros.php',
+        'coordinacion_jefe_flota.php',
+        'consulta.php',
+        'reportes.php',
+        'base_datos.php'
+    ],
+    'Encargado de Llaves' => [
+        'control_llaves.php',
+        'registro_prestamos_temporales.php',
+        'control_duplicados_chapas.php',
+        'gestion_cambios_perdidas.php',
+        'consulta.php'
     ]
 ];
 
@@ -78,7 +113,11 @@ function obtener_pagina_principal($rol) {
         'Guardia' => 'control_ingreso.php',
         'Supervisor' => 'consulta.php',
         'Chofer' => 'solicitudes_agendamiento.php',
-        'Asistente de Repuestos' => 'repuestos.php'
+        'Asistente de Repuestos' => 'repuestos.php',
+        'Coordinador de Zona' => 'inventario_coordinador.php',
+        'Ejecutivo/a de Ventas' => 'vehiculos_asignados.php',
+        'Supervisor de Flotas' => 'supervisar_politicas_uso.php',
+        'Encargado de Llaves' => 'control_llaves.php'
     ];
     
     return $paginas_principales[$rol] ?? 'consulta.php';

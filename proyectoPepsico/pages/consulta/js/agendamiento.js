@@ -102,15 +102,19 @@ class GestionAgendamiento {
         solicitudes.forEach(solicitud => {
             const row = document.createElement('tr');
             const estadoClass = this.getEstadoClass(solicitud.Estado);
-            const fechaSolicitada = new Date(solicitud.FechaSolicitada).toLocaleDateString('es-ES');
-            const horaSolicitada = solicitud.HoraSolicitada || 'N/A';
+            const fechaAgenda = solicitud.FechaAgenda 
+                ? new Date(solicitud.FechaAgenda).toLocaleDateString('es-ES')
+                : 'Sin asignar';
+            const horaAgenda = solicitud.HoraInicioAgenda 
+                ? `${solicitud.HoraInicioAgenda.substring(0, 5)} - ${solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : ''}`
+                : 'Sin asignar';
 
             row.innerHTML = `
                 <td>${solicitud.ID}</td>
                 <td>${solicitud.Placa}</td>
                 <td>${solicitud.Marca} ${solicitud.Modelo}</td>
                 <td>${solicitud.ConductorNombre}</td>
-                <td>${fechaSolicitada} ${horaSolicitada}</td>
+                <td>${fechaAgenda} ${horaAgenda !== 'Sin asignar' ? horaAgenda : ''}</td>
                 <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
                 <td>${solicitud.ChoferNombre || 'N/A'}</td>
                 <td>
@@ -189,7 +193,7 @@ class GestionAgendamiento {
                 const solicitud = data.data[0];
                 this.solicitudActual = solicitud;
                 this.mostrarDetallesSolicitud(solicitud);
-                this.cargarHorasDisponibles(solicitud.FechaSolicitada);
+                // La fecha se selecciona del calendario, no de la solicitud
                 this.cargarMecanicosDisponibles();
                 
                 const modal = new bootstrap.Modal(document.getElementById('gestionarSolicitudModal'));
@@ -222,11 +226,13 @@ class GestionAgendamiento {
                     <h6>Información de la Visita</h6>
                     <p><strong>Propósito:</strong> ${solicitud.Proposito}</p>
                 </div>
+                ${solicitud.FechaAgenda ? `
                 <div class="col-md-6">
-                    <h6>Fecha y Hora Solicitada</h6>
-                    <p><strong>Fecha:</strong> ${new Date(solicitud.FechaSolicitada).toLocaleDateString('es-ES')}</p>
-                    <p><strong>Hora:</strong> ${solicitud.HoraSolicitada}</p>
+                    <h6>Fecha y Hora Asignada</h6>
+                    <p><strong>Fecha:</strong> ${new Date(solicitud.FechaAgenda).toLocaleDateString('es-ES')}</p>
+                    ${solicitud.HoraInicioAgenda ? `<p><strong>Hora:</strong> ${solicitud.HoraInicioAgenda.substring(0, 5)} - ${solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : ''}</p>` : ''}
                 </div>
+                ` : ''}
             </div>
             ${solicitud.Observaciones ? `<div class="row mt-3"><div class="col-12"><p><strong>Observaciones:</strong> ${solicitud.Observaciones}</p></div></div>` : ''}
         `;

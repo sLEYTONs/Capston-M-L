@@ -7,21 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let formDataCache = null;
 
-    // Set default date for fecha solicitada (mínimo hoy)
-    const fechaSolicitada = document.getElementById("fecha-solicitada");
-    if (fechaSolicitada) {
-        const hoy = new Date();
-        fechaSolicitada.min = hoy.toISOString().split('T')[0];
-    }
-
     // Limpieza del formulario
     document.getElementById("clear-form").addEventListener("click", () => {
         form.reset();
-        // Restablecer fecha mínima
-        if (fechaSolicitada) {
-            const hoy = new Date();
-            fechaSolicitada.min = hoy.toISOString().split('T')[0];
-        }
     });
 
     // Envío del formulario con modal
@@ -53,8 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 'area': 'area',
                 'contactPerson': 'persona_contacto',
                 'observations': 'observaciones',
-                'fechaSolicitada': 'fecha_solicitada',
-                'horaSolicitada': 'hora_solicitada'
             };
 
             // Convertir FormData a objeto y mapear campos
@@ -107,18 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Validar que la fecha no sea anterior a hoy
-        const fechaInput = document.getElementById("fecha-solicitada");
-        if (fechaInput && fechaInput.value) {
-            const fechaSolicitada = new Date(fechaInput.value);
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            if (fechaSolicitada < hoy) {
-                fechaInput.classList.add("error");
-                showNotification("La fecha solicitada no puede ser anterior a hoy", "error");
-                valid = false;
-            }
-        }
+        // Validación de fecha removida - el supervisor asigna la fecha
 
         if (!valid) showNotification("Por favor complete los campos obligatorios", "error");
         return valid;
