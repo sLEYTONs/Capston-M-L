@@ -100,8 +100,7 @@
                             <i class="fas fa-truck me-2"></i>Vehículos
                         </button>
                     </li>
-                    <?php if ($usuario_rol === 'Jefe de Taller'): ?>
-                    <!-- Pestañas específicas para Jefe de Taller -->
+                    <!-- Pestañas unificadas para todos los roles -->
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="agendas-tab" data-bs-toggle="tab" data-bs-target="#agendas" type="button" role="tab">
                             <i class="fas fa-calendar-alt me-2"></i>Agendas
@@ -117,24 +116,6 @@
                             <i class="fas fa-user-friends me-2"></i>Usuarios
                         </button>
                     </li>
-                    <?php else: ?>
-                    <!-- Pestañas para otros roles (Administrador, Recepcionista) -->
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="marcas-tab" data-bs-toggle="tab" data-bs-target="#marcas" type="button" role="tab">
-                            <i class="fas fa-tags me-2"></i>Marcas
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="empresas-tab" data-bs-toggle="tab" data-bs-target="#empresas" type="button" role="tab">
-                            <i class="fas fa-building me-2"></i>Empresas
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="graficos-tab" data-bs-toggle="tab" data-bs-target="#graficos" type="button" role="tab">
-                            <i class="fas fa-chart-pie me-2"></i>Gráficos
-                        </button>
-                    </li>
-                    <?php endif; ?>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="conductores-tab" data-bs-toggle="tab" data-bs-target="#conductores" type="button" role="tab">
                             <i class="fas fa-users me-2"></i>Conductores
@@ -174,8 +155,7 @@
                         </div>
                     </div>
 
-                    <?php if ($usuario_rol === 'Jefe de Taller'): ?>
-                    <!-- Pestaña Agendas (Solo Jefe de Taller) -->
+                    <!-- Pestaña Agendas -->
                     <div class="tab-pane fade" id="agendas" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Agendas del Taller</h5>
@@ -200,7 +180,7 @@
                         </div>
                     </div>
 
-                    <!-- Pestaña Repuestos (Solo Jefe de Taller) -->
+                    <!-- Pestaña Repuestos -->
                     <div class="tab-pane fade" id="repuestos" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Repuestos</h5>
@@ -226,7 +206,7 @@
                         </div>
                     </div>
 
-                    <!-- Pestaña Usuarios (Solo Jefe de Taller) -->
+                    <!-- Pestaña Usuarios -->
                     <div class="tab-pane fade" id="usuarios" role="tabpanel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0"><i class="fas fa-user-friends me-2"></i>Usuarios del Sistema</h5>
@@ -251,63 +231,6 @@
                             </table>
                         </div>
                     </div>
-                    <?php else: ?>
-                    <!-- Pestaña Marcas (Otros roles) -->
-                    <div class="tab-pane fade" id="marcas" role="tabpanel">
-                        <h5 class="mb-3"><i class="fas fa-tags me-2"></i>Análisis por Marcas</h5>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="table-responsive">
-                                    <table id="marcas-table" class="table table-striped table-hover" style="width:100%">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Marca</th>
-                                                <th>Total Vehículos</th>
-                                                <th>Activos</th>
-                                                <th>Porcentaje</th>
-                                                <th>Último Ingreso</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="chart-container">
-                                    <canvas id="marcas-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pestaña Empresas - Deshabilitada (columna eliminada) -->
-                    <div class="tab-pane fade" id="empresas" role="tabpanel">
-                        <h5 class="mb-3"><i class="fas fa-building me-2"></i>Análisis por Empresas (No disponible)</h5>
-                        <p class="text-muted">Esta funcionalidad ha sido deshabilitada debido a que la columna EmpresaNombre fue eliminada de la base de datos.</p>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="table-responsive">
-                                    <table id="empresas-table" class="table table-striped table-hover" style="width:100%">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Total Vehículos</th>
-                                                <th>Conductores</th>
-                                                <th>Activos</th>
-                                                <th>Frecuencia</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="chart-container">
-                                    <canvas id="empresas-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
 
                     <!-- Pestaña Conductores -->
                     <div class="tab-pane fade" id="conductores" role="tabpanel">
@@ -332,53 +255,6 @@
                                 </thead>
                                 <tbody></tbody>
                             </table>
-                        </div>
-                    </div>
-
-                    <!-- Pestaña Gráficos -->
-                    <div class="tab-pane fade" id="graficos" role="tabpanel">
-                        <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Gráficos y Analíticas</h5>
-                        <div class="row">
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Distribución por Marcas</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="chart-marcas" height="250"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Distribución por Empresas</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="chart-empresas" height="250"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Estados de Vehículos</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="chart-estados" height="250"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">Ingresos por Mes</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="chart-mensual" height="250"></canvas>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 

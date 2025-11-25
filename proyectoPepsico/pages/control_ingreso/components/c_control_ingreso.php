@@ -98,28 +98,41 @@
                     <!-- Información Básica -->
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <h6 class="section-title">Datos del Vehículo</h6>
-                            <table class="table table-sm table-borderless">
+                            <h6 class="section-title mb-3">
+                                <i class="fas fa-car me-2 text-primary"></i>Datos del Vehículo
+                            </h6>
+                            <table class="table table-sm table-borderless mb-3">
                                 <tr>
-                                    <td class="fw-bold" width="40%">Placa:</td>
-                                    <td id="infoPlaca" class="fw-bold text-primary">-</td>
+                                    <td class="fw-bold text-muted" width="40%">Placa:</td>
+                                    <td id="infoPlaca" class="fw-bold text-primary fs-6">-</td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-bold">Estado:</td>
+                                    <td class="fw-bold text-muted">Estado:</td>
                                     <td id="infoEstado">-</td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-bold">Fecha Ingreso:</td>
+                                    <td class="fw-bold text-muted">Fecha Ingreso:</td>
                                     <td id="infoFechaIngreso">-</td>
                                 </tr>
                             </table>
+                            <!-- Información adicional del vehículo (Tipo, Marca, Modelo, Propósito) -->
+                            <div id="infoVehiculo" class="mt-3" style="display: none;">
+                                <hr class="my-2">
+                                <table class="table table-sm table-borderless">
+                                    <tbody id="infoVehiculoDetalles">
+                                        <!-- Se llenará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="section-title">Información del Conductor</h6>
+                            <h6 class="section-title mb-3">
+                                <i class="fas fa-user me-2 text-info"></i>Información del Conductor
+                            </h6>
                             <table class="table table-sm table-borderless">
                                 <tr>
-                                    <td class="fw-bold" width="40%">Nombre:</td>
-                                    <td id="infoConductorNombre">-</td>
+                                    <td class="fw-bold text-muted" width="40%">Nombre:</td>
+                                    <td id="infoConductorNombre" class="text-dark">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -288,6 +301,124 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnGuardarNovedad">
                     <i class="fas fa-paper-plane me-1"></i>Reportar Novedad
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Vehículo Atrasado -->
+<div class="modal fade" id="modalAtrasado" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header" id="modalAtrasadoHeader">
+                <h5 class="modal-title" id="modalAtrasadoTitulo">
+                    <i class="fas fa-clock me-2"></i>Vehículo Atrasado
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Icono y título principal -->
+                <div class="text-center mb-4">
+                    <div id="modalAtrasadoIcono" class="mb-3">
+                        <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2" id="modalAtrasadoTituloPrincipal">No se puede permitir el ingreso</h4>
+                    <p class="text-muted mb-0" id="modalAtrasadoSubtitulo">El vehículo no cumplió con el horario asignado</p>
+                </div>
+
+                <!-- Alerta principal con motivo -->
+                <div class="alert mb-4" id="modalAtrasadoAlerta">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0 me-3">
+                            <i class="fas fa-info-circle fa-2x" id="modalAtrasadoIconoAlerta"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading fw-bold mb-2" id="modalAtrasadoMotivoTitulo">Motivo de Rechazo</h6>
+                            <p class="mb-0" id="mensajeAtrasado">
+                                El vehículo ha llegado fuera del margen de tiempo permitido.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de la cita -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="card-title mb-0 fw-bold">
+                            <i class="fas fa-calendar-check me-2 text-primary"></i>Información de la Cita Agendada
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="fas fa-car fa-lg text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Placa del Vehículo</small>
+                                        <strong id="modalAtrasadoPlaca" class="fs-6">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="fas fa-calendar fa-lg text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Fecha Asignada</small>
+                                        <strong id="modalAtrasadoFecha" class="fs-6">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="fas fa-clock fa-lg text-success"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Hora Asignada</small>
+                                        <strong id="modalAtrasadoHora" class="fs-6">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <i class="fas fa-hourglass-half fa-lg text-danger"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Hora de Llegada</small>
+                                        <strong id="modalAtrasadoHoraLlegada" class="fs-6 text-danger">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="card border-0 bg-light mb-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0 me-3">
+                                <i class="fas fa-info-circle fa-lg text-info"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <small class="text-dark" id="modalAtrasadoInfoTexto">
+                                    La solicitud ha sido marcada automáticamente como <strong>"Atrasada"</strong>.
+                                    El conductor debe crear una nueva solicitud de agendamiento.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
                 </button>
             </div>
         </div>

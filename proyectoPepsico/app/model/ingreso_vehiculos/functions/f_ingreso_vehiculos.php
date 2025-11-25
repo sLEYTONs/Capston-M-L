@@ -279,8 +279,8 @@ function registrarVehiculoPepsico($datos) {
 
     $sql = "INSERT INTO ingreso_vehiculos (
         Placa, TipoVehiculo, Marca, Modelo, Anio, 
-        ConductorNombre, UsuarioRegistro, FechaRegistro, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+        ConductorNombre, Kilometraje, UsuarioRegistro, FechaRegistro, Estado
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
     
     $stmt = $conn->prepare($sql);
     
@@ -289,18 +289,20 @@ function registrarVehiculoPepsico($datos) {
         throw new Exception('Error preparando la consulta: ' . $conn->error);
     }
     
-    // Manejar valores NULL para año
+    // Manejar valores NULL para año y kilometraje
     $anio = !empty($datos['anio']) ? intval($datos['anio']) : NULL;
+    $kilometraje = !empty($datos['kilometraje']) ? intval($datos['kilometraje']) : NULL;
     
-    // Solo campos mínimos requeridos
+    // Bind parameters: Placa(s), TipoVehiculo(s), Marca(s), Modelo(s), Anio(i), ConductorNombre(s), Kilometraje(i), UsuarioRegistro(i)
     $stmt->bind_param(
-        "ssssis",
+        "ssssisii",
         $placa_normalizada,
         $datos['tipo_vehiculo'],
         $datos['marca'],
         $datos['modelo'],
         $anio,
         $datos['conductor_nombre'],
+        $kilometraje,
         $datos['usuario_id']
     );
     

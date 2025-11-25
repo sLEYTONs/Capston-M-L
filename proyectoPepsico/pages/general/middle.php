@@ -16,7 +16,11 @@ $usuario_rol = $_SESSION['usuario']['rol'];
 $paginas_por_rol = [
     'Administrador' => [
         'base_datos.php', 'consulta.php', 'gestion_usuarios.php', 
-        'ingreso_vehiculos.php', 'reportes.php'
+        'ingreso_vehiculos.php', 'reportes.php', 'mis_solicitudes.php',
+        'solicitudes_agendamiento.php', 'gestion_solicitudes.php',
+        'control_ingreso.php', 'vehiculos_agendados.php', 'tareas.php',
+        'mantenimiento.php', 'calidad.php', 'repuestos.php', 'recepcion_tecnica.php',
+        'gestion_pausas_repuestos.php', 'estado_solicitudes_repuestos.php'
     ],
     'Jefe de Taller' => [
         'consulta.php', 'reportes.php', 'base_datos.php',

@@ -95,16 +95,38 @@ class ControlIngresoApp {
                     const data = response.data;
                     this.vehiculoActual = data;
                     
-                    // Si tiene agenda aprobada, mostrar información de la agenda
-                    if (data.tiene_agenda && data.agenda) {
+                    // Si es atrasado, mostrar modal de atrasado
+                    if (data.es_atrasado) {
+                        this.mostrarModalAtrasado(data);
+                        // También mostrar información básica
+                        if (data.vehiculo) {
+                            this.mostrarInformacionBasica(data);
+                        }
+                    } else if (data.tiene_agenda && data.agenda && data.puede_ingresar) {
+                        // Si tiene agenda aprobada y puede ingresar, mostrar información de la agenda
                         this.mostrarInformacionConAgenda(data);
+                    } else if (data.tiene_agenda && data.agenda && !data.puede_ingresar) {
+                        // Tiene agenda pero no puede ingresar (fuera de horario, otro día, etc.)
+                        this.mostrarInformacionConAgenda(data);
+                        if (data.mensaje) {
+                            this.mostrarAlerta(data.mensaje, 'warning');
+                        }
                     } else if (data.puede_salir) {
-                        // Vehículo ya ingresado - puede salir
+                        // Vehículo completado - puede salir
                         this.mostrarInformacionBasica(data);
                     } else {
                         // No puede ingresar ni salir
-                        this.mostrarAlerta(data.mensaje || 'No se puede procesar esta operación', 'warning');
-                        this.ocultarInformacionVehiculo();
+                        if (data.mensaje) {
+                            this.mostrarAlerta(data.mensaje, 'warning');
+                        } else {
+                            this.mostrarAlerta('No se puede procesar esta operación', 'warning');
+                        }
+                        // Mostrar información del vehículo aunque no pueda procesar
+                        if (data.vehiculo) {
+                            this.mostrarInformacionBasica(data);
+                        } else {
+                            this.ocultarInformacionVehiculo();
+                        }
                     }
                 } else {
                     // No tiene agenda aprobada o no está ingresado
@@ -136,77 +158,157 @@ class ControlIngresoApp {
     mostrarInformacionBasica(data) {
         const vehiculo = data.vehiculo || data;
         
-        $('#infoPlaca').text(vehiculo.Placa);
+        $('#infoPlaca').text(vehiculo.Placa || '-');
+        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
         
-        if (vehiculo.Estado === 'Ingresado') {
-            $('#infoEstado').html('<span class="badge bg-success">En Patio</span>');
+        // Limpiar información adicional del vehículo
+        $('#infoVehiculoDetalles').empty();
+        $('#infoVehiculo').hide();
+        
+        if (vehiculo.Estado === 'Completado') {
+            $('#infoEstado').html('<span class="badge bg-success">Completado - Listo para Salir</span>');
             $('#infoFechaIngreso').text(this.formatearFecha(vehiculo.FechaIngreso));
             
             // Mostrar información adicional del vehículo si existe
-            let infoVehiculo = '';
-            if (vehiculo.TipoVehiculo) infoVehiculo += `<strong>Tipo:</strong> ${vehiculo.TipoVehiculo}<br>`;
-            if (vehiculo.Marca && vehiculo.Modelo) infoVehiculo += `<strong>Vehículo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}<br>`;
+            this.mostrarInfoAdicionalVehiculo(vehiculo);
             
-            if ($('#infoVehiculo').length === 0) {
-                $('#infoConductorNombre').after('<div id="infoVehiculo" class="mt-2"></div>');
+            // Mostrar alerta informativa para salida
+            const alertHtml = `
+                <div class="alert alert-success mb-3" id="alertAgenda">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Vehículo completado:</strong> El mecánico ha terminado el proceso. El vehículo está listo para salir.
+                </div>
+            `;
+            
+            if ($('#alertAgenda').length === 0) {
+                $('#alertOperacion').after(alertHtml);
+            } else {
+                $('#alertAgenda').replaceWith(alertHtml);
             }
-            if (infoVehiculo) {
-                $('#infoVehiculo').html(infoVehiculo).show();
+        } else if (vehiculo.Estado === 'Ingresado') {
+            $('#infoEstado').html('<span class="badge bg-info">En Patio - En Proceso</span>');
+            $('#infoFechaIngreso').text(this.formatearFecha(vehiculo.FechaIngreso));
+            
+            // Mostrar información adicional del vehículo si existe
+            this.mostrarInfoAdicionalVehiculo(vehiculo);
+            
+            // Si no puede salir, mostrar mensaje
+            if (data.mensaje) {
+                const alertHtml = `
+                    <div class="alert alert-warning mb-3" id="alertAgenda">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Información:</strong> ${data.mensaje}
+                    </div>
+                `;
+                
+                if ($('#alertAgenda').length === 0) {
+                    $('#alertOperacion').after(alertHtml);
+                } else {
+                    $('#alertAgenda').replaceWith(alertHtml);
+                }
+            } else {
+                $('#alertAgenda').remove();
             }
         } else {
             $('#infoEstado').html('<span class="badge bg-warning">Pendiente Ingreso</span>');
             $('#infoFechaIngreso').text('Al confirmar ingreso');
+            $('#alertAgenda').remove();
         }
-        
-        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
-        
-        // Ocultar alerta de agenda si existe
-        $('#alertAgenda').remove();
         
         $('#sinResultados').hide();
         $('#conResultados').show().addClass('fade-in');
         
         this.actualizarEstadoBotones();
     }
+    
+    mostrarInfoAdicionalVehiculo(vehiculo) {
+        const detalles = [];
+        
+        if (vehiculo.TipoVehiculo) {
+            detalles.push({
+                label: 'Tipo:',
+                valor: vehiculo.TipoVehiculo
+            });
+        }
+        
+        if (vehiculo.Marca && vehiculo.Modelo) {
+            detalles.push({
+                label: 'Vehículo:',
+                valor: `${vehiculo.Marca} ${vehiculo.Modelo}`
+            });
+        }
+        
+        if (vehiculo.Proposito) {
+            detalles.push({
+                label: 'Propósito:',
+                valor: vehiculo.Proposito
+            });
+        }
+        
+        if (detalles.length > 0) {
+            let html = '';
+            detalles.forEach(detalle => {
+                html += `
+                    <tr>
+                        <td class="fw-bold text-muted" width="40%">${detalle.label}</td>
+                        <td class="text-dark">${detalle.valor}</td>
+                    </tr>
+                `;
+            });
+            $('#infoVehiculoDetalles').html(html);
+            $('#infoVehiculo').show();
+        }
+    }
 
     mostrarInformacionConAgenda(data) {
         const vehiculo = data.vehiculo;
         const agenda = data.agenda;
+        const puedeIngresar = data.puede_ingresar;
         
-        $('#infoPlaca').text(vehiculo.Placa);
-        $('#infoEstado').html('<span class="badge bg-success">Con Hora Asignada</span>');
+        $('#infoPlaca').text(vehiculo.Placa || '-');
+        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
+        
+        // Cambiar el badge según si puede ingresar o no
+        if (puedeIngresar) {
+            $('#infoEstado').html('<span class="badge bg-success">Con Hora Asignada - Puede Ingresar</span>');
+        } else {
+            $('#infoEstado').html('<span class="badge bg-warning">Con Hora Asignada - No Puede Ingresar</span>');
+        }
+        
         $('#infoFechaIngreso').html(`
             <strong>Fecha:</strong> ${this.formatearFecha(agenda.FechaAgenda)}<br>
             <strong>Hora:</strong> ${this.formatearHora(agenda.HoraInicio)} - ${this.formatearHora(agenda.HoraFin)}
         `);
-        $('#infoConductorNombre').text(vehiculo.ConductorNombre || 'N/A');
         
         // Mostrar información adicional del vehículo si existe
-        let infoVehiculo = '';
-        if (vehiculo.TipoVehiculo) infoVehiculo += `<strong>Tipo:</strong> ${vehiculo.TipoVehiculo}<br>`;
-        if (vehiculo.Marca && vehiculo.Modelo) infoVehiculo += `<strong>Vehículo:</strong> ${vehiculo.Marca} ${vehiculo.Modelo}<br>`;
-        if (vehiculo.Proposito) infoVehiculo += `<strong>Propósito:</strong> ${vehiculo.Proposito}`;
+        this.mostrarInfoAdicionalVehiculo(vehiculo);
         
-        // Buscar o crear elemento para información del vehículo
-        if ($('#infoVehiculo').length === 0) {
-            $('#infoConductorNombre').after('<div id="infoVehiculo" class="mt-2"></div>');
+        // Mostrar alerta informativa sobre la agenda según si puede ingresar o no
+        let alertHtml = '';
+        if (puedeIngresar) {
+            alertHtml = `
+                <div class="alert alert-success mb-3" id="alertAgenda">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    <strong>Vehículo con hora asignada:</strong> Este vehículo tiene una cita agendada y aprobada para hoy.
+                    <br><small>Puede proceder con el registro de ingreso.</small>
+                </div>
+            `;
+        } else {
+            // Si no puede ingresar, mostrar alerta de advertencia
+            const mensaje = data.mensaje || 'No se puede procesar el ingreso en este momento.';
+            alertHtml = `
+                <div class="alert alert-warning mb-3" id="alertAgenda">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Restricción de ingreso:</strong> ${mensaje}
+                </div>
+            `;
         }
-        if (infoVehiculo) {
-            $('#infoVehiculo').html(infoVehiculo).show();
-        }
-        
-        // Mostrar alerta informativa sobre la agenda
-        const alertHtml = `
-            <div class="alert alert-success mb-3" id="alertAgenda">
-                <i class="fas fa-calendar-check me-2"></i>
-                <strong>Vehículo con hora asignada:</strong> Este vehículo tiene una cita agendada y aprobada para hoy.
-                <br><small>Puede proceder con el registro de ingreso.</small>
-            </div>
-        `;
         
         // Insertar alerta después de la alerta de operación si no existe
         if ($('#alertAgenda').length === 0) {
             $('#alertOperacion').after(alertHtml);
+        } else {
+            $('#alertAgenda').replaceWith(alertHtml);
         }
         
         $('#sinResultados').hide();
@@ -561,7 +663,18 @@ class ControlIngresoApp {
     }
 
     formatearFecha(fecha) {
-        return new Date(fecha).toLocaleString('es-ES');
+        if (!fecha) return '-';
+        // Si viene en formato YYYY-MM-DD, formatear a DD/MM/YYYY
+        if (fecha.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const partes = fecha.split('-');
+            return `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+        // Si ya tiene formato de fecha/hora, formatear
+        return new Date(fecha).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
     limpiarInterfaz() {
@@ -587,6 +700,116 @@ class ControlIngresoApp {
     ocultarInformacionVehiculo() {
         $('#sinResultados').show();
         $('#conResultados').hide();
+    }
+
+    mostrarModalAtrasado(data) {
+        const vehiculo = data.vehiculo;
+        const agenda = data.agenda;
+        const tipoAtraso = data.tipo_atraso; // 'fecha', 'hora', o 'no_llego'
+        const esNoLlego = tipoAtraso === 'no_llego';
+        
+        // Formatear hora actual
+        let horaActualFormateada = '';
+        if (data.hora_actual) {
+            const partes = data.hora_actual.split(':');
+            if (partes.length >= 2) {
+                horaActualFormateada = `${partes[0]}:${partes[1]}`;
+            } else {
+                horaActualFormateada = data.hora_actual;
+            }
+        } else {
+            const ahora = new Date();
+            horaActualFormateada = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // Calcular diferencia de tiempo
+        let diferenciaTexto = '';
+        if (tipoAtraso === 'hora' || tipoAtraso === 'no_llego') {
+            const horaInicio = new Date(`2000-01-01 ${agenda.HoraInicio}`);
+            const horaActual = new Date(`2000-01-01 ${data.hora_actual || horaActualFormateada}`);
+            const diferenciaMs = horaActual - horaInicio;
+            const diferenciaMin = Math.floor(diferenciaMs / 60000);
+            
+            if (diferenciaMin > 0) {
+                if (diferenciaMin >= 60) {
+                    const horas = Math.floor(diferenciaMin / 60);
+                    const minutos = diferenciaMin % 60;
+                    diferenciaTexto = minutos > 0 ? `${horas}h ${minutos}min` : `${horas}h`;
+                } else {
+                    diferenciaTexto = `${diferenciaMin} minutos`;
+                }
+            }
+        }
+        
+        // Llenar información del modal
+        $('#modalAtrasadoPlaca').text(vehiculo.Placa || '-');
+        $('#modalAtrasadoFecha').text(this.formatearFecha(agenda.FechaAgenda));
+        $('#modalAtrasadoHora').text(`${this.formatearHora(agenda.HoraInicio)} - ${this.formatearHora(agenda.HoraFin)}`);
+        $('#modalAtrasadoHoraLlegada').text(horaActualFormateada);
+        
+        // Personalizar según el tipo de atraso
+        if (esNoLlego) {
+            // No llegó - más de 30 minutos
+            $('#modalAtrasadoHeader').removeClass('bg-warning text-dark').addClass('bg-danger text-white');
+            $('#modalAtrasadoTitulo').html('<i class="fas fa-times-circle me-2"></i>Vehículo No Llegó');
+            $('#modalAtrasadoTituloPrincipal').text('Vehículo No Llegó a Tiempo').removeClass('text-warning').addClass('text-danger');
+            $('#modalAtrasadoSubtitulo').text('El vehículo no llegó dentro del margen de tiempo permitido');
+            $('#modalAtrasadoIcono').html('<i class="fas fa-times-circle fa-4x text-danger"></i>');
+            $('#modalAtrasadoAlerta').removeClass('alert-warning alert-info').addClass('alert-danger');
+            $('#modalAtrasadoIconoAlerta').removeClass('text-info').addClass('text-danger');
+            $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: No Llegó');
+            
+            const mensajeNoLlego = `El vehículo <strong>NO LLEGÓ</strong> a tiempo. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} El margen de atraso permitido es de 30 minutos.`;
+            $('#mensajeAtrasado').html(mensajeNoLlego);
+            
+            $('#modalAtrasadoInfoTexto').html(`
+                La solicitud ha sido marcada automáticamente como <strong class="text-danger">"No llegó"</strong> y el proceso ha sido cerrado.
+                El conductor debe crear una nueva solicitud de agendamiento.
+            `);
+        } else if (tipoAtraso === 'fecha') {
+            // Fecha pasada
+            $('#modalAtrasadoHeader').removeClass('bg-danger text-white').addClass('bg-warning text-dark');
+            $('#modalAtrasadoTitulo').html('<i class="fas fa-calendar-times me-2"></i>Vehículo Atrasado');
+            $('#modalAtrasadoTituloPrincipal').text('Vehículo Llegó en Fecha Incorrecta').addClass('text-warning');
+            $('#modalAtrasadoSubtitulo').text('El vehículo llegó en una fecha diferente a la asignada');
+            $('#modalAtrasadoIcono').html('<i class="fas fa-calendar-times fa-4x text-warning"></i>');
+            $('#modalAtrasadoAlerta').removeClass('alert-danger alert-info').addClass('alert-warning');
+            $('#modalAtrasadoIconoAlerta').removeClass('text-danger').addClass('text-warning');
+            $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: Fecha Incorrecta');
+            
+            const mensajeFecha = `Este vehículo tenía una cita agendada para el día <strong>${this.formatearFecha(agenda.FechaAgenda)}</strong>, pero llegó en una fecha posterior. El vehículo <strong>llegó fuera del margen de tiempo permitido</strong> para esa cita.`;
+            $('#mensajeAtrasado').html(mensajeFecha);
+            
+            $('#modalAtrasadoInfoTexto').html(`
+                La solicitud ha sido marcada automáticamente como <strong class="text-warning">"Atrasada"</strong> y el proceso ha sido cancelado.
+                El conductor debe crear una nueva solicitud de agendamiento.
+            `);
+        } else {
+            // Atrasado dentro de 30 minutos
+            $('#modalAtrasadoHeader').removeClass('bg-danger text-white').addClass('bg-warning text-dark');
+            $('#modalAtrasadoTitulo').html('<i class="fas fa-clock me-2"></i>Vehículo Atrasado');
+            $('#modalAtrasadoTituloPrincipal').text('Vehículo Llegó Fuera del Margen').addClass('text-warning');
+            $('#modalAtrasadoSubtitulo').text('El vehículo llegó después de la hora asignada');
+            $('#modalAtrasadoIcono').html('<i class="fas fa-exclamation-triangle fa-4x text-warning"></i>');
+            $('#modalAtrasadoAlerta').removeClass('alert-danger alert-info').addClass('alert-warning');
+            $('#modalAtrasadoIconoAlerta').removeClass('text-danger').addClass('text-warning');
+            $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: Llegó Fuera del Margen');
+            
+            const mensajeAtraso = `Este vehículo <strong>llegó fuera del margen de tiempo permitido</strong>. Llegó ${diferenciaTexto ? `con un retraso de <strong>${diferenciaTexto}</strong>` : 'después'} de la hora asignada (${this.formatearHora(agenda.HoraInicio)}). El margen de atraso permitido es de 30 minutos.`;
+            $('#mensajeAtrasado').html(mensajeAtraso);
+            
+            $('#modalAtrasadoInfoTexto').html(`
+                La solicitud ha sido marcada automáticamente como <strong class="text-warning">"Atrasada"</strong> y el proceso ha sido cancelado.
+                El conductor debe crear una nueva solicitud de agendamiento.
+            `);
+        }
+        
+        // Mostrar el modal
+        const modalElement = document.getElementById('modalAtrasado');
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
     }
 
     mostrarAlerta(mensaje, tipo) {

@@ -110,9 +110,9 @@ try {
                 echo json_encode(['success' => true, 'data' => $resultado]);
             } else {
                 if ($tipoOperacion === 'ingreso') {
-                    echo json_encode(['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada para hoy. Solo se pueden ingresar vehículos con agenda aprobada.']);
+                    echo json_encode(['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada para hoy. Solo se pueden ingresar vehículos con agenda aprobada para el día correspondiente.']);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'No se encontró un vehículo ingresado con esta placa.']);
+                    echo json_encode(['success' => false, 'message' => 'No se encontró un vehículo completado con esta placa. El vehículo debe estar terminado por el mecánico para poder salir.']);
                 }
             }
             break;

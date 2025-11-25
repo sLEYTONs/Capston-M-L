@@ -36,15 +36,9 @@
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="tipo_vehiculo">Tipo de Vehículo *</label>
-                                        <select class="form-control" id="tipo_vehiculo" name="tipo_vehiculo" required>
-                                            <option value="">Seleccionar...</option>
-                                            <option value="Camión">Camión</option>
-                                            <option value="Furgoneta">Furgoneta</option>
-                                            <option value="Automóvil">Automóvil</option>
-                                            <option value="Motocicleta">Motocicleta</option>
-                                            <option value="Bus">Bus</option>
-                                            <option value="Maquinaria">Maquinaria</option>
-                                        </select>
+                                        <input type="text" class="form-control" id="tipo_vehiculo" name="tipo_vehiculo" required 
+                                               placeholder="Ej: Camión, Furgoneta, etc.">
+                                        <div class="invalid-feedback">Tipo de vehículo requerido</div>
                                     </div>
                                 </div>
                                 
@@ -70,6 +64,16 @@
                                         <input type="number" class="form-control" id="anio" name="anio" required
                                                min="1990" max="<?php echo date('Y') + 1; ?>" 
                                                placeholder="Ej: 2023">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="kilometraje">Kilometraje</label>
+                                        <input type="number" class="form-control" id="kilometraje" name="kilometraje"
+                                               min="0" 
+                                               placeholder="Ej: 50000">
+                                        <small class="form-text text-muted">Opcional</small>
                                     </div>
                                 </div>
                             </div>

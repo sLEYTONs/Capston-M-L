@@ -50,7 +50,7 @@ class ReportesMantenimientos {
                 { 
                     data: null,
                     render: (data) => {
-                        return `${data.Marca} ${data.Modelo} ${data.Color || ''}`.trim();
+                        return `${data.Marca} ${data.Modelo}`.trim();
                     }
                 },
                 { 
@@ -225,7 +225,6 @@ class ReportesMantenimientos {
                         <tr><td><strong>Marca:</strong></td><td>${data.Marca}</td></tr>
                         <tr><td><strong>Modelo:</strong></td><td>${data.Modelo}</td></tr>
                         <tr><td><strong>Tipo:</strong></td><td>${data.TipoVehiculo}</td></tr>
-                        <tr><td><strong>Color:</strong></td><td>${data.Color || 'N/A'}</td></tr>
                         <tr><td><strong>Conductor:</strong></td><td>${data.ConductorNombre || 'N/A'}</td></tr>
                     </table>
                 </div>

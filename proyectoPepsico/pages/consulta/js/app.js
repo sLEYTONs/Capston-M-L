@@ -392,10 +392,6 @@ class ConsultaVehiculos {
                                                     <td><strong>${vehiculo.ConductorNombre || 'N/A'}</strong></td>
                                                 </tr>
                                                 <tr>
-                                                    <th class="text-muted">Chofer:</th>
-                                                    <td>${vehiculo.ChoferNombre || 'N/A'}</td>
-                                                </tr>
-                                                <tr>
                                                     <th class="text-muted">Fecha de Solicitud:</th>
                                                     <td>${vehiculo.FechaSolicitudFormateada || 'N/A'}</td>
                                                 </tr>
@@ -677,8 +673,40 @@ class ConsultaVehiculos {
         $('#asignar-vehiculo-id').val(vehiculo.ID);
         $('#modal-placa-asignar').text(vehiculo.Placa);
 
-        // Cargar lista de mecánicos disponibles
-        this.cargarMecanicosDisponibles();
+        // Verificar si el estado es "No llegó" o "Atrasado" para deshabilitar acciones
+        const estadoSolicitud = vehiculo.EstadoSolicitud || vehiculo.Estado;
+        const esNoLlego = estadoSolicitud === 'No llegó' || estadoSolicitud === 'No llego';
+        const esAtrasado = estadoSolicitud === 'Atrasado';
+        const procesoCancelado = esNoLlego || esAtrasado;
+        
+        if (procesoCancelado) {
+            // Deshabilitar el formulario y mostrar mensaje
+            $('#asignar-mecanico').prop('disabled', true);
+            $('#asignar-observaciones').prop('disabled', true);
+            $('#confirmar-asignacion').prop('disabled', true);
+            
+            // Mostrar mensaje de advertencia
+            if ($('#alerta-no-llego').length === 0) {
+                const mensaje = esNoLlego 
+                    ? '<strong>No se puede asignar mecánico:</strong> El vehículo no llegó a tiempo y la solicitud ha sido cerrada.'
+                    : '<strong>No se puede asignar mecánico:</strong> El vehículo llegó atrasado y el proceso ha sido cancelado.';
+                $('#asignar-mecanico').before(`
+                    <div class="alert alert-danger" id="alerta-no-llego">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${mensaje}
+                    </div>
+                `);
+            }
+        } else {
+            // Habilitar el formulario
+            $('#asignar-mecanico').prop('disabled', false);
+            $('#asignar-observaciones').prop('disabled', false);
+            $('#confirmar-asignacion').prop('disabled', false);
+            $('#alerta-no-llego').remove();
+            
+            // Cargar lista de mecánicos disponibles
+            this.cargarMecanicosDisponibles();
+        }
 
         const asignarModal = new bootstrap.Modal(document.getElementById('asignarModal'));
         asignarModal.show();
@@ -1070,7 +1098,10 @@ class ConsultaVehiculos {
             'En espera': 'status-Enespera',
             'Asignado': 'status-Asignado',
             'En progreso': 'status-Enprogreso',
-            'Completado': 'status-Completado'
+            'Completado': 'status-Completado',
+            'Atrasado': 'status-Atrasado',
+            'No llegó': 'status-NoLlego',
+            'No llego': 'status-NoLlego'
         };
         return clases[estado] || 'status-unknown';
     }
@@ -1081,7 +1112,10 @@ class ConsultaVehiculos {
             'En espera': 'En espera',
             'Asignado': 'Asignado',
             'En progreso': 'En progreso',
-            'Completado': 'Completado'
+            'Completado': 'Completado',
+            'Atrasado': 'Atrasado',
+            'No llegó': 'No llegó',
+            'No llego': 'No llegó'
         };
         return textos[estado] || 'Desconocido';
     }

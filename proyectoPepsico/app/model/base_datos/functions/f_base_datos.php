@@ -206,13 +206,18 @@ function obtenerAnalisisConductores() {
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             // Contar vehículos asociados a este conductor
-            $sqlVehiculos = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE ConductorNombre = ?";
+            $sqlVehiculos = "SELECT COUNT(*) as total, COUNT(DISTINCT Placa) as unicos, 
+                            MIN(FechaIngreso) as primera, MAX(FechaIngreso) as ultima
+                            FROM ingreso_vehiculos WHERE ConductorNombre = ?";
             $stmt = $conn->prepare($sqlVehiculos);
             $stmt->bind_param("s", $row['Nombre']);
             $stmt->execute();
             $resultVehiculos = $stmt->get_result();
             $vehiculosData = $resultVehiculos->fetch_assoc();
             $row['Vehiculos'] = $vehiculosData['total'] ?? 0;
+            $row['VehiculosUnicos'] = $vehiculosData['unicos'] ?? 0;
+            $row['PrimeraVisita'] = $vehiculosData['primera'] ?? '';
+            $row['UltimaVisita'] = $vehiculosData['ultima'] ?? $row['UltimaVisita'] ?? '';
             $stmt->close();
             
             $conductores[] = $row;
@@ -445,10 +450,49 @@ function exportarCSVCompleto() {
 }
 
 /**
- * Exporta datos en formato Excel (CSV con nombre diferente)
+ * Exporta datos en formato Excel (CSV con headers para Excel)
  */
 function exportarExcelCompleto() {
-    exportarCSVCompleto(); // Por simplicidad, usamos CSV con nombre diferente
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename=base_datos_completa_' . date('Y-m-d') . '.xls');
+    
+    $output = fopen('php://output', 'w');
+    
+    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Encabezados
+    fputcsv($output, [
+        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
+        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
+        'Kilometraje', 'UsuarioRegistro', 'Notificado'
+    ], "\t");
+    
+    $conn = conectar_Pepsico();
+    $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
+    $result = $conn->query($sql);
+    
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, [
+            $row['ID'],
+            $row['Placa'],
+            $row['TipoVehiculo'],
+            $row['Marca'],
+            $row['Modelo'],
+            $row['Anio'],
+            $row['ConductorNombre'],
+            $row['FechaIngreso'],
+            $row['Estado'],
+            $row['FechaRegistro'],
+            $row['Kilometraje'],
+            $row['UsuarioRegistro'],
+            $row['Notificado']
+        ], "\t");
+    }
+    
+    $conn->close();
+    fclose($output);
+    exit;
 }
 
 /**
@@ -477,25 +521,46 @@ function exportarJSONCompleto() {
  * Exporta solo datos de vehículos
  */
 function exportarVehiculosCSV() {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=vehiculos_' . date('Y-m-d') . '.csv');
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename=vehiculos_' . date('Y-m-d') . '.xls');
     
     $output = fopen('php://output', 'w');
+    
+    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Encabezados con columnas que existen en la tabla
     fputcsv($output, [
-        'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
-        'EstadoIngreso', 'Kilometraje', 'Estado', 'FechaIngreso'
-    ]);
+        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
+        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
+        'Kilometraje', 'UsuarioRegistro', 'Notificado'
+    ], "\t");
     
     $conn = conectar_Pepsico();
     $sql = "SELECT 
-                Placa, TipoVehiculo, Marca, Modelo, Anio,
-                EstadoIngreso, Kilometraje, Estado, FechaIngreso
+                ID, Placa, TipoVehiculo, Marca, Modelo, Anio,
+                ConductorNombre, FechaIngreso, Estado, FechaRegistro,
+                Kilometraje, UsuarioRegistro, Notificado
             FROM ingreso_vehiculos 
             ORDER BY Marca, Modelo";
     $result = $conn->query($sql);
     
     while ($row = $result->fetch_assoc()) {
-        fputcsv($output, $row);
+        fputcsv($output, [
+            $row['ID'],
+            $row['Placa'],
+            $row['TipoVehiculo'],
+            $row['Marca'],
+            $row['Modelo'],
+            $row['Anio'],
+            $row['ConductorNombre'],
+            $row['FechaIngreso'],
+            $row['Estado'],
+            $row['FechaRegistro'],
+            $row['Kilometraje'],
+            $row['UsuarioRegistro'],
+            $row['Notificado']
+        ], "\t");
     }
     
     $conn->close();
@@ -568,22 +633,31 @@ function exportarEmpresasCSV() {
  * Exporta datos de conductores
  */
 function exportarConductoresCSV() {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=conductores_analisis_' . date('Y-m-d') . '.csv');
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename=conductores_analisis_' . date('Y-m-d') . '.xls');
     
     $output = fopen('php://output', 'w');
-    // Función deshabilitada - columnas ConductorCedula y EmpresaNombre eliminadas
+    
+    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Encabezados con separador de tabulación para Excel
     fputcsv($output, [
         'Nombre', 'Total Vehículos', 'Vehículos Únicos',
         'Primera Visita', 'Última Visita'
-    ]);
+    ], "\t");
     
     $datos = obtenerAnalisisConductores();
     
-    // Función deshabilitada - no hay datos disponibles
-    // foreach ($datos as $conductor) {
-    //     fputcsv($output, [...]);
-    // }
+    foreach ($datos as $conductor) {
+        fputcsv($output, [
+            $conductor['Nombre'] ?? '',
+            $conductor['Vehiculos'] ?? 0,
+            $conductor['VehiculosUnicos'] ?? 0,
+            $conductor['PrimeraVisita'] ?? '',
+            $conductor['UltimaVisita'] ?? ''
+        ], "\t");
+    }
     
     fclose($output);
     exit;

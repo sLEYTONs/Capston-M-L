@@ -245,28 +245,45 @@ function registrarIngresoBasico($placa, $usuario_id) {
 
 /**
  * Registra salida de vehículo (solo guardia)
+ * Solo permite salir vehículos que estén completados (terminados por el mecánico)
  */
 function registrarSalidaVehiculo($placa, $usuario_id) {
     $conn = conectar_Pepsico();
     
-    // Verificar si existe un vehículo activo con esa placa
-    $sqlCheck = "SELECT ID FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+    // Verificar si existe un vehículo completado con esa placa
+    $sqlCheck = "SELECT ID, Estado FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Completado'";
     $stmtCheck = $conn->prepare($sqlCheck);
     $stmtCheck->bind_param("s", $placa);
     $stmtCheck->execute();
     $resultCheck = $stmtCheck->get_result();
     
     if ($resultCheck->num_rows === 0) {
+        // Verificar si está ingresado pero no completado
+        $sqlIngresado = "SELECT ID, Estado FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+        $stmtIngresado = $conn->prepare($sqlIngresado);
+        $stmtIngresado->bind_param("s", $placa);
+        $stmtIngresado->execute();
+        $resultIngresado = $stmtIngresado->get_result();
+        
+        if ($resultIngresado->num_rows > 0) {
+            $stmtIngresado->close();
+            $stmtCheck->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'El vehículo aún está en proceso. Solo puede salir cuando el mecánico haya completado el trabajo.'];
+        }
+        
+        $stmtIngresado->close();
         $stmtCheck->close();
         $conn->close();
-        return ['success' => false, 'message' => 'No se encontró vehículo activo con esta placa'];
+        return ['success' => false, 'message' => 'No se encontró vehículo completado con esta placa. El vehículo debe estar terminado por el mecánico para poder salir.'];
     }
     
     $vehiculo = $resultCheck->fetch_assoc();
     $stmtCheck->close();
     
-    // Actualizar estado a "Completado" (que representa la salida)
-    $sql = "UPDATE ingreso_vehiculos SET Estado = 'Completado', FechaSalida = NOW() WHERE ID = ?";
+    // Actualizar estado a "Finalizado" o mantener "Completado" y agregar fecha de salida
+    // Usamos un estado diferente para indicar que ya salió, o podemos usar un campo FechaSalida
+    $sql = "UPDATE ingreso_vehiculos SET FechaSalida = NOW() WHERE ID = ?";
     
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $vehiculo['ID']);
@@ -408,6 +425,249 @@ function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
 }
 
 /**
+ * Asegura que los estados "Atrasado" y "No llegó" existan en el ENUM
+ */
+function asegurarEstadosEnum($conn) {
+    try {
+        $checkEnum = "SHOW COLUMNS FROM solicitudes_agendamiento WHERE Field = 'Estado'";
+        $resultEnum = $conn->query($checkEnum);
+        
+        if ($resultEnum && $resultEnum->num_rows > 0) {
+            $row = $resultEnum->fetch_assoc();
+            $type = $row['Type'];
+            
+            // Verificar si faltan estados y agregarlos
+            $necesitaActualizacion = false;
+            $nuevosEstados = [];
+            
+            if (strpos($type, 'Atrasado') === false) {
+                $necesitaActualizacion = true;
+                $nuevosEstados[] = 'Atrasado';
+            }
+            
+            if (strpos($type, 'No llegó') === false && strpos($type, 'No llego') === false) {
+                $necesitaActualizacion = true;
+                $nuevosEstados[] = 'No llegó';
+            }
+            
+            if ($necesitaActualizacion) {
+                // Modificar el ENUM para incluir los nuevos estados
+                $sqlModify = "ALTER TABLE solicitudes_agendamiento 
+                             MODIFY COLUMN Estado ENUM('Pendiente', 'Aprobada', 'Rechazada', 'Cancelada', 'Atrasado', 'No llegó') NOT NULL DEFAULT 'Pendiente'";
+                if ($conn->query($sqlModify)) {
+                    error_log("ENUM actualizado para incluir nuevos estados: " . implode(', ', $nuevosEstados));
+                } else {
+                    error_log("Error al modificar ENUM: " . $conn->error);
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error al verificar/modificar ENUM: " . $e->getMessage());
+    }
+}
+
+/**
+ * Marca una solicitud como atrasada (llegó dentro de los 30 minutos)
+ * El proceso se cancela, permitiendo crear una nueva solicitud
+ * También cancela las asignaciones de mecánico activas
+ */
+function marcarSolicitudAtrasada($solicitud_id) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        error_log("Error de conexión en marcarSolicitudAtrasada");
+        return false;
+    }
+    
+    // Asegurar que el estado existe en el ENUM
+    asegurarEstadosEnum($conn);
+    
+    $solicitud_id = intval($solicitud_id);
+    
+    mysqli_begin_transaction($conn);
+    
+    try {
+        // 1. Obtener la placa de la solicitud
+        $sqlPlaca = "SELECT Placa FROM solicitudes_agendamiento WHERE ID = ?";
+        $stmtPlaca = $conn->prepare($sqlPlaca);
+        $stmtPlaca->bind_param("i", $solicitud_id);
+        $stmtPlaca->execute();
+        $resultPlaca = $stmtPlaca->get_result();
+        $solicitud = $resultPlaca->fetch_assoc();
+        $stmtPlaca->close();
+        
+        if (!$solicitud) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        $placa = $solicitud['Placa'];
+        
+        // 2. Actualizar el estado de la solicitud
+        $sql = "UPDATE solicitudes_agendamiento 
+                SET Estado = 'Atrasado', 
+                    MotivoRechazo = CONCAT(IFNULL(MotivoRechazo, ''), ' | Vehículo llegó dentro del margen de atraso (0-30 minutos). Proceso cancelado.'), 
+                    FechaActualizacion = NOW()
+                WHERE ID = ? AND Estado = 'Aprobada'";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        $stmt->bind_param("i", $solicitud_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        
+        if (!$result) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        // 3. Cancelar asignaciones de mecánico activas para este vehículo
+        $sqlCancelarAsignaciones = "UPDATE asignaciones_mecanico am
+                                    INNER JOIN ingreso_vehiculos iv ON am.VehiculoID = iv.ID
+                                    SET am.Estado = 'Cancelado'
+                                    WHERE iv.Placa = ?
+                                    AND am.Estado IN ('Asignado', 'En Proceso', 'En Revisión')";
+        
+        $stmtCancelar = $conn->prepare($sqlCancelarAsignaciones);
+        if ($stmtCancelar) {
+            $stmtCancelar->bind_param("s", $placa);
+            $stmtCancelar->execute();
+            $stmtCancelar->close();
+        }
+        
+        // 4. Actualizar estado del vehículo si está ingresado
+        $sqlUpdateVehiculo = "UPDATE ingreso_vehiculos 
+                             SET Estado = 'Cancelado'
+                             WHERE Placa = ?
+                             AND Estado IN ('Ingresado', 'Asignado', 'En Proceso')";
+        
+        $stmtVehiculo = $conn->prepare($sqlUpdateVehiculo);
+        if ($stmtVehiculo) {
+            $stmtVehiculo->bind_param("s", $placa);
+            $stmtVehiculo->execute();
+            $stmtVehiculo->close();
+        }
+        
+        mysqli_commit($conn);
+        $conn->close();
+        return true;
+        
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        error_log("Error al marcar solicitud como atrasada: " . $e->getMessage());
+        $conn->close();
+        return false;
+    }
+}
+
+/**
+ * Marca una solicitud como "No llegó" (pasó más de 30 minutos)
+ * También cancela las asignaciones de mecánico activas
+ */
+function marcarSolicitudNoLlego($solicitud_id) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        error_log("Error de conexión en marcarSolicitudNoLlego");
+        return false;
+    }
+    
+    // Asegurar que el estado existe en el ENUM
+    asegurarEstadosEnum($conn);
+    
+    $solicitud_id = intval($solicitud_id);
+    
+    mysqli_begin_transaction($conn);
+    
+    try {
+        // 1. Obtener la placa de la solicitud
+        $sqlPlaca = "SELECT Placa FROM solicitudes_agendamiento WHERE ID = ?";
+        $stmtPlaca = $conn->prepare($sqlPlaca);
+        $stmtPlaca->bind_param("i", $solicitud_id);
+        $stmtPlaca->execute();
+        $resultPlaca = $stmtPlaca->get_result();
+        $solicitud = $resultPlaca->fetch_assoc();
+        $stmtPlaca->close();
+        
+        if (!$solicitud) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        $placa = $solicitud['Placa'];
+        
+        // 2. Actualizar el estado de la solicitud
+        $sql = "UPDATE solicitudes_agendamiento 
+                SET Estado = 'No llegó', 
+                    MotivoRechazo = CONCAT(IFNULL(MotivoRechazo, ''), ' | Vehículo no llegó a tiempo (pasó más de 30 minutos de la hora asignada). Proceso cerrado.'),
+                    FechaActualizacion = NOW()
+                WHERE ID = ? AND Estado IN ('Aprobada', 'Atrasado')";
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        $stmt->bind_param("i", $solicitud_id);
+        $result = $stmt->execute();
+        $stmt->close();
+        
+        if (!$result) {
+            mysqli_rollback($conn);
+            $conn->close();
+            return false;
+        }
+        
+        // 3. Cancelar asignaciones de mecánico activas para este vehículo
+        $sqlCancelarAsignaciones = "UPDATE asignaciones_mecanico am
+                                    INNER JOIN ingreso_vehiculos iv ON am.VehiculoID = iv.ID
+                                    SET am.Estado = 'Cancelado'
+                                    WHERE iv.Placa = ?
+                                    AND am.Estado IN ('Asignado', 'En Proceso', 'En Revisión')";
+        
+        $stmtCancelar = $conn->prepare($sqlCancelarAsignaciones);
+        if ($stmtCancelar) {
+            $stmtCancelar->bind_param("s", $placa);
+            $stmtCancelar->execute();
+            $stmtCancelar->close();
+        }
+        
+        // 4. Actualizar estado del vehículo si está ingresado
+        $sqlUpdateVehiculo = "UPDATE ingreso_vehiculos 
+                             SET Estado = 'Cancelado'
+                             WHERE Placa = ?
+                             AND Estado IN ('Ingresado', 'Asignado', 'En Proceso')";
+        
+        $stmtVehiculo = $conn->prepare($sqlUpdateVehiculo);
+        if ($stmtVehiculo) {
+            $stmtVehiculo->bind_param("s", $placa);
+            $stmtVehiculo->execute();
+            $stmtVehiculo->close();
+        }
+        
+        mysqli_commit($conn);
+        $conn->close();
+        return true;
+        
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        error_log("Error al marcar solicitud como no llegó: " . $e->getMessage());
+        $conn->close();
+        return false;
+    }
+}
+
+/**
  * Verifica estado del vehículo
  * Para INGRESO: Solo retorna vehículos con solicitud de agendamiento aprobada y hora asignada
  * Para SALIDA: Retorna vehículos que están ingresados y listos para retirar
@@ -420,11 +680,11 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         $fecha = date('Y-m-d');
     }
     
-    // Si es operación de SALIDA, buscar vehículos ingresados
+    // Si es operación de SALIDA, buscar vehículos completados (terminados por mecánico)
     if ($tipoOperacion === 'salida') {
         $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, TipoVehiculo, Marca, Modelo
                 FROM ingreso_vehiculos 
-                WHERE Placa = ? AND Estado = 'Ingresado'";
+                WHERE Placa = ? AND Estado = 'Completado'";
         
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $placa);
@@ -443,7 +703,29 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'puede_salir' => true
             ];
         } else {
+            // Verificar si está ingresado pero no completado
+            $sqlIngresado = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, TipoVehiculo, Marca, Modelo
+                            FROM ingreso_vehiculos 
+                            WHERE Placa = ? AND Estado = 'Ingresado'";
+            
+            $stmtIngresado = $conn->prepare($sqlIngresado);
+            $stmtIngresado->bind_param("s", $placa);
+            $stmtIngresado->execute();
+            $resultIngresado = $stmtIngresado->get_result();
+            $vehiculoIngresado = $resultIngresado->fetch_assoc();
+            $stmtIngresado->close();
             $conn->close();
+            
+            if ($vehiculoIngresado) {
+                return [
+                    'vehiculo' => $vehiculoIngresado,
+                    'tiene_agenda' => false,
+                    'puede_ingresar' => false,
+                    'puede_salir' => false,
+                    'mensaje' => 'El vehículo aún está en proceso. Solo puede salir cuando el mecánico haya completado el trabajo.'
+                ];
+            }
+            
             return null; // No hay vehículo ingresado para salida
         }
     }
@@ -473,7 +755,8 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         ];
     }
     
-    // Si no está ingresado, verificar si tiene una solicitud de agendamiento aprobada para hoy
+    // Si no está ingresado, verificar si tiene una solicitud de agendamiento aprobada
+    // Primero buscar cualquier solicitud aprobada para esta placa
     $sqlAgenda = "SELECT 
                     s.ID as SolicitudID,
                     s.Placa,
@@ -494,21 +777,108 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                   LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
                   WHERE s.Placa = ? 
                     AND s.Estado = 'Aprobada'
-                    AND a.Fecha = ?
-                  ORDER BY s.FechaCreacion DESC
+                  ORDER BY a.Fecha DESC, a.HoraInicio DESC
                   LIMIT 1";
     
     $stmtAgenda = $conn->prepare($sqlAgenda);
-    $stmtAgenda->bind_param("ss", $placa, $fecha);
+    $stmtAgenda->bind_param("s", $placa);
     $stmtAgenda->execute();
     $resultAgenda = $stmtAgenda->get_result();
     
     $solicitud = $resultAgenda->fetch_assoc();
     $stmtAgenda->close();
-    $conn->close();
     
-    // Si encontró una solicitud aprobada, retornar los datos del vehículo de la solicitud
-    if ($solicitud) {
+    // Si no tiene ninguna solicitud aprobada, no puede ingresar
+    if (!$solicitud) {
+        $conn->close();
+        return null;
+    }
+    
+    // Verificar que la fecha de la agenda sea del día actual
+    $fechaActual = date('Y-m-d');
+    $fechaAgenda = $solicitud['FechaAgenda'];
+    
+    // Si la fecha de la agenda es diferente al día actual
+    if ($fechaAgenda != $fechaActual) {
+        $conn->close();
+        
+        // Si la fecha es pasada, está atrasado
+        if ($fechaAgenda < $fechaActual) {
+            // Marcar la solicitud como atrasada
+            marcarSolicitudAtrasada($solicitud['SolicitudID']);
+            
+            return [
+                'vehiculo' => [
+                    'ID' => null,
+                    'Placa' => $solicitud['Placa'],
+                    'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                    'Marca' => $solicitud['Marca'],
+                    'Modelo' => $solicitud['Modelo'],
+                    'Anio' => $solicitud['Anio'],
+                    'ConductorNombre' => $solicitud['ConductorNombre'],
+                    'Proposito' => $solicitud['Proposito'],
+                    'Observaciones' => $solicitud['Observaciones']
+                ],
+                'agenda' => [
+                    'SolicitudID' => $solicitud['SolicitudID'],
+                    'AgendaID' => $solicitud['AgendaID'],
+                    'FechaAgenda' => $solicitud['FechaAgenda'],
+                    'HoraInicio' => $solicitud['HoraInicio'],
+                    'HoraFin' => $solicitud['HoraFin'],
+                    'ChoferNombre' => $solicitud['ChoferNombre']
+                ],
+                'tiene_agenda' => true,
+                'puede_ingresar' => false,
+                'puede_salir' => false,
+                'es_atrasado' => true,
+                'tipo_atraso' => 'fecha',
+                'mensaje' => 'Este vehículo tiene una hora asignada para el día ' . date('d/m/Y', strtotime($fechaAgenda)) . ', pero está atrasado. No se puede permitir el ingreso.',
+                'hora_actual' => date('H:i:s')
+            ];
+        } else {
+            // Si la fecha es futura, no puede ingresar aún
+            return [
+                'vehiculo' => [
+                    'ID' => null,
+                    'Placa' => $solicitud['Placa'],
+                    'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                    'Marca' => $solicitud['Marca'],
+                    'Modelo' => $solicitud['Modelo'],
+                    'Anio' => $solicitud['Anio'],
+                    'ConductorNombre' => $solicitud['ConductorNombre'],
+                    'Proposito' => $solicitud['Proposito'],
+                    'Observaciones' => $solicitud['Observaciones']
+                ],
+                'agenda' => [
+                    'SolicitudID' => $solicitud['SolicitudID'],
+                    'AgendaID' => $solicitud['AgendaID'],
+                    'FechaAgenda' => $solicitud['FechaAgenda'],
+                    'HoraInicio' => $solicitud['HoraInicio'],
+                    'HoraFin' => $solicitud['HoraFin'],
+                    'ChoferNombre' => $solicitud['ChoferNombre']
+                ],
+                'tiene_agenda' => true,
+                'puede_ingresar' => false,
+                'puede_salir' => false,
+                'mensaje' => 'Este vehículo tiene una hora asignada para el día ' . date('d/m/Y', strtotime($fechaAgenda)) . '. Solo puede ingresar en la fecha correspondiente.'
+            ];
+        }
+    }
+    
+    // Si la fecha es del día actual, verificar el horario con margen de atraso
+    $horaActual = date('H:i:s');
+    $horaInicio = $solicitud['HoraInicio'];
+    $horaFin = $solicitud['HoraFin'];
+    
+    // Margen de atraso: 30 minutos después de la hora de inicio
+    $horaInicioTimestamp = strtotime($horaInicio);
+    $horaActualTimestamp = strtotime($horaActual);
+    $horaLimiteAtrasadoTimestamp = $horaInicioTimestamp + (30 * 60); // 30 minutos en segundos
+    
+    // Verificar si está dentro del rango permitido (desde la hora de inicio hasta 30 minutos después)
+    if ($horaActualTimestamp < $horaInicioTimestamp) {
+        // Llegó antes de la hora asignada
+        $conn->close();
         return [
             'vehiculo' => [
                 'ID' => null,
@@ -530,12 +900,104 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'ChoferNombre' => $solicitud['ChoferNombre']
             ],
             'tiene_agenda' => true,
-            'puede_ingresar' => true,
-            'puede_salir' => false
+            'puede_ingresar' => false,
+            'puede_salir' => false,
+            'mensaje' => 'El vehículo llegó antes de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). Debe esperar hasta su hora de cita.'
+        ];
+    } elseif ($horaActualTimestamp > $horaLimiteAtrasadoTimestamp) {
+        // Llegó después de 30 minutos - Marcar como "No llegó" y cerrar proceso
+        marcarSolicitudNoLlego($solicitud['SolicitudID']);
+        
+        $conn->close();
+        return [
+            'vehiculo' => [
+                'ID' => null,
+                'Placa' => $solicitud['Placa'],
+                'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                'Marca' => $solicitud['Marca'],
+                'Modelo' => $solicitud['Modelo'],
+                'Anio' => $solicitud['Anio'],
+                'ConductorNombre' => $solicitud['ConductorNombre'],
+                'Proposito' => $solicitud['Proposito'],
+                'Observaciones' => $solicitud['Observaciones']
+            ],
+            'agenda' => [
+                'SolicitudID' => $solicitud['SolicitudID'],
+                'AgendaID' => $solicitud['AgendaID'],
+                'FechaAgenda' => $solicitud['FechaAgenda'],
+                'HoraInicio' => $solicitud['HoraInicio'],
+                'HoraFin' => $solicitud['HoraFin'],
+                'ChoferNombre' => $solicitud['ChoferNombre']
+            ],
+            'tiene_agenda' => true,
+            'puede_ingresar' => false,
+            'puede_salir' => false,
+            'es_atrasado' => true,
+            'no_llego' => true,
+            'tipo_atraso' => 'no_llego',
+            'mensaje' => 'El vehículo no llegó a tiempo. Pasó más de 30 minutos de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). La solicitud ha sido marcada como "No llegó" y el proceso ha sido cerrado.',
+            'hora_actual' => $horaActual
+        ];
+    } elseif ($horaActualTimestamp > $horaInicioTimestamp) {
+        // Llegó dentro del margen de 30 minutos - Marcar como "Atrasado" y cancelar proceso
+        marcarSolicitudAtrasada($solicitud['SolicitudID']);
+        
+        $conn->close();
+        return [
+            'vehiculo' => [
+                'ID' => null,
+                'Placa' => $solicitud['Placa'],
+                'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                'Marca' => $solicitud['Marca'],
+                'Modelo' => $solicitud['Modelo'],
+                'Anio' => $solicitud['Anio'],
+                'ConductorNombre' => $solicitud['ConductorNombre'],
+                'Proposito' => $solicitud['Proposito'],
+                'Observaciones' => $solicitud['Observaciones']
+            ],
+            'agenda' => [
+                'SolicitudID' => $solicitud['SolicitudID'],
+                'AgendaID' => $solicitud['AgendaID'],
+                'FechaAgenda' => $solicitud['FechaAgenda'],
+                'HoraInicio' => $solicitud['HoraInicio'],
+                'HoraFin' => $solicitud['HoraFin'],
+                'ChoferNombre' => $solicitud['ChoferNombre']
+            ],
+            'tiene_agenda' => true,
+            'puede_ingresar' => false, // No puede ingresar - proceso cancelado
+            'puede_salir' => false,
+            'es_atrasado' => true,
+            'tipo_atraso' => 'hora',
+            'mensaje' => 'El vehículo llegó dentro del margen de atraso permitido (30 minutos), pero el proceso ha sido cancelado. La solicitud ha sido marcada como "Atrasado". Debe crear una nueva solicitud de agendamiento.',
+            'hora_actual' => $horaActual
         ];
     }
     
-    // Si no tiene agenda aprobada, no puede ingresar
-    return null;
+    // Si está dentro del rango permitido, puede ingresar
+    $conn->close();
+    return [
+        'vehiculo' => [
+            'ID' => null,
+            'Placa' => $solicitud['Placa'],
+            'TipoVehiculo' => $solicitud['TipoVehiculo'],
+            'Marca' => $solicitud['Marca'],
+            'Modelo' => $solicitud['Modelo'],
+            'Anio' => $solicitud['Anio'],
+            'ConductorNombre' => $solicitud['ConductorNombre'],
+            'Proposito' => $solicitud['Proposito'],
+            'Observaciones' => $solicitud['Observaciones']
+        ],
+        'agenda' => [
+            'SolicitudID' => $solicitud['SolicitudID'],
+            'AgendaID' => $solicitud['AgendaID'],
+            'FechaAgenda' => $solicitud['FechaAgenda'],
+            'HoraInicio' => $solicitud['HoraInicio'],
+            'HoraFin' => $solicitud['HoraFin'],
+            'ChoferNombre' => $solicitud['ChoferNombre']
+        ],
+        'tiene_agenda' => true,
+        'puede_ingresar' => true,
+        'puede_salir' => false
+    ];
 }
 ?>

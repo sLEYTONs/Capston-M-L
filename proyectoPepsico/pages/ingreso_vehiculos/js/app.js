@@ -113,7 +113,8 @@ $(document).ready(function() {
             marca: normalizarTexto($('#marca').val()),
             modelo: normalizarTexto($('#modelo').val()),
             anio: $('#anio').val() || null,
-            conductor_nombre: capitalizarTexto(normalizarTexto($('#conductor_nombre').val()))
+            conductor_nombre: capitalizarTexto(normalizarTexto($('#conductor_nombre').val())),
+            kilometraje: $('#kilometraje').val() || null
         };
 
         // Enviar datos via AJAX

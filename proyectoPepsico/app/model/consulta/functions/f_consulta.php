@@ -11,7 +11,7 @@ function buscarVehiculos($filtros) {
 
     // Construir la consulta para mostrar vehículos con solicitud aprobada y hora asignada
     // Si el vehículo está en ingreso_vehiculos, usar esos datos, sino usar los de la solicitud
-    $query = "SELECT 
+            $query = "SELECT 
                 COALESCE(iv.ID, sa.ID) as ID,
                 COALESCE(iv.Placa, sa.Placa) as Placa,
                 COALESCE(iv.TipoVehiculo, sa.TipoVehiculo) as TipoVehiculo,
@@ -21,7 +21,11 @@ function buscarVehiculos($filtros) {
                 COALESCE(iv.ConductorNombre, sa.ConductorNombre) as ConductorNombre,
                 DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
                 DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
-                COALESCE(iv.Estado, 'Pendiente Ingreso') as Estado,
+                CASE 
+                    WHEN sa.Estado = 'No llegó' THEN 'No llegó'
+                    WHEN sa.Estado = 'Atrasado' THEN 'Atrasado'
+                    ELSE COALESCE(iv.Estado, 'Pendiente Ingreso')
+                END as Estado,
                 iv.Kilometraje,
                 DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
                 COALESCE(u.NombreUsuario, '') as MecanicoNombre,
@@ -61,7 +65,7 @@ function buscarVehiculos($filtros) {
                 (iv.ID IS NULL AND sa.Placa COLLATE utf8mb4_unicode_ci = ultima_asignacion.VehiculoPlaca COLLATE utf8mb4_unicode_ci)
             )
             LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
-            WHERE sa.Estado = 'Aprobada'";
+            WHERE sa.Estado IN ('Aprobada', 'Atrasado', 'No llegó')";
 
     $params = [];
 
@@ -132,7 +136,11 @@ function obtenerVehiculoPorID($id) {
                 COALESCE(iv.ConductorNombre, sa.ConductorNombre) as ConductorNombre,
                 DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
                 DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
-                COALESCE(iv.Estado, 'Pendiente Ingreso') as Estado,
+                CASE 
+                    WHEN sa.Estado = 'No llegó' THEN 'No llegó'
+                    WHEN sa.Estado = 'Atrasado' THEN 'Atrasado'
+                    ELSE COALESCE(iv.Estado, 'Pendiente Ingreso')
+                END as Estado,
                 iv.Kilometraje,
                 DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
                 COALESCE(u.NombreUsuario, '') as MecanicoNombre,
@@ -154,7 +162,8 @@ function obtenerVehiculoPorID($id) {
                     ELSE 0 
                 END as VehiculoIngresado
             FROM ingreso_vehiculos iv
-            LEFT JOIN solicitudes_agendamiento sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci AND sa.Estado = 'Aprobada'
+            LEFT JOIN solicitudes_agendamiento sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci 
+                AND sa.Estado IN ('Aprobada', 'Atrasado', 'No llegó')
             LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
             LEFT JOIN usuarios chofer ON sa.ChoferID = chofer.UsuarioID
             LEFT JOIN usuarios sup ON sa.SupervisorID = sup.UsuarioID
@@ -170,6 +179,7 @@ function obtenerVehiculoPorID($id) {
             ) ultima_asignacion ON iv.ID = ultima_asignacion.VehiculoID
             LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
             WHERE iv.ID = ?
+            ORDER BY sa.FechaCreacion DESC
             LIMIT 1";
 
     $stmt = mysqli_prepare($conn, $query);
@@ -304,6 +314,31 @@ function asignarMecanico($vehiculo_id, $mecanico_id, $observaciones) {
     mysqli_begin_transaction($conn);
 
     try {
+        // 0. Verificar el estado de la solicitud asociada
+        $checkSolicitud = "SELECT sa.Estado 
+                          FROM ingreso_vehiculos iv
+                          LEFT JOIN solicitudes_agendamiento sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
+                          WHERE iv.ID = ? 
+                          AND sa.Estado IN ('Aprobada', 'Atrasado', 'No llegó')
+                          ORDER BY sa.FechaCreacion DESC
+                          LIMIT 1";
+        $stmt_check = mysqli_prepare($conn, $checkSolicitud);
+        mysqli_stmt_bind_param($stmt_check, 'i', $vehiculo_id);
+        mysqli_stmt_execute($stmt_check);
+        $result_check = mysqli_stmt_get_result($stmt_check);
+        $solicitud = mysqli_fetch_assoc($result_check);
+        mysqli_stmt_close($stmt_check);
+        
+        // Si la solicitud está marcada como "No llegó" o "Atrasado", no se puede asignar mecánico (proceso cancelado)
+        if ($solicitud && ($solicitud['Estado'] === 'No llegó' || $solicitud['Estado'] === 'Atrasado')) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $mensaje = $solicitud['Estado'] === 'No llegó' 
+                ? 'No se puede asignar mecánico. El vehículo no llegó a tiempo y la solicitud ha sido cerrada.'
+                : 'No se puede asignar mecánico. El vehículo llegó atrasado y el proceso ha sido cancelado.';
+            return ['status' => 'error', 'message' => $mensaje];
+        }
+        
         // 1. Obtener información del vehículo antes de actualizar
         $selectVehiculo = "SELECT Placa, Marca, Modelo, TipoVehiculo FROM ingreso_vehiculos WHERE ID = ?";
         $stmt_select = mysqli_prepare($conn, $selectVehiculo);

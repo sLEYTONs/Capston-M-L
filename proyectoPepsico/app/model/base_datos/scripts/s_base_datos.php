@@ -2,14 +2,20 @@
 session_start();
 require_once '../functions/f_base_datos.php';
 
-header('Content-Type: application/json');
-
 if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit();
 }
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// Las exportaciones manejan sus propios headers, no establecer JSON por defecto
+$es_exportacion = in_array($action, ['exportarCSV', 'exportarExcel', 'exportarJSON', 'exportarVehiculos', 'exportarConductores', 'exportarMarcas']);
+
+if (!$es_exportacion) {
+    header('Content-Type: application/json');
+}
 
 try {
     switch ($action) {
@@ -134,6 +140,12 @@ try {
     }
 } catch (Exception $e) {
     error_log("Error en s_base_datos: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+    if (!$es_exportacion) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+    } else {
+        // Para exportaciones, mostrar error simple
+        die('Error al exportar: ' . $e->getMessage());
+    }
 }
 ?>

@@ -113,8 +113,15 @@ function mostrarSolicitudes(solicitudes) {
         let accionesHTML = '';
         
         if (solicitud.MotivoRechazo) {
+            // Escapar correctamente el motivo para usar en onclick
+            const motivoEscapado = solicitud.MotivoRechazo
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r');
             accionesHTML = `
-                <button class="btn btn-sm btn-info" onclick="verMotivoRechazo('${solicitud.MotivoRechazo.replace(/'/g, "\\'")}')" title="Ver motivo de rechazo">
+                <button class="btn btn-sm btn-info" onclick="verMotivoRechazo('${motivoEscapado}')" title="Ver motivo de rechazo">
                     <i class="fas fa-info-circle"></i> Ver motivo
                 </button>
             `;
@@ -200,13 +207,117 @@ function getEstadoClass(estado) {
 }
 
 function verMotivoRechazo(motivo) {
-    const modal = document.getElementById('motivo-rechazo-modal');
-    const texto = document.getElementById('motivo-rechazo-texto');
-    if (modal && texto) {
-        texto.textContent = motivo;
-        modal.style.display = 'block';
-    } else {
+    if (!motivo || motivo.trim() === '') {
+        alert('No hay motivo de rechazo disponible');
+        return;
+    }
+    
+    const modalElement = document.getElementById('motivo-rechazo-modal');
+    const textoElement = document.getElementById('motivo-rechazo-texto');
+    
+    if (!modalElement || !textoElement) {
         alert('Motivo de rechazo:\n\n' + motivo);
+        return;
+    }
+    
+    // Detectar el tipo de motivo
+    const motivoLower = motivo.toLowerCase();
+    const esNoLlego = motivoLower.includes('no llegó') || motivoLower.includes('no llego') || motivoLower.includes('pasó más de 30 minutos');
+    const esAtrasado = motivoLower.includes('atrasado') || motivoLower.includes('margen de atraso') || motivoLower.includes('0-30 minutos');
+    const esFechaIncorrecta = motivoLower.includes('fecha posterior') || motivoLower.includes('fecha incorrecta');
+    
+    // Formatear el motivo - separar por "|" si existe
+    const partesMotivo = motivo.split('|').map(p => p.trim()).filter(p => p);
+    let motivoPrincipal = partesMotivo[0] || motivo;
+    let motivoAdicional = partesMotivo.length > 1 ? partesMotivo.slice(1).join(' | ') : '';
+    
+    // Limpiar texto repetitivo
+    motivoPrincipal = motivoPrincipal.replace(/^\s*\|\s*/, '').trim();
+    
+    // Configurar el modal según el tipo
+    if (esNoLlego) {
+        // No llegó - más de 30 minutos
+        $('#motivo-rechazo-header').removeClass('bg-warning text-dark bg-info text-white').addClass('bg-danger text-white');
+        $('#motivo-rechazo-titulo').html('<i class="fas fa-times-circle me-2"></i>Vehículo No Llegó');
+        $('#motivo-rechazo-titulo-principal').text('Vehículo No Llegó a Tiempo').removeClass('text-warning text-info').addClass('text-danger');
+        $('#motivo-rechazo-subtitulo').text('El vehículo no llegó dentro del margen de tiempo permitido');
+        $('#motivo-rechazo-icono').html('<i class="fas fa-times-circle fa-4x text-danger"></i>');
+        $('#motivo-rechazo-alerta').removeClass('alert-warning alert-info').addClass('alert-danger');
+        $('#motivo-rechazo-icono-alerta').removeClass('text-warning text-info').addClass('text-danger');
+    } else if (esAtrasado) {
+        // Atrasado - dentro de 30 minutos
+        $('#motivo-rechazo-header').removeClass('bg-danger text-white bg-info text-white').addClass('bg-warning text-dark');
+        $('#motivo-rechazo-titulo').html('<i class="fas fa-clock me-2"></i>Vehículo Atrasado');
+        $('#motivo-rechazo-titulo-principal').text('Vehículo Llegó Fuera del Margen').removeClass('text-danger text-info').addClass('text-warning');
+        $('#motivo-rechazo-subtitulo').text('El vehículo llegó después de la hora asignada');
+        $('#motivo-rechazo-icono').html('<i class="fas fa-exclamation-triangle fa-4x text-warning"></i>');
+        $('#motivo-rechazo-alerta').removeClass('alert-danger alert-info').addClass('alert-warning');
+        $('#motivo-rechazo-icono-alerta').removeClass('text-danger text-info').addClass('text-warning');
+    } else if (esFechaIncorrecta) {
+        // Fecha incorrecta
+        $('#motivo-rechazo-header').removeClass('bg-danger text-white bg-info text-white').addClass('bg-warning text-dark');
+        $('#motivo-rechazo-titulo').html('<i class="fas fa-calendar-times me-2"></i>Fecha Incorrecta');
+        $('#motivo-rechazo-titulo-principal').text('Vehículo Llegó en Fecha Incorrecta').removeClass('text-danger text-info').addClass('text-warning');
+        $('#motivo-rechazo-subtitulo').text('El vehículo llegó en una fecha diferente a la asignada');
+        $('#motivo-rechazo-icono').html('<i class="fas fa-calendar-times fa-4x text-warning"></i>');
+        $('#motivo-rechazo-alerta').removeClass('alert-danger alert-info').addClass('alert-warning');
+        $('#motivo-rechazo-icono-alerta').removeClass('text-danger text-info').addClass('text-warning');
+    } else {
+        // Rechazo normal
+        $('#motivo-rechazo-header').removeClass('bg-warning text-dark bg-danger text-white').addClass('bg-info text-white');
+        $('#motivo-rechazo-titulo').html('<i class="fas fa-info-circle me-2"></i>Motivo de Rechazo');
+        $('#motivo-rechazo-titulo-principal').text('Solicitud Rechazada').removeClass('text-warning text-danger').addClass('text-info');
+        $('#motivo-rechazo-subtitulo').text('Información sobre el motivo del rechazo');
+        $('#motivo-rechazo-icono').html('<i class="fas fa-info-circle fa-4x text-info"></i>');
+        $('#motivo-rechazo-alerta').removeClass('alert-warning alert-danger').addClass('alert-info');
+        $('#motivo-rechazo-icono-alerta').removeClass('text-warning text-danger').addClass('text-info');
+    }
+    
+    // Formatear el contenido del motivo
+    let contenidoHTML = '';
+    if (partesMotivo.length > 1) {
+        contenidoHTML = `
+            <div class="mb-3">
+                <strong class="d-block mb-2">Motivo Principal:</strong>
+                <p class="mb-0">${motivoPrincipal}</p>
+            </div>
+            <div>
+                <strong class="d-block mb-2">Detalles Adicionales:</strong>
+                <p class="mb-0 text-muted">${motivoAdicional}</p>
+            </div>
+        `;
+    } else {
+        // Dividir en párrafos si hay saltos de línea
+        const parrafos = motivo.split('\n').filter(p => p.trim());
+        if (parrafos.length > 1) {
+            contenidoHTML = parrafos.map(p => `<p class="mb-2">${p.trim()}</p>`).join('');
+        } else {
+            contenidoHTML = `<p class="mb-0">${motivo}</p>`;
+        }
+    }
+    
+    textoElement.innerHTML = contenidoHTML;
+    
+    // Mostrar información adicional si es atrasado o no llegó
+    if (esNoLlego || esAtrasado || esFechaIncorrecta) {
+        $('#motivo-rechazo-info-adicional').show();
+        const mensajeInfo = esNoLlego 
+            ? 'La solicitud ha sido marcada automáticamente como <strong class="text-danger">"No llegó"</strong> y el proceso ha sido cerrado. Debe crear una nueva solicitud de agendamiento.'
+            : esAtrasado
+            ? 'La solicitud ha sido marcada automáticamente como <strong class="text-warning">"Atrasada"</strong> y el proceso ha sido cancelado. Debe crear una nueva solicitud de agendamiento.'
+            : 'La solicitud ha sido marcada automáticamente como <strong class="text-warning">"Atrasada"</strong> debido a la fecha incorrecta. Debe crear una nueva solicitud de agendamiento.';
+        $('#motivo-rechazo-info-texto').html(mensajeInfo);
+    } else {
+        $('#motivo-rechazo-info-adicional').hide();
+    }
+    
+    // Mostrar el modal usando Bootstrap
+    if (typeof bootstrap !== 'undefined') {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else {
+        // Fallback si Bootstrap no está disponible
+        modalElement.style.display = 'block';
     }
 }
 

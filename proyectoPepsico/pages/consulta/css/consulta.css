@@ -614,6 +614,16 @@ body {
     color: #fff;
 }
 
+.status-Atrasado {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-NoLlego {
+    background-color: #dc3545;
+    color: #fff;
+}
+
 /* Estilos para prioridades */
 .prioridad-baja { color: #6c757d; }
 .prioridad-media { color: #ffc107; }

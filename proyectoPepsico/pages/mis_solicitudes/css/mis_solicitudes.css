@@ -316,3 +316,50 @@
     }
 }
 
+/* Estilos mejorados para el modal de motivo de rechazo */
+.motivo-rechazo-contenido {
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.motivo-rechazo-contenido p {
+    margin-bottom: 0.75rem;
+}
+
+.motivo-rechazo-contenido strong {
+    color: inherit;
+    font-weight: 600;
+}
+
+#motivo-rechazo-modal .modal-content {
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#motivo-rechazo-modal .modal-header {
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+#motivo-rechazo-modal .modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+#motivo-rechazo-modal .alert {
+    border-left: 4px solid;
+}
+
+#motivo-rechazo-modal .alert-danger {
+    border-left-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+#motivo-rechazo-modal .alert-warning {
+    border-left-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+#motivo-rechazo-modal .alert-info {
+    border-left-color: #17a2b8;
+    background-color: #d1ecf1;
+}
+

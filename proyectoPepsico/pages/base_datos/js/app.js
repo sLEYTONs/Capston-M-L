@@ -111,7 +111,28 @@ class BaseDatosApp {
                 }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "sInfoThousands": ",",
+                "sLoadingRecords": "Cargando...",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                },
+                "oAria": {
+                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                }
             },
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
             pageLength: 10,
@@ -207,7 +228,28 @@ class BaseDatosApp {
                 { data: 'Observaciones' || 'N/A' }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "sInfoThousands": ",",
+                "sLoadingRecords": "Cargando...",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                },
+                "oAria": {
+                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                }
             },
             pageLength: 10,
             responsive: true
@@ -251,7 +293,28 @@ class BaseDatosApp {
                 }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "sInfoThousands": ",",
+                "sLoadingRecords": "Cargando...",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                },
+                "oAria": {
+                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                }
             },
             pageLength: 10,
             responsive: true
@@ -300,7 +363,28 @@ class BaseDatosApp {
                 }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "sInfoThousands": ",",
+                "sLoadingRecords": "Cargando...",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                },
+                "oAria": {
+                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                }
             },
             pageLength: 10,
             responsive: true
@@ -349,7 +433,28 @@ class BaseDatosApp {
                 }
             ],
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+                "sProcessing": "Procesando...",
+                "sLengthMenu": "Mostrar _MENU_ registros",
+                "sZeroRecords": "No se encontraron resultados",
+                "sEmptyTable": "Ningún dato disponible en esta tabla",
+                "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                "sInfoPostFix": "",
+                "sSearch": "Buscar:",
+                "sUrl": "",
+                "sInfoThousands": ",",
+                "sLoadingRecords": "Cargando...",
+                "oPaginate": {
+                    "sFirst": "Primero",
+                    "sLast": "Último",
+                    "sNext": "Siguiente",
+                    "sPrevious": "Anterior"
+                },
+                "oAria": {
+                    "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                    "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                }
             },
             pageLength: 10,
             responsive: true
@@ -403,115 +508,14 @@ class BaseDatosApp {
                     this.inicializarTablaUsuarios();
                 }
                 break;
-            case 'marcas':
-                this.cargarDatosMarcas();
-                break;
-            case 'empresas':
-                // Función deshabilitada - columna eliminada
-                this.mostrarNotificacion('Esta funcionalidad no está disponible', 'warning');
-                break;
             case 'conductores':
                 if (!this.dataTables.conductores) {
                     this.inicializarTablaConductores();
                 }
                 break;
-            case 'graficos':
-                this.inicializarGraficos();
-                break;
         }
     }
 
-    cargarDatosMarcas() {
-        $.ajax({
-            url: '../app/model/base_datos/scripts/s_base_datos.php',
-            type: 'POST',
-            data: { action: 'obtenerAnalisisMarcas' },
-            dataType: 'json',
-            success: (response) => {
-                if (response.success) {
-                    this.mostrarDatosMarcas(response.data);
-                    this.crearGraficoMarcas(response.data);
-                }
-            }
-        });
-    }
-
-    mostrarDatosMarcas(datos) {
-        // Implementar lógica para mostrar datos de marcas
-        console.log('Datos de marcas:', datos);
-    }
-
-    crearGraficoMarcas(datos) {
-        const ctx = document.getElementById('marcas-chart').getContext('2d');
-        
-        if (this.charts.marcas) {
-            this.charts.marcas.destroy();
-        }
-
-        this.charts.marcas = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: datos.map(item => item.Marca),
-                datasets: [{
-                    data: datos.map(item => item.Total),
-                    backgroundColor: [
-                        '#004B93', '#0066CC', '#0080FF', '#3399FF', '#66B2FF',
-                        '#99CCFF', '#CCE5FF', '#E6F2FF', '#FF6B6B', '#4ECDC4'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
-
-    inicializarGraficos() {
-        this.cargarGraficos();
-    }
-
-    cargarGraficos() {
-        $.ajax({
-            url: '../app/model/base_datos/scripts/s_base_datos.php',
-            type: 'POST',
-            data: { action: 'obtenerDatosGraficos' },
-            dataType: 'json',
-            success: (response) => {
-                if (response.success) {
-                    this.crearTodosLosGraficos(response.data);
-                }
-            }
-        });
-    }
-
-    crearTodosLosGraficos(datos) {
-        this.crearGrafico('chart-marcas', 'doughnut', datos.marcas);
-        this.crearGrafico('chart-empresas', 'bar', datos.empresas);
-        this.crearGrafico('chart-estados', 'pie', datos.estados);
-        this.crearGrafico('chart-mensual', 'line', datos.mensual);
-    }
-
-    crearGrafico(canvasId, type, data) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
-
-        this.charts[canvasId] = new Chart(ctx, {
-            type: type,
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
 
     mostrarDetalleVehiculo(placa) {
         $.ajax({
@@ -562,27 +566,27 @@ class BaseDatosApp {
 
     // Métodos de exportación
     exportarCSVCompleto() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarCSV', '_blank');
+        window.location.href = '../app/model/base_datos/scripts/s_base_datos.php?action=exportarCSV';
         this.mostrarNotificacion('Exportando CSV completo...', 'info');
     }
 
     exportarExcelCompleto() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarExcel', '_blank');
+        window.location.href = '../app/model/base_datos/scripts/s_base_datos.php?action=exportarExcel';
         this.mostrarNotificacion('Exportando Excel completo...', 'info');
     }
 
     exportarJSONCompleto() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarJSON', '_blank');
+        window.location.href = '../app/model/base_datos/scripts/s_base_datos.php?action=exportarJSON';
         this.mostrarNotificacion('Exportando JSON completo...', 'info');
     }
 
     exportarVehiculos() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarVehiculos', '_blank');
+        window.location.href = '../app/model/base_datos/scripts/s_base_datos.php?action=exportarVehiculos';
         this.mostrarNotificacion('Exportando datos de vehículos...', 'info');
     }
 
     exportarConductores() {
-        window.open('base_datos/scripts/s_base_datos.php?action=exportarConductores', '_blank');
+        window.location.href = '../app/model/base_datos/scripts/s_base_datos.php?action=exportarConductores';
         this.mostrarNotificacion('Exportando datos de conductores...', 'info');
     }
 

@@ -370,6 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'modelo' => trim($_POST['modelo']),
                     'anio' => !empty($_POST['anio']) ? intval($_POST['anio']) : null,
                     'conductor_nombre' => trim($_POST['conductor_nombre']),
+                    'kilometraje' => !empty($_POST['kilometraje']) ? intval($_POST['kilometraje']) : null,
                     'usuario_id' => $_SESSION['usuario']['id']
                 ];
 
