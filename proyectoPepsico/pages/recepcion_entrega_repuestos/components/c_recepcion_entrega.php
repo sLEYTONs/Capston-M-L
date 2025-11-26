@@ -27,6 +27,23 @@
                             <div class="mb-3">
                                 <label for="fecha-recepcion" class="form-label">Fecha de Recepción *</label>
                                 <input type="datetime-local" class="form-control" id="fecha-recepcion" required>
+                                <script>
+                                    // Establecer fecha actual por defecto
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const fechaInput = document.getElementById('fecha-recepcion');
+                                        if (fechaInput && !fechaInput.value) {
+                                            const now = new Date();
+                                            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                                            fechaInput.value = now.toISOString().slice(0, 16);
+                                        }
+                                    });
+                                </script>
+                            </div>
+                            <div class="mb-3">
+                                <label for="repuestos-recepcion" class="form-label">Repuestos Recibidos *</label>
+                                <div id="lista-repuestos-recepcion">
+                                    <p class="text-muted">Cargando repuestos...</p>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="observaciones" class="form-label">Observaciones</label>

@@ -457,10 +457,6 @@ class ConsultaVehiculos {
                                                     <th class="text-muted">Fecha de Aprobación:</th>
                                                     <td>${vehiculo.FechaAprobacionFormateada || 'N/A'}</td>
                                                 </tr>
-                                                <tr>
-                                                    <th class="text-muted">ID Solicitud:</th>
-                                                    <td>#${vehiculo.SolicitudID || 'N/A'}</td>
-                                                </tr>
                                             </table>
                                         </div>
                                     </div>

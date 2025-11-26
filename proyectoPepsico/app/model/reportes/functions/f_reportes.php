@@ -314,67 +314,132 @@ function obtenerRepuestosAsignacion($asignacion_id) {
  * @param array $datos - Array con los datos a exportar
  */
 function exportarReportesExcel($datos) {
-    // Configurar headers para descarga de archivo
-    $filename = 'reportes_mantenimientos_' . date('Y-m-d_H-i-s') . '.csv';
+    // Limpiar cualquier output previo
+    if (ob_get_level()) {
+        ob_end_clean();
+    }
     
-    header('Content-Type: text/csv; charset=utf-8');
+    // Headers para Excel
+    $filename = 'reportes_mantenimientos_' . date('Y-m-d_H-i-s') . '.xls';
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Pragma: no-cache');
     header('Expires: 0');
     
-    // Abrir output stream
-    $output = fopen('php://output', 'w');
+    // Calcular resumen
+    $totalRegistros = count($datos);
+    $totalCostoRepuestos = 0;
+    $totalRepuestos = 0;
+    $estados = ['Asignado' => 0, 'En Proceso' => 0, 'Completado' => 0];
     
-    // Agregar BOM para UTF-8 (Excel reconoce mejor los caracteres especiales)
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Encabezados de las columnas
-    $headers = [
-        'ID Asignación',
-        'Vehículo',
-        'Placa',
-        'Marca',
-        'Modelo',
-        'Tipo Vehículo',
-        'Conductor',
-        'Empresa',
-        'Mecánico',
-        'Fecha Asignación',
-        'Estado',
-        'Tiempo Mantenimiento (horas)',
-        'Tiempo Mantenimiento (formateado)',
-        'Costo Repuestos',
-        'Cantidad Repuestos',
-        'Observaciones'
-    ];
-    
-    fputcsv($output, $headers, ';');
-    
-    // Escribir datos
     foreach ($datos as $row) {
-        $fila = [
-            $row['AsignacionID'],
-            $row['Marca'] . ' ' . $row['Modelo'],
-            $row['Placa'],
-            $row['Marca'],
-            $row['Modelo'],
-            $row['TipoVehiculo'],
-            $row['ConductorNombre'] ?? '',
-            '', // EmpresaNombre eliminado
-            $row['MecanicoNombre'],
-            $row['FechaAsignacion'],
-            $row['EstadoAsignacion'],
-            $row['TiempoMantenimiento'] ?? 0,
-            $row['TiempoMantenimientoFormateado'] ?? '-',
-            number_format($row['CostoRepuestos'] ?? 0, 2, '.', ''),
-            $row['CantidadRepuestos'] ?? 0,
-            $row['Observaciones'] ?? ''
-        ];
-        
-        fputcsv($output, $fila, ';');
+        $totalCostoRepuestos += floatval($row['CostoRepuestos'] ?? 0);
+        $totalRepuestos += intval($row['CantidadRepuestos'] ?? 0);
+        $estado = $row['EstadoAsignacion'] ?? '';
+        if (isset($estados[$estado])) {
+            $estados[$estado]++;
+        }
     }
     
-    fclose($output);
+    // Generar HTML simple que Excel puede interpretar
+    echo '<html>';
+    echo '<head>';
+    echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
+    echo '<style>';
+    echo 'body { font-family: Arial, sans-serif; margin: 20px; }';
+    echo '.titulo { font-size: 18px; font-weight: bold; color: #1f4788; background-color: #d9e1f2; padding: 15px; text-align: center; }';
+    echo '.subtitulo { font-size: 14px; font-weight: bold; color: #2e75b6; background-color: #e7f3ff; padding: 10px; margin-top: 20px; }';
+    echo '.resumen { background-color: #f2f2f2; padding: 10px; margin: 10px 0; }';
+    echo '.resumen-item { padding: 5px; }';
+    echo '.resumen-label { font-weight: bold; color: #333; }';
+    echo '.resumen-valor { color: #0066cc; font-size: 14px; }';
+    echo 'table { border-collapse: collapse; width: 100%; margin: 10px 0; }';
+    echo 'th { background-color: #4472C4; color: white; font-weight: bold; padding: 10px; text-align: left; border: 1px solid #2e5a8a; }';
+    echo 'td { padding: 8px; border: 1px solid #d0d0d0; }';
+    echo 'tr:nth-child(even) { background-color: #f9f9f9; }';
+    echo '.numero { text-align: right; }';
+    echo '.moneda { text-align: right; color: #006600; font-weight: bold; }';
+    echo '.centro { text-align: center; }';
+    echo '.badge-completado { background-color: #28a745; color: white; padding: 3px 8px; }';
+    echo '.badge-proceso { background-color: #17a2b8; color: white; padding: 3px 8px; }';
+    echo '.badge-asignado { background-color: #ffc107; color: #000; padding: 3px 8px; }';
+    echo '.separador { height: 20px; }';
+    echo '</style>';
+    echo '</head>';
+    echo '<body>';
+    
+    // Título principal
+    echo '<div class="titulo">REPORTE DE MANTENIMIENTOS</div>';
+    echo '<div class="separador"></div>';
+    
+    // Resumen
+    echo '<div class="subtitulo">RESUMEN EJECUTIVO</div>';
+    echo '<div class="resumen">';
+    echo '<div class="resumen-item"><span class="resumen-label">Total de Registros:</span> <span class="resumen-valor">' . $totalRegistros . '</span></div>';
+    echo '<div class="resumen-item"><span class="resumen-label">Total Costo Repuestos:</span> <span class="resumen-valor">$' . number_format($totalCostoRepuestos, 2, '.', ',') . '</span></div>';
+    echo '<div class="resumen-item"><span class="resumen-label">Total Repuestos Utilizados:</span> <span class="resumen-valor">' . $totalRepuestos . '</span></div>';
+    echo '<div class="resumen-item"><span class="resumen-label">Asignados:</span> <span class="resumen-valor">' . $estados['Asignado'] . '</span></div>';
+    echo '<div class="resumen-item"><span class="resumen-label">En Proceso:</span> <span class="resumen-valor">' . $estados['En Proceso'] . '</span></div>';
+    echo '<div class="resumen-item"><span class="resumen-label">Completados:</span> <span class="resumen-valor">' . $estados['Completado'] . '</span></div>';
+    echo '</div>';
+    echo '<div class="separador"></div>';
+    
+    // Tabla de datos
+    if (!empty($datos)) {
+        echo '<div class="subtitulo">DETALLE DE MANTENIMIENTOS</div>';
+        echo '<table>';
+        echo '<thead><tr>';
+        echo '<th>ID</th>';
+        echo '<th>Placa</th>';
+        echo '<th>Vehículo</th>';
+        echo '<th>Tipo</th>';
+        echo '<th>Conductor</th>';
+        echo '<th>Mecánico</th>';
+        echo '<th>Fecha Asignación</th>';
+        echo '<th class="centro">Estado</th>';
+        echo '<th class="centro">Tiempo (horas)</th>';
+        echo '<th class="centro">Tiempo (formato)</th>';
+        echo '<th class="moneda">Costo Repuestos</th>';
+        echo '<th class="centro">Cant. Repuestos</th>';
+        echo '<th>Observaciones</th>';
+        echo '</tr></thead>';
+        echo '<tbody>';
+        
+        foreach ($datos as $row) {
+            $vehiculoNombre = trim(($row['Marca'] ?? '') . ' ' . ($row['Modelo'] ?? ''));
+            $estado = $row['EstadoAsignacion'] ?? '-';
+            $badgeClass = '';
+            if ($estado === 'Completado') $badgeClass = 'badge-completado';
+            elseif ($estado === 'En Proceso') $badgeClass = 'badge-proceso';
+            elseif ($estado === 'Asignado') $badgeClass = 'badge-asignado';
+            
+            echo '<tr>';
+            echo '<td>' . htmlspecialchars($row['AsignacionID'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td><strong>' . htmlspecialchars($row['Placa'] ?? '-', ENT_QUOTES, 'UTF-8') . '</strong></td>';
+            echo '<td>' . htmlspecialchars($vehiculoNombre ?: '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['TipoVehiculo'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['ConductorNombre'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['MecanicoNombre'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td>' . htmlspecialchars($row['FechaAsignacion'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td class="centro"><span class="' . $badgeClass . '">' . htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') . '</span></td>';
+            echo '<td class="centro numero">' . ($row['TiempoMantenimiento'] ?? 0) . '</td>';
+            echo '<td class="centro">' . htmlspecialchars($row['TiempoMantenimientoFormateado'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td class="moneda">$' . number_format($row['CostoRepuestos'] ?? 0, 2, '.', ',') . '</td>';
+            echo '<td class="centro numero">' . ($row['CantidadRepuestos'] ?? 0) . '</td>';
+            echo '<td>' . htmlspecialchars(substr($row['Observaciones'] ?? '', 0, 100), ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '</tr>';
+        }
+        
+        echo '</tbody></table>';
+    }
+    
+    // Pie de página
+    echo '<div class="separador"></div>';
+    echo '<div style="text-align: center; color: #666; font-size: 11px; margin-top: 30px;">';
+    echo 'Generado el ' . date('d/m/Y H:i:s') . ' - Sistema PepsiCo';
+    echo '</div>';
+    
+    echo '</body></html>';
     exit;
 }
 

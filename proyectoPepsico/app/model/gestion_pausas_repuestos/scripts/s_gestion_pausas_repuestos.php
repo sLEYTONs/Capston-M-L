@@ -70,7 +70,22 @@ try {
 
         case 'obtenerRepuestos':
             // Solo mostrar repuestos sin stock (stock = 0) para solicitar compra
-            $repuestos = obtenerRepuestosDisponibles(true);
+            // Excluir repuestos que ya tienen solicitudes pendientes o aprobadas del mismo mecánico
+            $mecanico_id = null;
+            $asignacion_id = null;
+            
+            // Obtener ID del mecánico desde la sesión si está disponible
+            if (isset($_SESSION['usuario']['id']) && $_SESSION['usuario']['rol'] === 'Mecánico') {
+                $mecanico_id = intval($_SESSION['usuario']['id']);
+                
+                // Obtener asignacion_id de la URL si existe
+                $asignacion_id = !empty($_GET['asignacion_id']) ? intval($_GET['asignacion_id']) : null;
+                if (empty($asignacion_id) && !empty($_POST['asignacion_id'])) {
+                    $asignacion_id = intval($_POST['asignacion_id']);
+                }
+            }
+            
+            $repuestos = obtenerRepuestosDisponibles(true, $mecanico_id, $asignacion_id);
             echo json_encode(['status' => 'success', 'data' => $repuestos]);
             break;
 
@@ -128,6 +143,7 @@ try {
             break;
 
         case 'pausarTarea':
+            ob_clean();
             if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
                 echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
                 exit();
@@ -138,12 +154,24 @@ try {
             $motivo_pausa = trim($_POST['motivo_pausa'] ?? '');
             
             if (empty($motivo_pausa)) {
+                ob_clean();
                 echo json_encode(['status' => 'error', 'message' => 'El motivo de pausa es requerido']);
                 exit();
             }
 
-            $resultado = pausarTarea($asignacion_id, $mecanico_id, $motivo_pausa);
-            echo json_encode($resultado);
+            try {
+                $resultado = pausarTarea($asignacion_id, $mecanico_id, $motivo_pausa);
+                ob_clean();
+                echo json_encode($resultado);
+            } catch (Exception $e) {
+                ob_clean();
+                error_log("Error en pausarTarea (script): " . $e->getMessage());
+                http_response_code(500);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Error al pausar tarea: ' . $e->getMessage()
+                ]);
+            }
             break;
 
         case 'reanudarTarea':

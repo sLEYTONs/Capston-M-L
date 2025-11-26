@@ -87,12 +87,17 @@ class EstadoSolicitudesRepuestos {
             const estadoClass = this.getEstadoClass(solicitud.Estado);
             const urgenciaClass = this.getUrgenciaClass(solicitud.Urgencia);
 
+            // Verificar si hay vehículo asignado
+            const placaHTML = (solicitud.Placa && solicitud.Placa.trim() !== '') 
+                ? `<span class="badge bg-info">${solicitud.Placa}</span>`
+                : `<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>No asignado</span>`;
+
             row.innerHTML = `
                 <td><strong>#${solicitud.ID}</strong></td>
                 <td>${solicitud.RepuestoNombre} (${solicitud.RepuestoCodigo})</td>
                 <td>${solicitud.Cantidad}</td>
                 <td><span class="badge ${urgenciaClass}">${solicitud.Urgencia}</span></td>
-                <td>${solicitud.Placa}</td>
+                <td>${placaHTML}</td>
                 <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
                 <td>${solicitud.FechaSolicitud}</td>
                 <td>
@@ -157,16 +162,6 @@ class EstadoSolicitudesRepuestos {
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="info-item">
-                                        <label class="info-label">
-                                            <i class="fas fa-hashtag me-2 text-muted"></i>ID Solicitud
-                                        </label>
-                                        <div class="info-value">
-                                            <span class="badge bg-primary fs-6">#${solicitud.ID}</span>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="info-item">
                                         <label class="info-label">
@@ -272,6 +267,7 @@ class EstadoSolicitudesRepuestos {
                         </div>
                     </div>
 
+                    ${solicitud.Placa && solicitud.Placa.trim() !== '' ? `
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-light">
                             <h6 class="mb-0">
@@ -287,6 +283,7 @@ class EstadoSolicitudesRepuestos {
                             </div>
                         </div>
                     </div>
+                    ` : ''}
                 </div>
             </div>
         `;

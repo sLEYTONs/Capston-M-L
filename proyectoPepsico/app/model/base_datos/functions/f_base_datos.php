@@ -410,89 +410,40 @@ function obtenerDatosTemporales() {
  * Exporta CSV completo de la base de datos
  */
 function exportarCSVCompleto() {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=base_datos_completa_' . date('Y-m-d') . '.csv');
-    
-    $output = fopen('php://output', 'w');
-    
-    // Encabezados
-    fputcsv($output, [
-        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
-        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
-        'Kilometraje', 'UsuarioRegistro', 'Notificado'
-    ]);
+    require_once __DIR__ . '/f_exportar_excel.php';
     
     $conn = conectar_Pepsico();
     $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
     $result = $conn->query($sql);
     
+    $datos = [];
     while ($row = $result->fetch_assoc()) {
-        fputcsv($output, [
-            $row['ID'],
-            $row['Placa'],
-            $row['TipoVehiculo'],
-            $row['Marca'],
-            $row['Modelo'],
-            $row['Anio'],
-            $row['ConductorNombre'],
-            $row['FechaIngreso'],
-            $row['Estado'],
-            $row['FechaRegistro'],
-            $row['Kilometraje'],
-            $row['UsuarioRegistro'],
-            $row['Notificado']
-        ]);
+        $datos[] = $row;
     }
     
     $conn->close();
-    fclose($output);
-    exit;
+    
+    exportarBaseDatosCSV($datos);
 }
 
 /**
- * Exporta datos en formato Excel (CSV con headers para Excel)
+ * Exporta datos en formato Excel con formato visual mejorado
  */
 function exportarExcelCompleto() {
-    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-    header('Content-Disposition: attachment; filename=base_datos_completa_' . date('Y-m-d') . '.xls');
-    
-    $output = fopen('php://output', 'w');
-    
-    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Encabezados
-    fputcsv($output, [
-        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
-        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
-        'Kilometraje', 'UsuarioRegistro', 'Notificado'
-    ], "\t");
+    require_once __DIR__ . '/f_exportar_excel.php';
     
     $conn = conectar_Pepsico();
     $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
     $result = $conn->query($sql);
     
+    $datos = [];
     while ($row = $result->fetch_assoc()) {
-        fputcsv($output, [
-            $row['ID'],
-            $row['Placa'],
-            $row['TipoVehiculo'],
-            $row['Marca'],
-            $row['Modelo'],
-            $row['Anio'],
-            $row['ConductorNombre'],
-            $row['FechaIngreso'],
-            $row['Estado'],
-            $row['FechaRegistro'],
-            $row['Kilometraje'],
-            $row['UsuarioRegistro'],
-            $row['Notificado']
-        ], "\t");
+        $datos[] = $row;
     }
     
     $conn->close();
-    fclose($output);
-    exit;
+    
+    exportarBaseDatosExcel($datos);
 }
 
 /**
@@ -518,23 +469,10 @@ function exportarJSONCompleto() {
 }
 
 /**
- * Exporta solo datos de vehículos
+ * Exporta solo datos de vehículos con formato visual mejorado
  */
 function exportarVehiculosCSV() {
-    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-    header('Content-Disposition: attachment; filename=vehiculos_' . date('Y-m-d') . '.xls');
-    
-    $output = fopen('php://output', 'w');
-    
-    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Encabezados con columnas que existen en la tabla
-    fputcsv($output, [
-        'ID', 'Placa', 'TipoVehiculo', 'Marca', 'Modelo', 'Anio',
-        'ConductorNombre', 'FechaIngreso', 'Estado', 'FechaRegistro',
-        'Kilometraje', 'UsuarioRegistro', 'Notificado'
-    ], "\t");
+    require_once __DIR__ . '/f_exportar_excel.php';
     
     $conn = conectar_Pepsico();
     $sql = "SELECT 
@@ -545,27 +483,14 @@ function exportarVehiculosCSV() {
             ORDER BY Marca, Modelo";
     $result = $conn->query($sql);
     
+    $datos = [];
     while ($row = $result->fetch_assoc()) {
-        fputcsv($output, [
-            $row['ID'],
-            $row['Placa'],
-            $row['TipoVehiculo'],
-            $row['Marca'],
-            $row['Modelo'],
-            $row['Anio'],
-            $row['ConductorNombre'],
-            $row['FechaIngreso'],
-            $row['Estado'],
-            $row['FechaRegistro'],
-            $row['Kilometraje'],
-            $row['UsuarioRegistro'],
-            $row['Notificado']
-        ], "\t");
+        $datos[] = $row;
     }
     
     $conn->close();
-    fclose($output);
-    exit;
+    
+    exportarVehiculosExcel($datos);
 }
 
 /**
@@ -630,37 +555,14 @@ function exportarEmpresasCSV() {
 }
 
 /**
- * Exporta datos de conductores
+ * Exporta datos de conductores con formato visual mejorado
  */
 function exportarConductoresCSV() {
-    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-    header('Content-Disposition: attachment; filename=conductores_analisis_' . date('Y-m-d') . '.xls');
-    
-    $output = fopen('php://output', 'w');
-    
-    // BOM para UTF-8 (para que Excel reconozca correctamente los caracteres)
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Encabezados con separador de tabulación para Excel
-    fputcsv($output, [
-        'Nombre', 'Total Vehículos', 'Vehículos Únicos',
-        'Primera Visita', 'Última Visita'
-    ], "\t");
+    require_once __DIR__ . '/f_exportar_excel.php';
     
     $datos = obtenerAnalisisConductores();
     
-    foreach ($datos as $conductor) {
-        fputcsv($output, [
-            $conductor['Nombre'] ?? '',
-            $conductor['Vehiculos'] ?? 0,
-            $conductor['VehiculosUnicos'] ?? 0,
-            $conductor['PrimeraVisita'] ?? '',
-            $conductor['UltimaVisita'] ?? ''
-        ], "\t");
-    }
-    
-    fclose($output);
-    exit;
+    exportarConductoresExcel($datos);
 }
 
 /**

@@ -3,7 +3,65 @@ class TareasMecanico {
         this.dataTable = null;
         this.isLoading = false;
         this.fotosSeleccionadas = [];
+        this.basePath = this.getBasePath();
         this.init();
+    }
+
+    getBasePath() {
+        // Obtener la ruta base del proyecto desde la URL actual
+        const currentPath = window.location.pathname;
+        // Si estamos en pages/tareas/, obtener la parte antes de /pages/
+        if (currentPath.includes('/pages/')) {
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/'));
+            return basePath; // Retorna /Capston-M-L/proyectoPepsico
+        }
+        // Fallback: asumir que estamos en la raíz
+        return '';
+    }
+
+    construirRutaImagen(ruta) {
+        // Si ya es una URL completa, retornarla tal cual
+        if (ruta.startsWith('http://') || ruta.startsWith('https://')) {
+            return ruta;
+        }
+        
+        // Limpiar la ruta
+        ruta = ruta.trim();
+        
+        // Remover cualquier prefijo de dominio o ruta absoluta incorrecta
+        ruta = ruta.replace(/^https?:\/\/[^\/]+\//, '');
+        
+        // Si la ruta ya empieza con /, puede ser una ruta absoluta - verificar si tiene el basePath
+        if (ruta.startsWith('/')) {
+            // Si ya contiene el basePath, retornarla tal cual
+            if (this.basePath && ruta.startsWith(this.basePath)) {
+                return ruta;
+            }
+            // Si no tiene basePath pero empieza con /, puede ser que falte el basePath
+            // Remover el / inicial y continuar con la lógica normal
+            ruta = ruta.substring(1);
+        }
+        
+        // Si la ruta contiene uploads/, construir la ruta absoluta desde la raíz del proyecto
+        if (ruta.includes('uploads/')) {
+            // Extraer solo la parte de uploads/...
+            const match = ruta.match(/(uploads\/.+)$/);
+            if (match) {
+                // Construir ruta absoluta: /proyectoPepsico/uploads/fotos/...
+                const separator = this.basePath ? '/' : '';
+                return this.basePath + separator + match[1];
+            }
+        }
+        
+        // Si solo tiene el nombre del archivo, construir la ruta completa
+        if (!ruta.includes('/')) {
+            const separator = this.basePath ? '/' : '';
+            return this.basePath + separator + 'uploads/fotos/' + ruta;
+        }
+        
+        // Si tiene alguna estructura, intentar construir la ruta
+        const separator = this.basePath ? '/' : '';
+        return this.basePath + separator + ruta;
     }
 
     init() {
@@ -550,6 +608,7 @@ class TareasMecanico {
             dataType: 'json',
             success: (response) => {
                 if (response.status === 'success') {
+                    console.log('Respuesta del servidor:', response.data);
                     this.mostrarFotosEnModal(response.data);
                 } else {
                     this.mostrarError('Error al cargar fotos: ' + response.message);
@@ -571,16 +630,24 @@ class TareasMecanico {
         } else {
             html = '<div class="row g-3">';
             data.fotos.forEach((foto, index) => {
+                // Construir la ruta absoluta correcta desde la raíz del proyecto
+                let rutaFoto = foto.foto || '';
+                rutaFoto = this.construirRutaImagen(rutaFoto);
+                
+                // Escapar correctamente para el atributo HTML
+                const rutaEscapada = rutaFoto.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                
                 html += `
                     <div class="col-md-4 col-sm-6">
                         <div class="card foto-card">
-                            <img src="${foto.foto}" class="card-img-top" 
+                            <img src="${rutaEscapada}" class="card-img-top foto-thumbnail" 
                                  style="height: 200px; object-fit: cover; cursor: pointer;"
-                                 onclick="tareas.mostrarFotoModal('${foto.foto}')">
+                                 data-foto-ruta="${rutaEscapada}"
+                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27200%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27200%27/%3E%3Ctext fill=%27%23999%27 font-family=%27sans-serif%27 font-size=%2714%27 x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27%3EImagen no encontrada%3C/text%3E%3C/svg%3E'">
                             <div class="card-body">
                                 <small class="text-muted">
-                                    <strong>${foto.angulo}</strong><br>
-                                    ${foto.fecha}
+                                    <strong>${foto.angulo || 'General'}</strong><br>
+                                    ${foto.fecha || 'Fecha no disponible'}
                                 </small>
                             </div>
                         </div>
@@ -592,11 +659,27 @@ class TareasMecanico {
         
         $('#galeria-fotos-vehiculo').html(html);
         
+        // Agregar event listener para las imágenes usando delegación de eventos
+        $('#galeria-fotos-vehiculo').off('click', '.foto-thumbnail').on('click', '.foto-thumbnail', (e) => {
+            const ruta = $(e.currentTarget).attr('data-foto-ruta');
+            if (ruta) {
+                this.mostrarFotoModal(ruta);
+            }
+        });
+        
         const fotosModal = new bootstrap.Modal(document.getElementById('fotosVehiculoModal'));
         fotosModal.show();
     }
 
     mostrarFotoModal(src) {
+        if (!src) {
+            console.error('No se proporcionó ruta de foto');
+            return;
+        }
+        
+        // Construir la ruta absoluta correcta
+        src = this.construirRutaImagen(src);
+        
         // Crear modal dinámico para foto grande
         let fotoModal = $('#fotoModal');
         if (!fotoModal.length) {

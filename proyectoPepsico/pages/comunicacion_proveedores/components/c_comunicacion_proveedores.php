@@ -3,27 +3,45 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Lista de Proveedores -->
-            <div class="col-md-4">
+            <div class="col-md-12 mb-4">
                 <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="card-title mb-0">
                             <i class="fas fa-building me-2"></i>
-                            Proveedores
+                            Lista de Proveedores
                         </h4>
                         <button class="btn btn-primary btn-sm" id="btn-nuevo-proveedor">
-                            <i class="fas fa-plus me-1"></i> Nuevo
+                            <i class="fas fa-plus me-1"></i> Nuevo Proveedor
                         </button>
                     </div>
                     <div class="card-body">
-                        <div class="list-group" id="lista-proveedores">
-                            <!-- Se cargarán dinámicamente -->
+                        <div class="table-responsive">
+                            <table id="tabla-proveedores" class="table table-striped table-hover" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Contacto</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>RUT</th>
+                                        <th>Dirección</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Área de Comunicación -->
-            <div class="col-md-8">
+            <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">
@@ -138,10 +156,22 @@
                     <div class="mb-3">
                         <label for="email-proveedor" class="form-label">Email *</label>
                         <input type="email" class="form-control" id="email-proveedor" required>
+                        <div class="invalid-feedback" id="error-email"></div>
                     </div>
                     <div class="mb-3">
                         <label for="telefono-proveedor" class="form-label">Teléfono *</label>
-                        <input type="tel" class="form-control" id="telefono-proveedor" required>
+                        <input type="tel" class="form-control" id="telefono-proveedor" 
+                               placeholder="+56 9 1234 5678 o 912345678" 
+                               pattern="(\+?56\s?)?[2-9]\d{7,8}" required>
+                        <small class="form-text text-muted">Formato chileno: +56 9 1234 5678 (móvil) o +56 2 2123 4567 (fijo)</small>
+                        <div class="invalid-feedback" id="error-telefono"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rut-proveedor" class="form-label">RUT</label>
+                        <input type="text" class="form-control" id="rut-proveedor" 
+                               placeholder="12.345.678-9 o 1.234.567-8">
+                        <small class="form-text text-muted">Formato: 12.345.678-9 (8 dígitos) o 1.234.567-8 (7 dígitos) - Opcional</small>
+                        <div class="invalid-feedback" id="error-rut"></div>
                     </div>
                     <div class="mb-3">
                         <label for="direccion-proveedor" class="form-label">Dirección</label>
@@ -153,6 +183,29 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn-guardar-proveedor">
                     <i class="fas fa-save me-2"></i>Guardar Proveedor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Mensajes de Resultado -->
+<div class="modal fade" id="modal-mensaje" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" id="modal-mensaje-header">
+                <h5 class="modal-title" id="modal-mensaje-title">
+                    <i class="fas fa-info-circle me-2" id="modal-mensaje-icono"></i>
+                    <span id="modal-mensaje-titulo-texto">Información</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-mensaje-texto" class="mb-0" style="white-space: pre-line;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-2"></i>Aceptar
                 </button>
             </div>
         </div>

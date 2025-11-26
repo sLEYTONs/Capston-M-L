@@ -513,9 +513,11 @@ function subirArchivo($archivo, $tipo = 'documento') {
     $ruta_completa = $directorio_completo . $nombre_guardado;
     
     if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+        // Retornar ruta relativa desde la raíz del proyecto (consistente con f_agendamiento.php)
+        $ruta_relativa = 'uploads/' . $directorio_tipo . $nombre_guardado;
         return [
             'success' => true,
-            'ruta' => $ruta_completa,
+            'ruta' => $ruta_relativa,
             'nombre_guardado' => $nombre_guardado,
             'nombre_original' => $archivo['name'],
             'tipo' => $tipo,

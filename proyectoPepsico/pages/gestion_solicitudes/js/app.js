@@ -375,6 +375,7 @@ class GestionSolicitudes {
             weekends: true,
             selectable: false,
             editable: false,
+            timeZone: 'local', // Usar zona horaria local explícitamente
             eventClick: (info) => {
                 info.jsEvent.preventDefault();
                 this.seleccionarHora(info.event);
@@ -465,13 +466,20 @@ class GestionSolicitudes {
                     horaFin += ':00';
                 }
                 
-                const fechaHora = `${hora.fecha}T${horaInicio}`;
-                const fechaHoraFin = `${hora.fecha}T${horaFin}`;
+                // Crear objetos Date usando la fecha y hora localmente (sin conversión UTC)
+                // Parsear la fecha (YYYY-MM-DD) y la hora (HH:MM:SS) por separado
+                const [año, mes, dia] = hora.fecha.split('-').map(Number);
+                const [hInicio, mInicio, sInicio] = horaInicio.split(':').map(Number);
+                const [hFin, mFin, sFin] = horaFin.split(':').map(Number);
+                
+                // Crear objetos Date en hora local (no UTC)
+                const fechaHoraInicio = new Date(año, mes - 1, dia, hInicio, mInicio, sInicio || 0);
+                const fechaHoraFin = new Date(año, mes - 1, dia, hFin, mFin, sFin || 0);
                 
                 const evento = {
                     id: hora.ID.toString(),
                     title: `${horaInicio.substring(0, 5)} - ${horaFin.substring(0, 5)}`,
-                    start: fechaHora,
+                    start: fechaHoraInicio,
                     end: fechaHoraFin,
                     backgroundColor: '#28a745',
                     borderColor: '#1e7e34',
@@ -480,12 +488,13 @@ class GestionSolicitudes {
                         agendaId: hora.ID,
                         horaInicio: horaInicio,
                         horaFin: horaFin,
+                        fechaOriginal: hora.fecha, // Guardar la fecha original de la BD (YYYY-MM-DD)
                         observaciones: hora.Observaciones || ''
                     }
                 };
                 
                 eventos.push(evento);
-                console.log('Evento creado:', evento);
+                console.log('Evento creado - Fecha BD:', hora.fecha, 'Fecha objeto Date:', fechaHoraInicio.toISOString().split('T')[0], 'Evento:', evento);
             });
 
             this.horasDisponibles = todasLasHorasFlat;
@@ -520,7 +529,31 @@ class GestionSolicitudes {
         const agendaId = evento.extendedProps.agendaId;
         const horaInicio = evento.extendedProps.horaInicio;
         const horaFin = evento.extendedProps.horaFin;
-        const fecha = evento.start.toISOString().split('T')[0];
+        
+        // Usar la fecha original guardada en extendedProps (viene directamente de la BD)
+        // Esta es la fuente de verdad, no depender de evento.start que puede tener desajustes
+        let fecha = evento.extendedProps.fechaOriginal;
+        
+        console.log('Seleccionando hora - AgendaID:', agendaId, 'Fecha en extendedProps:', fecha);
+        
+        if (!fecha) {
+            // Fallback: buscar en horasDisponibles usando el agendaId
+            const horaEncontrada = this.horasDisponibles.find(h => h.ID == agendaId);
+            if (horaEncontrada && horaEncontrada.fecha) {
+                fecha = horaEncontrada.fecha;
+                console.log('Fecha encontrada en horasDisponibles:', fecha);
+            } else {
+                // Último fallback: obtener del evento start usando métodos locales
+                const fechaObj = evento.start;
+                const año = fechaObj.getFullYear();
+                const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+                const dia = String(fechaObj.getDate()).padStart(2, '0');
+                fecha = `${año}-${mes}-${dia}`;
+                console.log('Fecha obtenida de evento.start (fallback):', fecha);
+            }
+        }
+        
+        console.log('Fecha final a usar:', fecha);
 
         // Formatear hora para mostrar
         function formatearHora(hora) {
@@ -537,8 +570,12 @@ class GestionSolicitudes {
             agendaInput.value = agendaId;
         }
         
-        // Mostrar información de selección
-        const fechaFormateada = new Date(fecha).toLocaleDateString('es-ES', { 
+        // Mostrar información de selección - usar la fecha original directamente de la BD
+        // Parsear la fecha YYYY-MM-DD y crear un objeto Date en hora local (sin conversión UTC)
+        const [año, mes, dia] = fecha.split('-').map(Number);
+        // Crear Date usando constructor local (año, mes-1, dia) para evitar problemas de zona horaria
+        const fechaLocal = new Date(año, mes - 1, dia);
+        const fechaFormateada = fechaLocal.toLocaleDateString('es-ES', { 
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 

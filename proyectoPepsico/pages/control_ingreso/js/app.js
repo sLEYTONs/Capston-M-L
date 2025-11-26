@@ -286,6 +286,8 @@ class ControlIngresoApp {
         // Mostrar alerta informativa sobre la agenda según si puede ingresar o no
         let alertHtml = '';
         if (puedeIngresar) {
+            // Si puede ingresar, mostrar el mensaje de "Preparado para registrar" y la alerta de éxito
+            $('#alertOperacion').show();
             alertHtml = `
                 <div class="alert alert-success mb-3" id="alertAgenda">
                     <i class="fas fa-calendar-check me-2"></i>
@@ -294,7 +296,8 @@ class ControlIngresoApp {
                 </div>
             `;
         } else {
-            // Si no puede ingresar, mostrar alerta de advertencia
+            // Si no puede ingresar, ocultar el mensaje de "Preparado para registrar" y mostrar solo la restricción
+            $('#alertOperacion').hide();
             const mensaje = data.mensaje || 'No se puede procesar el ingreso en este momento.';
             alertHtml = `
                 <div class="alert alert-warning mb-3" id="alertAgenda">

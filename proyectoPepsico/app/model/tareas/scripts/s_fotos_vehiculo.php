@@ -32,45 +32,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
         $placa = $vehiculo['Placa'];
 
         // Función auxiliar para construir ruta correcta
-        // Las rutas deben ser relativas desde pages/tareas/ hacia la raíz del proyecto
-        // Desde pages/tareas/ a la raíz: ../../uploads/fotos/...
+        // Retorna solo la ruta relativa desde la raíz del proyecto (uploads/fotos/...)
+        // El frontend construirá la ruta absoluta completa
         $construirRuta = function($ruta) {
             // Si ya es una URL completa, usarla tal cual
             if (strpos($ruta, 'http://') === 0 || strpos($ruta, 'https://') === 0) {
                 return $ruta;
             }
             
-            // Si ya empieza con ../, mantenerla (ya es relativa correcta desde pages/)
-            if (strpos($ruta, '../') === 0) {
+            // Limpiar la ruta de espacios y caracteres especiales
+            $ruta = trim($ruta);
+            
+            // Remover cualquier ruta absoluta o dominio
+            $ruta = preg_replace('/^https?:\/\/[^\/]+\//', '', $ruta);
+            
+            // Si contiene rutas relativas como ../../uploads/, extraer solo uploads/...
+            if (preg_match('/\.\.\/\.\.\/uploads\/(.+)$/', $ruta, $matches)) {
+                return 'uploads/' . $matches[1];
+            }
+            
+            // Si contiene ../uploads/, extraer solo uploads/...
+            if (preg_match('/\.\.\/uploads\/(.+)$/', $ruta, $matches)) {
+                return 'uploads/' . $matches[1];
+            }
+            
+            // CASO MÁS COMÚN: Si empieza directamente con "uploads/" (sin / al inicio)
+            // Esto es lo que viene de la BD: "uploads/fotos/archivo.jpg"
+            if (strpos($ruta, 'uploads/') === 0) {
                 return $ruta;
             }
             
-            // Si contiene "uploads/" pero no empieza con ../
+            // Si contiene "uploads/" pero no empieza con uploads/
             if (strpos($ruta, 'uploads/') !== false) {
-                // Si no tiene ../ al inicio, agregarlo
-                if (strpos($ruta, '../') !== 0) {
-                    return '../../' . $ruta;
+                // Extraer solo la parte de uploads/...
+                if (preg_match('/(uploads\/.+)$/', $ruta, $matches)) {
+                    return $matches[1];
                 }
-                return $ruta;
             }
             
-            // Si solo tiene el nombre del archivo, construir la ruta completa relativa
-            if (strpos($ruta, '/') === false && strpos($ruta, '\\') === false) {
-                return '../../uploads/fotos/' . $ruta;
-            }
-            
-            // Si empieza con /, es ruta absoluta - convertir a relativa
+            // Si empieza con /, removerlo y buscar uploads/
             if (strpos($ruta, '/') === 0) {
-                // Extraer la parte después de /uploads/ si existe
-                if (preg_match('/\/uploads\/(.+)$/', $ruta, $matches)) {
-                    return '../../uploads/' . $matches[1];
+                $ruta = ltrim($ruta, '/');
+                // Si contiene Capston-M-L o proyectoPepsico, extraer solo la parte de uploads
+                if (preg_match('/(?:Capston-M-L|proyectoPepsico)[\/\\\\]uploads[\/\\\\](.+)$/i', $ruta, $matches)) {
+                    return 'uploads/' . str_replace('\\', '/', $matches[1]);
                 }
-                // Si no tiene uploads, asumir que es desde la raíz del proyecto
-                return '../..' . $ruta;
+                // Si tiene uploads/ después de remover /
+                if (preg_match('/(uploads\/.+)$/', $ruta, $matches)) {
+                    return $matches[1];
+                }
             }
             
-            // Por defecto, asumir que es relativa desde pages/tareas/
-            return '../../' . $ruta;
+            // Si contiene rutas de Windows o rutas absolutas del proyecto
+            if (strpos($ruta, 'Capston-M-L') !== false || strpos($ruta, 'proyectoPepsico') !== false) {
+                // Extraer solo la parte de uploads
+                if (preg_match('/(uploads[\/\\\\].+)$/i', $ruta, $matches)) {
+                    return str_replace('\\', '/', $matches[1]);
+                }
+            }
+            
+            // Si solo tiene el nombre del archivo, construir la ruta completa
+            if (strpos($ruta, '/') === false && strpos($ruta, '\\') === false) {
+                return 'uploads/fotos/' . $ruta;
+            }
+            
+            // Por defecto, asumir que es desde uploads/
+            return 'uploads/fotos/' . basename($ruta);
         };
 
         // Función auxiliar para procesar fotos de un JSON
@@ -81,11 +108,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
             }
             
             $fotosData = json_decode($fotosJson, true);
+            
+            // Si no es un array, puede ser un objeto único
             if (!is_array($fotosData)) {
                 return $fotos;
             }
             
+            // Verificar si es un objeto único (array asociativo con claves como 'ruta', 'success', etc.)
+            // en lugar de un array numérico
+            $esObjetoUnico = false;
+            if (isset($fotosData['ruta']) || (isset($fotosData['success']) && isset($fotosData['nombre_guardado']))) {
+                $esObjetoUnico = true;
+                $fotosData = [$fotosData]; // Convertir a array para procesarlo
+            }
+            
             foreach ($fotosData as $fotoItem) {
+                // Asegurar que $fotoItem es un array
+                if (!is_array($fotoItem)) {
+                    continue;
+                }
                 // Si ya tiene el formato esperado (foto, angulo, fecha), usarlo tal cual
                 if (isset($fotoItem['foto'])) {
                     $fotoItem['foto'] = $construirRuta($fotoItem['foto']);
@@ -95,17 +136,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
                 elseif (isset($fotoItem['ruta']) || isset($fotoItem['success']) || isset($fotoItem['nombre_guardado'])) {
                     $rutaFoto = '';
                     
-                    if (isset($fotoItem['ruta'])) {
-                        $rutaFoto = $construirRuta($fotoItem['ruta']);
-                    } elseif (isset($fotoItem['success']) && isset($fotoItem['success']['ruta'])) {
-                        $rutaFoto = $construirRuta($fotoItem['success']['ruta']);
-                    } elseif (isset($fotoItem['nombre_guardado'])) {
-                        $rutaFoto = $construirRuta($fotoItem['nombre_guardado']);
+                    // Prioridad: ruta > success.ruta > nombre_guardado
+                    if (isset($fotoItem['ruta']) && !empty($fotoItem['ruta'])) {
+                        $rutaFoto = $fotoItem['ruta'];
+                    } elseif (isset($fotoItem['success'])) {
+                        // Si success es un array con ruta
+                        if (is_array($fotoItem['success']) && isset($fotoItem['success']['ruta'])) {
+                            $rutaFoto = $fotoItem['success']['ruta'];
+                        }
+                        // Si success es true y hay ruta en el mismo nivel
+                        elseif ($fotoItem['success'] === true && isset($fotoItem['ruta'])) {
+                            $rutaFoto = $fotoItem['ruta'];
+                        }
+                    }
+                    
+                    // Si aún no tenemos ruta, usar nombre_guardado
+                    if (empty($rutaFoto) && isset($fotoItem['nombre_guardado']) && !empty($fotoItem['nombre_guardado'])) {
+                        // Si solo tenemos el nombre, construir la ruta completa
+                        $rutaFoto = 'uploads/fotos/' . $fotoItem['nombre_guardado'];
                     }
                     
                     if (empty($rutaFoto)) {
                         continue;
                     }
+                    
+                    // Limpiar la ruta: remover barras invertidas de escape JSON
+                    $rutaFoto = str_replace('\\/', '/', $rutaFoto);
+                    $rutaFoto = str_replace('\\', '/', $rutaFoto);
+                    $rutaFoto = trim($rutaFoto);
+                    
+                    // Remover cualquier ruta absoluta o dominio
+                    $rutaFoto = preg_replace('/^https?:\/\/[^\/]+\//', '', $rutaFoto);
+                    $rutaFoto = preg_replace('/^\/[^\/]+/', '', $rutaFoto); // Remover /Capston-M-L o /proyectoPepsico
+                    
+                    // Aplicar construcción de ruta relativa
+                    $rutaFoto = $construirRuta($rutaFoto);
                     
                     // Obtener fecha
                     $fecha = 'Fecha no disponible';
@@ -253,4 +318,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehiculo_id'])) {
 
 http_response_code(405);
 echo json_encode(['status' => 'error', 'message' => 'Método no permitido']);
+?>
 ?>

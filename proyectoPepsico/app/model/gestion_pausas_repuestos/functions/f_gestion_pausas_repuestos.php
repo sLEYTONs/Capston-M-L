@@ -25,6 +25,43 @@ if (!defined('F_GESTION_PAUSAS_REPUESTOS_INCLUIDO')) {
 }
 
 /**
+ * Verifica y modifica la tabla solicitudes_repuestos para permitir NULL en AsignacionID
+ */
+function verificarYModificarTablaSolicitudesRepuestos($conn) {
+    // Verificar si la columna AsignacionID permite NULL
+    $checkColumn = "SELECT IS_NULLABLE 
+                   FROM information_schema.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'solicitudes_repuestos' 
+                   AND COLUMN_NAME = 'AsignacionID'";
+    
+    $result = mysqli_query($conn, $checkColumn);
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        if ($row['IS_NULLABLE'] === 'NO') {
+            // Modificar la columna para permitir NULL
+            // Primero eliminar la foreign key si existe
+            $dropFK = "ALTER TABLE solicitudes_repuestos DROP FOREIGN KEY fk_solicitudes_repuestos_asignacion";
+            @mysqli_query($conn, $dropFK);
+            
+            // Modificar la columna para permitir NULL
+            $alterColumn = "ALTER TABLE solicitudes_repuestos MODIFY COLUMN AsignacionID INT(11) NULL COMMENT 'ID de la asignación de mecánico que requiere el repuesto (opcional)'";
+            mysqli_query($conn, $alterColumn);
+            
+            // Recrear la foreign key con ON DELETE SET NULL
+            $addFK = "ALTER TABLE solicitudes_repuestos 
+                     ADD CONSTRAINT fk_solicitudes_repuestos_asignacion 
+                     FOREIGN KEY (AsignacionID) 
+                     REFERENCES asignaciones_mecanico(ID) 
+                     ON DELETE SET NULL 
+                     ON UPDATE CASCADE";
+            @mysqli_query($conn, $addFK);
+        }
+        mysqli_free_result($result);
+    }
+}
+
+/**
  * Obtiene las tareas en pausa de un mecánico
  */
 function obtenerTareasEnPausa($mecanico_id) {
@@ -102,6 +139,44 @@ function obtenerTareasEnPausa($mecanico_id) {
 }
 
 /**
+ * Verifica si ya existe una solicitud pendiente o aprobada para el mismo repuesto
+ * Mejorado: Verifica todas las solicitudes del mismo mecánico y repuesto, sin importar la asignación
+ */
+function verificarSolicitudDuplicada($mecanico_id, $repuesto_id, $asignacion_id = null) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null; // En caso de error, permitir continuar
+    }
+
+    try {
+        $mecanico_id = intval($mecanico_id);
+        $repuesto_id = intval($repuesto_id);
+        
+        // Verificar si existe CUALQUIER solicitud pendiente o aprobada para el mismo repuesto del mismo mecánico
+        // Sin importar si tiene asignación o no, para evitar duplicados
+        $query = "SELECT ID, Estado, FechaSolicitud, Cantidad, Urgencia, AsignacionID
+                  FROM solicitudes_repuestos 
+                  WHERE MecanicoID = $mecanico_id 
+                  AND RepuestoID = $repuesto_id 
+                  AND Estado IN ('Pendiente', 'Aprobada')
+                  ORDER BY FechaSolicitud DESC
+                  LIMIT 1";
+        
+        $result = mysqli_query($conn, $query);
+        if ($result && mysqli_num_rows($result) > 0) {
+            return mysqli_fetch_assoc($result);
+        }
+        
+        return null;
+    } catch (Exception $e) {
+        error_log("Error al verificar solicitud duplicada: " . $e->getMessage());
+        return null; // En caso de error, permitir continuar
+    } finally {
+        mysqli_close($conn);
+    }
+}
+
+/**
  * Crea una solicitud de repuestos
  */
 function crearSolicitudRepuestos($datos) {
@@ -116,6 +191,9 @@ function crearSolicitudRepuestos($datos) {
     try {
         mysqli_autocommit($conn, false);
 
+        // Verificar y modificar la tabla si es necesario para permitir NULL en AsignacionID
+        verificarYModificarTablaSolicitudesRepuestos($conn);
+
         $asignacion_id = !empty($datos['asignacion_id']) ? intval($datos['asignacion_id']) : null;
         $mecanico_id = intval($datos['mecanico_id']);
         $repuesto_id = intval($datos['repuesto_id']);
@@ -123,28 +201,77 @@ function crearSolicitudRepuestos($datos) {
         $urgencia = mysqli_real_escape_string($conn, $datos['urgencia']);
         $motivo = mysqli_real_escape_string($conn, $datos['motivo'] ?? '');
 
-        // Validar que la asignación pertenece al mecánico (obligatoria)
-        if ($asignacion_id === null || $asignacion_id === 0 || $asignacion_id === '') {
+        // Validar asignación solo si se proporciona (opcional)
+        if ($asignacion_id !== null && $asignacion_id !== 0 && $asignacion_id !== '') {
+            $asignacion_id = intval($asignacion_id);
+            $queryAsignacion = "SELECT ID FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
+            $resultAsignacion = mysqli_query($conn, $queryAsignacion);
+            if (!$resultAsignacion || mysqli_num_rows($resultAsignacion) == 0) {
+                return [
+                    'status' => 'error',
+                    'message' => 'La asignación no existe o no pertenece al mecánico'
+                ];
+            }
+        } else {
+            // Si no hay asignación, establecer como NULL
+            $asignacion_id = null;
+        }
+
+        // Verificar si ya existe una solicitud pendiente o aprobada para el mismo repuesto
+        // (sin importar si tiene asignación o no, para evitar duplicados)
+        $solicitudExistente = verificarSolicitudDuplicada($mecanico_id, $repuesto_id, $asignacion_id);
+        if ($solicitudExistente) {
+            // Obtener información del repuesto para el mensaje
+            $queryRepuesto = "SELECT Nombre, Codigo FROM repuestos WHERE ID = $repuesto_id";
+            $resultRepuesto = mysqli_query($conn, $queryRepuesto);
+            $repuesto = mysqli_fetch_assoc($resultRepuesto);
+            $repuestoNombre = $repuesto['Nombre'] ?? 'Repuesto';
+            $repuestoCodigo = $repuesto['Codigo'] ?? '';
+            
+            // Obtener información de la asignación si existe
+            $placa = null;
+            $tieneAsignacion = !empty($solicitudExistente['AsignacionID']);
+            if ($tieneAsignacion) {
+                $asignacionExistenteId = intval($solicitudExistente['AsignacionID']);
+                $queryPlaca = "SELECT v.Placa 
+                             FROM asignaciones_mecanico a
+                             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                             WHERE a.ID = $asignacionExistenteId";
+                $resultPlaca = mysqli_query($conn, $queryPlaca);
+                if ($resultPlaca && mysqli_num_rows($resultPlaca) > 0) {
+                    $placaData = mysqli_fetch_assoc($resultPlaca);
+                    $placa = $placaData['Placa'];
+                }
+            }
+            
+            $fechaSolicitud = date('d/m/Y H:i', strtotime($solicitudExistente['FechaSolicitud']));
+            $estadoTexto = $solicitudExistente['Estado'] === 'Pendiente' ? 'pendiente de aprobación' : 'aprobada y esperando entrega';
+            $mensajeAsignacion = $tieneAsignacion && $placa 
+                ? " para el vehículo $placa" 
+                : " (sin asignación de vehículo)";
+            
             return [
-                'status' => 'error',
-                'message' => 'La asignación es requerida para crear una solicitud de repuestos'
+                'status' => 'duplicado',
+                'message' => "Ya existe una solicitud $estadoTexto para este repuesto$mensajeAsignacion. Por favor, espere la respuesta de esa solicitud antes de crear una nueva.",
+                'solicitud_existente' => [
+                    'id' => $solicitudExistente['ID'],
+                    'estado' => $solicitudExistente['Estado'],
+                    'fecha' => $fechaSolicitud,
+                    'cantidad' => $solicitudExistente['Cantidad'],
+                    'urgencia' => $solicitudExistente['Urgencia'],
+                    'repuesto_nombre' => $repuestoNombre,
+                    'repuesto_codigo' => $repuestoCodigo,
+                    'tiene_asignacion' => $tieneAsignacion,
+                    'placa' => $placa
+                ]
             ];
         }
 
-        $asignacion_id = intval($asignacion_id);
-        $queryAsignacion = "SELECT ID FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
-        $resultAsignacion = mysqli_query($conn, $queryAsignacion);
-        if (!$resultAsignacion || mysqli_num_rows($resultAsignacion) == 0) {
-            return [
-                'status' => 'error',
-                'message' => 'La asignación no existe o no pertenece al mecánico'
-            ];
-        }
-
-        // Insertar solicitud (AsignacionID es obligatorio)
+        // Insertar solicitud (AsignacionID es opcional)
+        $asignacionValue = $asignacion_id !== null ? $asignacion_id : 'NULL';
         $query = "INSERT INTO solicitudes_repuestos 
                   (AsignacionID, MecanicoID, RepuestoID, Cantidad, Urgencia, Motivo, Estado) 
-                  VALUES ($asignacion_id, $mecanico_id, $repuesto_id, $cantidad, '$urgencia', '$motivo', 'Pendiente')";
+                  VALUES ($asignacionValue, $mecanico_id, $repuesto_id, $cantidad, '$urgencia', '$motivo', 'Pendiente')";
 
         if (!mysqli_query($conn, $query)) {
             throw new Exception("Error al crear solicitud: " . mysqli_error($conn));
@@ -258,8 +385,8 @@ function obtenerSolicitudesRepuestos($mecanico_id, $asignacion_id = null) {
                 v.Placa
             FROM solicitudes_repuestos sr
             INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-            INNER JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
-            INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+            LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
+            LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
             WHERE $where
             ORDER BY sr.FechaSolicitud DESC";
 
@@ -275,6 +402,94 @@ function obtenerSolicitudesRepuestos($mecanico_id, $asignacion_id = null) {
 
     mysqli_close($conn);
     return $solicitudes;
+}
+
+/**
+ * Pausa una tarea asignada
+ */
+function pausarTarea($asignacion_id, $mecanico_id, $motivo_pausa) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return [
+            'status' => 'error',
+            'message' => 'Error de conexión'
+        ];
+    }
+
+    try {
+        mysqli_autocommit($conn, false);
+
+        // Verificar que la asignación pertenece al mecánico
+        $asignacion_id = intval($asignacion_id);
+        $mecanico_id = intval($mecanico_id);
+        $motivo_pausa = mysqli_real_escape_string($conn, trim($motivo_pausa));
+        
+        if (empty($motivo_pausa)) {
+            return [
+                'status' => 'error',
+                'message' => 'El motivo de pausa es requerido'
+            ];
+        }
+        
+        $queryVerificar = "SELECT ID, Estado FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
+        $resultVerificar = mysqli_query($conn, $queryVerificar);
+        
+        if (!$resultVerificar || mysqli_num_rows($resultVerificar) == 0) {
+            return [
+                'status' => 'error',
+                'message' => 'La asignación no existe o no pertenece al mecánico'
+            ];
+        }
+
+        $asignacion = mysqli_fetch_assoc($resultVerificar);
+        
+        // Verificar si existe la columna MotivoPausa
+        $checkColumn = "SELECT COUNT(*) as existe 
+                       FROM information_schema.COLUMNS 
+                       WHERE TABLE_SCHEMA = DATABASE() 
+                       AND TABLE_NAME = 'asignaciones_mecanico' 
+                       AND COLUMN_NAME = 'MotivoPausa'";
+        $resultCheck = mysqli_query($conn, $checkColumn);
+        $columnExists = false;
+        if ($resultCheck) {
+            $row = mysqli_fetch_assoc($resultCheck);
+            $columnExists = ($row['existe'] > 0);
+        }
+        
+        // Si la columna no existe, crearla
+        if (!$columnExists) {
+            $alterTable = "ALTER TABLE asignaciones_mecanico ADD COLUMN MotivoPausa TEXT NULL COMMENT 'Motivo por el cual la tarea fue pausada'";
+            if (!mysqli_query($conn, $alterTable)) {
+                throw new Exception("Error al crear columna MotivoPausa: " . mysqli_error($conn));
+            }
+        }
+        
+        // Actualizar estado y motivo de pausa
+        $query = "UPDATE asignaciones_mecanico 
+                  SET Estado = 'En Pausa', MotivoPausa = '$motivo_pausa' 
+                  WHERE ID = $asignacion_id";
+
+        if (!mysqli_query($conn, $query)) {
+            throw new Exception("Error al pausar tarea: " . mysqli_error($conn));
+        }
+
+        mysqli_commit($conn);
+
+        return [
+            'status' => 'success',
+            'message' => 'Tarea pausada correctamente'
+        ];
+
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        error_log("Error en pausarTarea: " . $e->getMessage());
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    } finally {
+        mysqli_close($conn);
+    }
 }
 
 /**
@@ -367,8 +582,8 @@ function obtenerDetallesSolicitud($solicitud_id, $mecanico_id) {
                 v.Modelo
             FROM solicitudes_repuestos sr
             INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-            INNER JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
-            INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+            LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
+            LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
             WHERE sr.ID = $solicitud_id AND sr.MecanicoID = $mecanico_id";
 
     $result = mysqli_query($conn, $query);
@@ -385,28 +600,45 @@ function obtenerDetallesSolicitud($solicitud_id, $mecanico_id) {
 /**
  * Obtiene repuestos disponibles (para solicitar)
  */
-function obtenerRepuestosDisponibles($soloSinStock = false) {
+function obtenerRepuestosDisponibles($soloSinStock = false, $mecanico_id = null, $asignacion_id = null) {
     $conn = conectar_Pepsico();
     if (!$conn) {
         return [];
     }
 
-    $where = "Estado = 'Activo'";
+    $where = "r.Estado = 'Activo'";
     if ($soloSinStock) {
-        $where .= " AND Stock = 0";
+        $where .= " AND r.Stock = 0";
+    }
+
+    // Si se proporciona el mecánico, excluir repuestos que ya tienen solicitudes pendientes o aprobadas
+    // Mejorado: Excluir TODAS las solicitudes del mismo mecánico y repuesto, sin importar la asignación
+    $exclusionSolicitudes = "";
+    if ($mecanico_id !== null && $mecanico_id > 0) {
+        $mecanico_id = intval($mecanico_id);
+        
+        // Excluir cualquier repuesto que ya tenga una solicitud pendiente o aprobada del mismo mecánico
+        // Sin importar si tiene asignación o no, para evitar duplicados
+        $exclusionSolicitudes = " AND r.ID NOT IN (
+            SELECT DISTINCT sr.RepuestoID 
+            FROM solicitudes_repuestos sr 
+            WHERE sr.MecanicoID = $mecanico_id 
+            AND sr.Estado IN ('Pendiente', 'Aprobada')
+        )";
     }
 
     $query = "SELECT 
-                ID,
-                Codigo,
-                Nombre,
-                Categoria,
-                Stock,
-                StockMinimo,
-                Descripcion
-            FROM repuestos
+                r.ID,
+                r.Codigo,
+                r.Nombre,
+                r.Categoria,
+                r.Stock,
+                r.StockMinimo,
+                r.Descripcion
+            FROM repuestos r
             WHERE $where
-            ORDER BY Nombre ASC";
+            $exclusionSolicitudes
+            ORDER BY r.Nombre ASC";
 
     $result = mysqli_query($conn, $query);
     $repuestos = [];
@@ -445,8 +677,8 @@ function aprobarSolicitudRepuestos($solicitud_id, $aprobador_id) {
                      r.Nombre as RepuestoNombre, v.Placa
                      FROM solicitudes_repuestos sr
                      INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-                     INNER JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
-                     INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                     LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
+                     LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
                      WHERE sr.ID = $solicitud_id AND sr.Estado = 'Pendiente'";
         
         $resultInfo = mysqli_query($conn, $queryInfo);
@@ -519,8 +751,8 @@ function entregarSolicitudRepuestos($solicitud_id, $entregador_id) {
                      r.Nombre as RepuestoNombre, v.Placa, a.Estado as EstadoTarea
                      FROM solicitudes_repuestos sr
                      INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-                     INNER JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
-                     INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                     LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
+                     LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
                      WHERE sr.ID = $solicitud_id AND sr.Estado = 'Aprobada'";
         
         $resultInfo = mysqli_query($conn, $queryInfo);
