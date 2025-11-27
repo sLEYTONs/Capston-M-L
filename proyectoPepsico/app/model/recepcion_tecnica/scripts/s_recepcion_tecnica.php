@@ -10,16 +10,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         switch ($accion) {
             case 'crear_ot':
+                // Procesar fotos - asegurar que sea un array válido
+                $fotos_array = [];
+                if (isset($_POST['fotos']) && !empty($_POST['fotos'])) {
+                    $fotos_decoded = json_decode($_POST['fotos'], true);
+                    if (is_array($fotos_decoded) && count($fotos_decoded) > 0) {
+                        $fotos_array = $fotos_decoded;
+                    }
+                }
+                
+                // Procesar documentos técnicos
+                $documentos_array = [];
+                if (isset($_POST['documentos']) && !empty($_POST['documentos'])) {
+                    $documentos_decoded = json_decode($_POST['documentos'], true);
+                    if (is_array($documentos_decoded) && count($documentos_decoded) > 0) {
+                        $documentos_array = $documentos_decoded;
+                    }
+                }
+                
                 $datos = [
                     'vehiculo_id' => $_POST['vehiculo_id'] ?? 0,
                     'recepcionista_id' => $_SESSION['usuario']['id'] ?? 0,
                     'usuario_creacion_id' => $_SESSION['usuario']['id'] ?? 0,
-                    'tipo_trabajo' => $_POST['tipo_trabajo'] ?? '',
-                    'descripcion_trabajo' => $_POST['descripcion_trabajo'] ?? '',
-                    'observaciones' => $_POST['observaciones'] ?? '',
-                    'documentos_validados' => isset($_POST['documentos_validados']) ? (int)$_POST['documentos_validados'] : 0,
-                    'fotos' => isset($_POST['fotos']) ? json_decode($_POST['fotos'], true) : [],
-                    'documentos' => isset($_POST['documentos']) ? json_decode($_POST['documentos'], true) : []
+                    'tipo_trabajo' => isset($_POST['tipo_trabajo']) ? trim((string)$_POST['tipo_trabajo']) : '',
+                    'descripcion_trabajo' => isset($_POST['descripcion_trabajo']) ? trim((string)$_POST['descripcion_trabajo']) : '',
+                    'fotos' => $fotos_array,
+                    'documentos' => $documentos_array,
+                    'documentos_validados' => isset($_POST['documentos_validados']) ? intval($_POST['documentos_validados']) : 0
                 ];
                 
                 $resultado = crearOrdenTrabajo($datos);
@@ -29,12 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'obtener_ots':
                 $filtros = [
                     'estado' => $_POST['estado'] ?? '',
-                    'recepcionista_id' => $_POST['recepcionista_id'] ?? ($_SESSION['usuario']['id'] ?? 0),
+                    'recepcionista_id' => $_POST['recepcionista_id'] ?? '', // No filtrar por recepcionista por defecto
                     'placa' => $_POST['placa'] ?? '',
                     'numero_ot' => $_POST['numero_ot'] ?? '',
                     'fecha_inicio' => $_POST['fecha_inicio'] ?? '',
                     'fecha_fin' => $_POST['fecha_fin'] ?? ''
                 ];
+                
+                // Log para depuración
+                error_log("obtener_ots - Filtros recibidos: " . print_r($filtros, true));
                 
                 $resultado = obtenerOrdenesTrabajo($filtros);
                 echo json_encode($resultado);
@@ -53,24 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
                 
-            case 'validar_documentacion':
-                $ot_id = intval($_POST['ot_id'] ?? 0);
-                $documentos_validados = isset($_POST['documentos_validados']) ? (int)$_POST['documentos_validados'] : 0;
-                $observaciones = $_POST['observaciones'] ?? '';
-                $usuario_id = $_SESSION['usuario']['id'] ?? 0;
-                
-                if ($ot_id == 0 || $usuario_id == 0) {
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => 'Datos incompletos'
-                    ]);
-                    break;
-                }
-                
-                $resultado = validarDocumentacion($ot_id, $documentos_validados, $observaciones, $usuario_id);
-                echo json_encode($resultado);
-                break;
-                
             case 'actualizar_fotos':
                 $ot_id = intval($_POST['ot_id'] ?? 0);
                 $fotos = isset($_POST['fotos']) ? json_decode($_POST['fotos'], true) : [];
@@ -84,22 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 $resultado = actualizarFotosOT($ot_id, $fotos);
-                echo json_encode($resultado);
-                break;
-                
-            case 'actualizar_documentos':
-                $ot_id = intval($_POST['ot_id'] ?? 0);
-                $documentos = isset($_POST['documentos']) ? json_decode($_POST['documentos'], true) : [];
-                
-                if ($ot_id == 0) {
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => 'ID de OT inválido'
-                    ]);
-                    break;
-                }
-                
-                $resultado = actualizarDocumentosOT($ot_id, $documentos);
                 echo json_encode($resultado);
                 break;
                 

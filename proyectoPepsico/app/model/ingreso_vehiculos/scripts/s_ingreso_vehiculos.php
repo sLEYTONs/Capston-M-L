@@ -22,18 +22,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
                 
-                $vehiculo = buscarIngresoPendiente($placa);
-                
-                if ($vehiculo) {
-                    echo json_encode([
-                        'success' => true, 
-                        'message' => 'Vehículo encontrado',
-                        'data' => $vehiculo
-                    ]);
-                } else {
+                try {
+                    $vehiculo = buscarIngresoPendiente($placa);
+                    
+                    if ($vehiculo) {
+                        echo json_encode([
+                            'success' => true, 
+                            'message' => 'Vehículo encontrado',
+                            'data' => $vehiculo
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false, 
+                            'message' => 'No se encontró un vehículo ingresado con esta placa. Verifique que la placa esté correcta y que el vehículo tenga estado "Ingresado".'
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    error_log("Error en buscar_por_placa: " . $e->getMessage());
                     echo json_encode([
                         'success' => false, 
-                        'message' => 'No se encontró un ingreso pendiente con esta placa'
+                        'message' => 'Error al buscar vehículo: ' . $e->getMessage()
                     ]);
                 }
                 break;

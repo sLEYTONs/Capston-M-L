@@ -27,7 +27,8 @@ $paginas_por_rol = [
         'consulta.php', 'reportes.php', 'base_datos.php',
         'control_ingreso.php', 'repuestos.php', 'calidad.php',
         'ingreso_vehiculos.php', 'recepcion_tecnica.php',
-        'tareas.php', 'gestion_pausas_repuestos.php'
+        'tareas.php', 'gestion_pausas_repuestos.php',
+        'coordinacion_jefe_taller.php'
     ],
     'Mecánico' => [
         'tareas.php',
@@ -38,7 +39,7 @@ $paginas_por_rol = [
     ],
     'Recepcionista' => [
         'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php',
-        'reportes.php'
+        'reportes.php', 'comunicacion_flota_proveedores.php'
     ],
     'Guardia' => [
         'control_ingreso.php',
@@ -53,7 +54,8 @@ $paginas_por_rol = [
     ],
     'Chofer' => [
         'solicitudes_agendamiento.php',
-        'mis_solicitudes.php'
+        'mis_solicitudes.php',
+        'comunicacion_flota_proveedores.php'
     ],
     'Asistente de Repuestos' => [
         'repuestos.php',

@@ -269,7 +269,6 @@ class CalidadApp {
             <p><strong>Placa:</strong> ${rowData.Placa}</p>
             <p><strong>Vehículo:</strong> ${rowData.Marca} ${rowData.Modelo}</p>
             <p><strong>Tipo:</strong> ${rowData.TipoVehiculo || '-'}</p>
-            <p><strong>Color:</strong> ${rowData.Color || '-'}</p>
             <p><strong>Año:</strong> ${rowData.Anio || '-'}</p>
             <p><strong>Conductor:</strong> ${rowData.ConductorNombre || '-'}</p>
         `;

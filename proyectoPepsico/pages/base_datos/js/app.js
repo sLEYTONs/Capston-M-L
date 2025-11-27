@@ -540,24 +540,24 @@ class BaseDatosApp {
                 <div class="col-md-6">
                     <h6>Información del Vehículo</h6>
                     <table class="table table-sm">
-                        <tr><td><strong>Placa:</strong></td><td>${vehiculo.Placa}</td></tr>
-                        <tr><td><strong>Marca/Modelo:</strong></td><td>${vehiculo.Marca} ${vehiculo.Modelo}</td></tr>
-                        <tr><td><strong>Año:</strong></td><td>${vehiculo.Anio}</td></tr>
-                        <tr><td><strong>Tipo:</strong></td><td>${vehiculo.TipoVehiculo}</td></tr>
+                        <tr><td><strong>Placa:</strong></td><td>${vehiculo.Placa || '-'}</td></tr>
+                        <tr><td><strong>Marca:</strong></td><td>${vehiculo.Marca || '-'}</td></tr>
+                        <tr><td><strong>Modelo:</strong></td><td>${vehiculo.Modelo || '-'}</td></tr>
+                        <tr><td><strong>Año:</strong></td><td>${vehiculo.Anio || '-'}</td></tr>
+                        <tr><td><strong>Tipo:</strong></td><td>${vehiculo.TipoVehiculo || '-'}</td></tr>
+                        <tr><td><strong>Kilometraje:</strong></td><td>${vehiculo.Kilometraje || '-'}</td></tr>
                     </table>
                 </div>
                 <div class="col-md-6">
                     <h6>Información del Conductor</h6>
                     <table class="table table-sm">
-                        <tr><td><strong>Nombre:</strong></td><td>${vehiculo.ConductorNombre}</td></tr>
+                        <tr><td><strong>Nombre:</strong></td><td>${vehiculo.ConductorNombre || '-'}</td></tr>
                     </table>
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-12">
-                    <h6>Información de la Visita</h6>
+                    <h6 class="mt-3">Información de Ingreso</h6>
                     <table class="table table-sm">
-                        <tr><td><strong>Propósito:</strong></td><td>${vehiculo.Proposito}</td></tr>
+                        <tr><td><strong>Estado:</strong></td><td>${vehiculo.Estado || '-'}</td></tr>
+                        <tr><td><strong>Fecha Ingreso:</strong></td><td>${vehiculo.FechaIngreso ? new Date(vehiculo.FechaIngreso).toLocaleString('es-ES') : '-'}</td></tr>
+                        <tr><td><strong>Fecha Registro:</strong></td><td>${vehiculo.FechaRegistro ? new Date(vehiculo.FechaRegistro).toLocaleString('es-ES') : '-'}</td></tr>
                     </table>
                 </div>
             </div>

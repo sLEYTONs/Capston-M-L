@@ -1,4 +1,8 @@
 <!-- Sección de Coordinación con Jefe de Taller -->
+<?php 
+// Obtener rol del usuario para controlar visibilidad
+$usuario_rol = $_SESSION['usuario']['rol'] ?? '';
+?>
 <section id="coordinacion-jefe-taller-section" class="section">
     <div class="container-fluid">
         <!-- Estadísticas -->
@@ -37,7 +41,8 @@
             </div>
         </div>
 
-        <!-- Formulario de Nueva Solicitud/Comunicación -->
+        <!-- Formulario de Nueva Solicitud/Comunicación (solo para Coordinador de Zona) -->
+        <?php if ($usuario_rol !== 'Jefe de Taller'): ?>
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card">
@@ -91,6 +96,7 @@
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Tabla de Comunicaciones -->
         <div class="row">
@@ -111,6 +117,9 @@
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
+                                        <?php if ($usuario_rol === 'Jefe de Taller'): ?>
+                                        <th>De</th>
+                                        <?php endif; ?>
                                         <th>Tipo</th>
                                         <th>Asunto</th>
                                         <th>Prioridad</th>
@@ -147,8 +156,48 @@
                     <!-- Se cargarán dinámicamente -->
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="footer-detalles-comunicacion">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Responder Comunicación -->
+<div class="modal fade" id="modal-responder-comunicacion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-reply me-2"></i>
+                    Responder Comunicación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-responder-comunicacion">
+                    <input type="hidden" id="comunicacion-id-respuesta">
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Respondiendo a:</strong> <span id="asunto-comunicacion-respuesta"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mensaje-respuesta-comunicacion" class="form-label">Mensaje de Respuesta <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-respuesta-comunicacion" rows="6" 
+                                  placeholder="Escriba su respuesta..." required></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar Respuesta
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -55,7 +55,6 @@
                                 <th>Fecha Creación</th>
                                 <th>Estado</th>
                                 <th>Tipo Trabajo</th>
-                                <th>Documentación</th>
                                 <th>Fotos</th>
                                 <th>Acciones</th>
                             </tr>
@@ -113,12 +112,6 @@
                                   placeholder="Describa el trabajo a realizar..." required></textarea>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="observaciones-ot" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones-ot" name="observaciones" rows="2" 
-                                  placeholder="Observaciones adicionales..."></textarea>
-                    </div>
-
                     <!-- Toma de Imágenes -->
                     <div class="mb-3">
                         <label class="form-label">Fotos del Vehículo</label>
@@ -130,25 +123,27 @@
                         </div>
                     </div>
 
-                    <!-- Documentos -->
+                    <!-- Validación de Documentación Técnica -->
                     <div class="mb-3">
                         <label class="form-label">Documentación Técnica</label>
                         <div class="border rounded p-3">
-                            <input type="file" class="form-control" id="documentos-ot" name="documentos[]" 
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple>
-                            <small class="text-muted">Formatos permitidos: PDF, DOC, DOCX, JPG, PNG</small>
-                            <div id="preview-documentos" class="mt-3"></div>
+                            <div class="mb-2">
+                                <input type="file" class="form-control" id="documentos-tecnicos" name="documentos[]" 
+                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" multiple>
+                                <small class="text-muted">Subir documentos técnicos (PDF, Word, Excel, imágenes)</small>
+                            </div>
+                            <div id="preview-documentos" class="mt-3 row"></div>
                         </div>
                     </div>
 
-                    <!-- Validación de Documentación -->
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="documentos-validados" name="documentos_validados" value="1">
+                            <input class="form-check-input" type="checkbox" id="documentos-validados" name="documentos_validados">
                             <label class="form-check-label" for="documentos-validados">
                                 Documentación técnica validada
                             </label>
                         </div>
+                        <small class="text-muted">Marque esta casilla cuando haya revisado y validado toda la documentación técnica del vehículo</small>
                     </div>
 
                     <div class="d-flex justify-content-end">

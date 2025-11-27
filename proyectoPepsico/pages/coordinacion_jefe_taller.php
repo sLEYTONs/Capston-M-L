@@ -1,6 +1,6 @@
 <?php
 include 'general/middle.php';
-$roles_permitidos = ['Coordinador de Zona', 'Administrador'];
+$roles_permitidos = ['Coordinador de Zona', 'Administrador', 'Jefe de Taller'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
@@ -42,6 +42,10 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     </div>
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
+    <script>
+        // Pasar el rol del usuario al JavaScript
+        window.usuarioRol = '<?php echo htmlspecialchars($usuario_rol, ENT_QUOTES, 'UTF-8'); ?>';
+    </script>
     <script src="coordinacion_jefe_taller/js/app.js"></script>
 </body>
 </html>

@@ -64,7 +64,7 @@ function crearComunicacionJefeTaller($datos) {
 }
 
 /**
- * Obtiene las comunicaciones del coordinador de zona
+ * Obtiene las comunicaciones del coordinador de zona o todas si es Jefe de Taller
  */
 function obtenerComunicacionesJefeTaller() {
     $conn = conectarPepsicoSeguro();
@@ -86,13 +86,19 @@ function obtenerComunicacionesJefeTaller() {
         session_start();
     }
     $usuarioId = isset($_SESSION['usuario']['id']) ? $_SESSION['usuario']['id'] : 0;
+    $usuarioRol = isset($_SESSION['usuario']['rol']) ? $_SESSION['usuario']['rol'] : '';
+
+    // Si es Jefe de Taller, mostrar todas las comunicaciones
+    // Si es Coordinador de Zona, mostrar solo las suyas
+    $whereClause = ($usuarioRol === 'Jefe de Taller') ? "1=1" : "c.UsuarioID = $usuarioId";
 
     $query = "SELECT c.ID, c.TipoSolicitud, c.Prioridad, c.Asunto, c.Descripcion, 
                      c.Estado, c.FechaCreacion, c.FechaRespuesta, c.Respuesta,
-                     u.NombreUsuario as UsuarioNombre
+                     u.NombreUsuario as UsuarioNombre,
+                     c.UsuarioID
               FROM comunicaciones_jefe_taller c
               LEFT JOIN usuarios u ON c.UsuarioID = u.UsuarioID
-              WHERE c.UsuarioID = $usuarioId
+              WHERE $whereClause
               ORDER BY c.FechaCreacion DESC
               LIMIT 100";
 
@@ -124,11 +130,18 @@ function obtenerDetallesComunicacion($id) {
         session_start();
     }
     $usuarioId = isset($_SESSION['usuario']['id']) ? $_SESSION['usuario']['id'] : 0;
+    $usuarioRol = isset($_SESSION['usuario']['rol']) ? $_SESSION['usuario']['rol'] : '';
+
+    // Si es Jefe de Taller, puede ver cualquier comunicación
+    // Si es Coordinador de Zona, solo puede ver las suyas
+    $whereClause = ($usuarioRol === 'Jefe de Taller') 
+        ? "c.ID = $id" 
+        : "c.ID = $id AND c.UsuarioID = $usuarioId";
 
     $query = "SELECT c.*, u.NombreUsuario as UsuarioNombre
               FROM comunicaciones_jefe_taller c
               LEFT JOIN usuarios u ON c.UsuarioID = u.UsuarioID
-              WHERE c.ID = $id AND c.UsuarioID = $usuarioId
+              WHERE $whereClause
               LIMIT 1";
 
     $result = mysqli_query($conn, $query);
@@ -149,6 +162,63 @@ function obtenerDetallesComunicacion($id) {
 }
 
 /**
+ * Responde a una comunicación (solo Jefe de Taller)
+ */
+function responderComunicacion($id, $respuesta) {
+    $conn = conectarPepsicoSeguro();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
+    }
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $usuarioRol = isset($_SESSION['usuario']['rol']) ? $_SESSION['usuario']['rol'] : '';
+
+    // Solo el Jefe de Taller puede responder
+    if ($usuarioRol !== 'Jefe de Taller') {
+        mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'No tiene permisos para responder'];
+    }
+
+    $id = intval($id);
+    $respuesta = mysqli_real_escape_string($conn, trim($respuesta));
+
+    if (empty($respuesta)) {
+        mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'La respuesta no puede estar vacía'];
+    }
+
+    // Verificar que la comunicación existe
+    $checkQuery = "SELECT ID FROM comunicaciones_jefe_taller WHERE ID = $id LIMIT 1";
+    $checkResult = mysqli_query($conn, $checkQuery);
+    
+    if (!$checkResult || mysqli_num_rows($checkResult) == 0) {
+        mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'Comunicación no encontrada'];
+    }
+
+    // Actualizar la comunicación con la respuesta
+    $query = "UPDATE comunicaciones_jefe_taller 
+              SET Respuesta = '$respuesta', 
+                  FechaRespuesta = NOW(),
+                  Estado = CASE 
+                      WHEN Estado = 'Pendiente' THEN 'En Proceso'
+                      ELSE Estado
+                  END
+              WHERE ID = $id";
+
+    if (mysqli_query($conn, $query)) {
+        mysqli_close($conn);
+        return ['status' => 'success', 'message' => 'Respuesta enviada correctamente'];
+    } else {
+        $error = mysqli_error($conn);
+        mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'Error al guardar respuesta: ' . $error];
+    }
+}
+
+/**
  * Obtiene estadísticas de comunicaciones
  */
 function obtenerEstadisticasComunicaciones() {
@@ -161,6 +231,7 @@ function obtenerEstadisticasComunicaciones() {
         session_start();
     }
     $usuarioId = isset($_SESSION['usuario']['id']) ? $_SESSION['usuario']['id'] : 0;
+    $usuarioRol = isset($_SESSION['usuario']['rol']) ? $_SESSION['usuario']['rol'] : '';
 
     $estadisticas = [
         'pendientes' => 0,
@@ -172,9 +243,13 @@ function obtenerEstadisticasComunicaciones() {
     $checkTable = "SHOW TABLES LIKE 'comunicaciones_jefe_taller'";
     $resultCheck = mysqli_query($conn, $checkTable);
     if ($resultCheck && mysqli_num_rows($resultCheck) > 0) {
+        // Si es Jefe de Taller, mostrar todas las comunicaciones
+        // Si es Coordinador de Zona, mostrar solo las suyas
+        $whereClause = ($usuarioRol === 'Jefe de Taller') ? "1=1" : "UsuarioID = $usuarioId";
+
         // Pendientes
         $query = "SELECT COUNT(*) as total FROM comunicaciones_jefe_taller 
-                  WHERE UsuarioID = $usuarioId AND Estado = 'Pendiente'";
+                  WHERE $whereClause AND Estado = 'Pendiente'";
         $result = mysqli_query($conn, $query);
         if ($result) {
             $row = mysqli_fetch_assoc($result);
@@ -184,7 +259,7 @@ function obtenerEstadisticasComunicaciones() {
 
         // En proceso
         $query = "SELECT COUNT(*) as total FROM comunicaciones_jefe_taller 
-                  WHERE UsuarioID = $usuarioId AND Estado = 'En Proceso'";
+                  WHERE $whereClause AND Estado = 'En Proceso'";
         $result = mysqli_query($conn, $query);
         if ($result) {
             $row = mysqli_fetch_assoc($result);
@@ -194,7 +269,7 @@ function obtenerEstadisticasComunicaciones() {
 
         // Completadas/Aprobadas
         $query = "SELECT COUNT(*) as total FROM comunicaciones_jefe_taller 
-                  WHERE UsuarioID = $usuarioId AND Estado IN ('Aprobada', 'Completada')";
+                  WHERE $whereClause AND Estado IN ('Aprobada', 'Completada')";
         $result = mysqli_query($conn, $query);
         if ($result) {
             $row = mysqli_fetch_assoc($result);
@@ -204,7 +279,7 @@ function obtenerEstadisticasComunicaciones() {
 
         // Urgentes
         $query = "SELECT COUNT(*) as total FROM comunicaciones_jefe_taller 
-                  WHERE UsuarioID = $usuarioId AND Prioridad = 'urgente' AND Estado != 'Completada'";
+                  WHERE $whereClause AND Prioridad = 'urgente' AND Estado != 'Completada'";
         $result = mysqli_query($conn, $query);
         if ($result) {
             $row = mysqli_fetch_assoc($result);

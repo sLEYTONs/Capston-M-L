@@ -60,6 +60,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 echo json_encode($resultado);
                 break;
                 
+            case 'responder_comunicacion':
+                $id = intval($_POST['id'] ?? 0);
+                $respuesta = $_POST['respuesta'] ?? '';
+                
+                if ($id <= 0 || empty($respuesta)) {
+                    echo json_encode(['status' => 'error', 'message' => 'ID o respuesta inválida']);
+                    break;
+                }
+                
+                $resultado = responderComunicacion($id, $respuesta);
+                echo json_encode($resultado);
+                break;
+                
             default:
                 echo json_encode(['status' => 'error', 'message' => 'Acción no válida']);
                 break;

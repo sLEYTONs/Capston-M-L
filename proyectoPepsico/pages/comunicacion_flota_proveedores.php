@@ -1,7 +1,7 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Administrador', 'Recepcionista', 'Jefe de Taller'];
+$roles_permitidos = ['Administrador', 'Recepcionista', 'Jefe de Taller', 'Chofer'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);
@@ -14,7 +14,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recepción Técnica - PepsiCo</title>
+    <title>Comunicación Flota y Proveedores - PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- DataTables CSS -->
@@ -22,7 +22,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
     
     <?php include 'general/head.php'; ?>
-    <link rel="stylesheet" href="recepcion_tecnica/css/recepcion_tecnica.css">
+    <link rel="stylesheet" href="comunicacion_flota_proveedores/css/style.css">
 </head>
 
 <body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
@@ -37,11 +37,11 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 <div class="page-block">
                     <div class="row align-items-center">
                         <div class="col-md-12">
-                            <h5 class="mb-1">Recepción Técnica de Vehículos</h5>
+                            <h5 class="mb-1">Comunicación con Flota y Proveedores</h5>
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Recepción Técnica</li>
+                                    <li class="breadcrumb-item active" aria-current="page">Comunicación</li>
                                 </ol>
                             </nav>
                         </div>
@@ -49,16 +49,14 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 </div>
             </div>
             
-            <?php include 'recepcion_tecnica/contents.php'; ?>
-            
-            <div class="pc-footer-fix" style="height: 100px;"></div>
+            <?php include 'comunicacion_flota_proveedores/contents.php'; ?>
         </div>
     </div>
     
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
     
-    <script src="recepcion_tecnica/js/app.js"></script>
+    <script src="comunicacion_flota_proveedores/js/app.js"></script>
 </body>
 </html>
 

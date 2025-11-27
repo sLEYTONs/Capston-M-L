@@ -21,7 +21,37 @@ function crearOrdenTrabajo($datos) {
         $tablaExiste = ($resultCheck && mysqli_num_rows($resultCheck) > 0);
 
         if (!$tablaExiste) {
-            // Crear tabla si no existe
+            // Verificar que las tablas referenciadas existan
+            $checkIngresoVehiculos = "SHOW TABLES LIKE 'ingreso_vehiculos'";
+            $resultIngreso = mysqli_query($conn, $checkIngresoVehiculos);
+            $ingresoExiste = ($resultIngreso && mysqli_num_rows($resultIngreso) > 0);
+            
+            $checkUsuarios = "SHOW TABLES LIKE 'usuarios'";
+            $resultUsuarios = mysqli_query($conn, $checkUsuarios);
+            $usuariosExiste = ($resultUsuarios && mysqli_num_rows($resultUsuarios) > 0);
+            
+            if (!$ingresoExiste) {
+                throw new Exception('La tabla ingreso_vehiculos no existe. Debe crearse primero.');
+            }
+            
+            if (!$usuariosExiste) {
+                throw new Exception('La tabla usuarios no existe. Debe crearse primero.');
+            }
+            
+            // Verificar que las columnas referenciadas existan y tengan el tipo correcto
+            $checkColumnaVehiculo = "SHOW COLUMNS FROM ingreso_vehiculos WHERE Field = 'ID'";
+            $resultColVehiculo = mysqli_query($conn, $checkColumnaVehiculo);
+            if (!$resultColVehiculo || mysqli_num_rows($resultColVehiculo) == 0) {
+                throw new Exception('La columna ID no existe en la tabla ingreso_vehiculos.');
+            }
+            
+            $checkColumnaUsuario = "SHOW COLUMNS FROM usuarios WHERE Field = 'UsuarioID'";
+            $resultColUsuario = mysqli_query($conn, $checkColumnaUsuario);
+            if (!$resultColUsuario || mysqli_num_rows($resultColUsuario) == 0) {
+                throw new Exception('La columna UsuarioID no existe en la tabla usuarios.');
+            }
+            
+            // Crear tabla sin foreign keys primero
             $createTable = "CREATE TABLE IF NOT EXISTS `ordenes_trabajo` (
                 `ID` INT(11) NOT NULL AUTO_INCREMENT,
                 `VehiculoID` INT(11) NOT NULL,
@@ -41,19 +71,57 @@ function crearOrdenTrabajo($datos) {
                 UNIQUE KEY `NumeroOT` (`NumeroOT`),
                 KEY `VehiculoID` (`VehiculoID`),
                 KEY `RecepcionistaID` (`RecepcionistaID`),
-                KEY `Estado` (`Estado`),
-                CONSTRAINT `fk_ot_vehiculo` FOREIGN KEY (`VehiculoID`)
-                    REFERENCES `ingreso_vehiculos` (`ID`)
-                    ON DELETE RESTRICT
-                    ON UPDATE CASCADE,
-                CONSTRAINT `fk_ot_recepcionista` FOREIGN KEY (`RecepcionistaID`)
-                    REFERENCES `usuarios` (`UsuarioID`)
-                    ON DELETE RESTRICT
-                    ON UPDATE CASCADE
+                KEY `Estado` (`Estado`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
             
             if (!mysqli_query($conn, $createTable)) {
                 throw new Exception('Error al crear tabla ordenes_trabajo: ' . mysqli_error($conn));
+            }
+            
+            // Agregar foreign keys después de crear la tabla
+            // Primero verificar si ya existen las constraints
+            $checkFKVehiculo = "SELECT CONSTRAINT_NAME 
+                               FROM information_schema.TABLE_CONSTRAINTS 
+                               WHERE TABLE_SCHEMA = DATABASE() 
+                               AND TABLE_NAME = 'ordenes_trabajo' 
+                               AND CONSTRAINT_NAME = 'fk_ot_vehiculo'";
+            $resultFKVehiculo = mysqli_query($conn, $checkFKVehiculo);
+            $fkVehiculoExiste = ($resultFKVehiculo && mysqli_num_rows($resultFKVehiculo) > 0);
+            
+            if (!$fkVehiculoExiste) {
+                $addFKVehiculo = "ALTER TABLE `ordenes_trabajo` 
+                                 ADD CONSTRAINT `fk_ot_vehiculo` 
+                                 FOREIGN KEY (`VehiculoID`) 
+                                 REFERENCES `ingreso_vehiculos` (`ID`) 
+                                 ON DELETE RESTRICT 
+                                 ON UPDATE CASCADE";
+                
+                if (!mysqli_query($conn, $addFKVehiculo)) {
+                    error_log("Advertencia: No se pudo agregar foreign key fk_ot_vehiculo: " . mysqli_error($conn));
+                    // No lanzar excepción, continuar sin la foreign key
+                }
+            }
+            
+            $checkFKRecepcionista = "SELECT CONSTRAINT_NAME 
+                                    FROM information_schema.TABLE_CONSTRAINTS 
+                                    WHERE TABLE_SCHEMA = DATABASE() 
+                                    AND TABLE_NAME = 'ordenes_trabajo' 
+                                    AND CONSTRAINT_NAME = 'fk_ot_recepcionista'";
+            $resultFKRecepcionista = mysqli_query($conn, $checkFKRecepcionista);
+            $fkRecepcionistaExiste = ($resultFKRecepcionista && mysqli_num_rows($resultFKRecepcionista) > 0);
+            
+            if (!$fkRecepcionistaExiste) {
+                $addFKRecepcionista = "ALTER TABLE `ordenes_trabajo` 
+                                      ADD CONSTRAINT `fk_ot_recepcionista` 
+                                      FOREIGN KEY (`RecepcionistaID`) 
+                                      REFERENCES `usuarios` (`UsuarioID`) 
+                                      ON DELETE RESTRICT 
+                                      ON UPDATE CASCADE";
+                
+                if (!mysqli_query($conn, $addFKRecepcionista)) {
+                    error_log("Advertencia: No se pudo agregar foreign key fk_ot_recepcionista: " . mysqli_error($conn));
+                    // No lanzar excepción, continuar sin la foreign key
+                }
             }
         }
 
@@ -64,26 +132,59 @@ function crearOrdenTrabajo($datos) {
         $vehiculoID = intval($datos['vehiculo_id']);
         $recepcionistaID = intval($datos['recepcionista_id']);
         $usuarioCreacionID = intval($datos['usuario_creacion_id']);
-        $tipoTrabajo = mysqli_real_escape_string($conn, $datos['tipo_trabajo'] ?? '');
-        $descripcionTrabajo = mysqli_real_escape_string($conn, $datos['descripcion_trabajo'] ?? '');
-        $observaciones = mysqli_real_escape_string($conn, $datos['observaciones'] ?? '');
-        $documentosValidados = isset($datos['documentos_validados']) ? (int)$datos['documentos_validados'] : 0;
-        $fotos = !empty($datos['fotos']) ? json_encode($datos['fotos']) : NULL;
-        $documentos = !empty($datos['documentos']) ? json_encode($datos['documentos']) : NULL;
+        // Procesar campos de texto - usar cadena vacía en lugar de NULL para evitar problemas con bind_param
+        $tipoTrabajo = isset($datos['tipo_trabajo']) && $datos['tipo_trabajo'] !== '' 
+            ? mysqli_real_escape_string($conn, trim($datos['tipo_trabajo'])) 
+            : '';
+        $descripcionTrabajo = isset($datos['descripcion_trabajo']) && $datos['descripcion_trabajo'] !== '' 
+            ? mysqli_real_escape_string($conn, trim($datos['descripcion_trabajo'])) 
+            : '';
+        
+        // Procesar fotos - convertir arrays a JSON solo si tienen contenido
+        $fotos = '';
+        if (isset($datos['fotos']) && is_array($datos['fotos']) && count($datos['fotos']) > 0) {
+            $fotos_json = json_encode($datos['fotos'], JSON_UNESCAPED_UNICODE);
+            if ($fotos_json !== false && $fotos_json !== '[]') {
+                $fotos = $fotos_json;
+            }
+        }
 
+        // Procesar documentos técnicos
+        $documentos = '';
+        if (isset($datos['documentos']) && is_array($datos['documentos']) && count($datos['documentos']) > 0) {
+            $documentos_json = json_encode($datos['documentos'], JSON_UNESCAPED_UNICODE);
+            if ($documentos_json !== false && $documentos_json !== '[]') {
+                $documentos = $documentos_json;
+            }
+        }
+
+        // Validación de documentación técnica
+        $documentosValidados = isset($datos['documentos_validados']) ? intval($datos['documentos_validados']) : 0;
+
+        // INSERT con campos de documentos y validación
         $query = "INSERT INTO ordenes_trabajo 
                  (VehiculoID, NumeroOT, FechaRecepcion, RecepcionistaID, TipoTrabajo, 
-                  DescripcionTrabajo, Observaciones, DocumentosValidados, Fotos, Documentos, UsuarioCreacionID)
-                 VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)";
+                  DescripcionTrabajo, Fotos, Documentos, DocumentosValidados, UsuarioCreacionID)
+                 VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = mysqli_prepare($conn, $query);
         if (!$stmt) {
             throw new Exception('Error preparando consulta: ' . mysqli_error($conn));
         }
 
-        mysqli_stmt_bind_param($stmt, 'isississsi', 
+        // Orden de parámetros según VALUES: VehiculoID(i), NumeroOT(s), RecepcionistaID(i), TipoTrabajo(s), 
+        // DescripcionTrabajo(s), Fotos(s), Documentos(s), DocumentosValidados(i), UsuarioCreacionID(i)
+        // Total: 9 parámetros -> 'isissisii' (9 caracteres)
+        
+        // Asegurar que todos los valores string sean strings válidos (nunca NULL)
+        $tipoTrabajo = (string)$tipoTrabajo;
+        $descripcionTrabajo = (string)$descripcionTrabajo;
+        $fotos = (string)$fotos;
+        $documentos = (string)$documentos;
+        
+        mysqli_stmt_bind_param($stmt, 'isissisii', 
             $vehiculoID, $numeroOT, $recepcionistaID, $tipoTrabajo, 
-            $descripcionTrabajo, $observaciones, $documentosValidados, $fotos, $documentos, $usuarioCreacionID);
+            $descripcionTrabajo, $fotos, $documentos, $documentosValidados, $usuarioCreacionID);
 
         if (!mysqli_stmt_execute($stmt)) {
             throw new Exception('Error ejecutando consulta: ' . mysqli_stmt_error($stmt));
@@ -161,8 +262,6 @@ function obtenerOrdenesTrabajo($filtros = []) {
                 ot.Estado AS EstadoOT,
                 ot.TipoTrabajo,
                 ot.DescripcionTrabajo,
-                ot.Observaciones,
-                ot.DocumentosValidados,
                 
                 -- Datos del vehículo
                 v.ID AS VehiculoID,
@@ -178,17 +277,11 @@ function obtenerOrdenesTrabajo($filtros = []) {
                 (CASE 
                     WHEN ot.Fotos IS NULL OR ot.Fotos = '' THEN 0
                     ELSE JSON_LENGTH(ot.Fotos)
-                END) AS TotalFotos,
-                
-                -- Total de documentos (contar elementos en JSON)
-                (CASE 
-                    WHEN ot.Documentos IS NULL OR ot.Documentos = '' THEN 0
-                    ELSE JSON_LENGTH(ot.Documentos)
-                END) AS TotalDocumentos
+                END) AS TotalFotos
                 
             FROM ordenes_trabajo ot
-            INNER JOIN ingreso_vehiculos v ON ot.VehiculoID = v.ID
-            INNER JOIN usuarios u ON ot.RecepcionistaID = u.UsuarioID
+            LEFT JOIN ingreso_vehiculos v ON ot.VehiculoID = v.ID
+            LEFT JOIN usuarios u ON ot.RecepcionistaID = u.UsuarioID
             WHERE 1=1";
 
     $params = [];
@@ -214,8 +307,19 @@ function obtenerOrdenesTrabajo($filtros = []) {
     }
 
     if (!empty($filtros['numero_ot'])) {
+        // Limpiar y normalizar el número de OT para la búsqueda
+        $numeroOT = trim($filtros['numero_ot']);
+        // Convertir a mayúsculas para coincidir con el formato almacenado
+        $numeroOT = strtoupper($numeroOT);
+        // Permitir búsqueda exacta o parcial (sin espacios)
+        $numeroOT = str_replace(' ', '', $numeroOT);
+        // Escapar caracteres especiales
+        $numeroOT = mysqli_real_escape_string($conn, $numeroOT);
+        
+        error_log("Buscando OT con filtro: '$numeroOT'");
+        
         $query .= " AND ot.NumeroOT LIKE ?";
-        $params[] = '%' . $filtros['numero_ot'] . '%';
+        $params[] = '%' . $numeroOT . '%';
         $types .= 's';
     }
 
@@ -250,20 +354,27 @@ function obtenerOrdenesTrabajo($filtros = []) {
     }
 
     if ($result) {
+        $contador = 0;
         while ($row = mysqli_fetch_assoc($result)) {
-            // Simplificar conteo de fotos y documentos si no está disponible JSON_TABLE
+            // Simplificar conteo de fotos si no está disponible JSON_TABLE
             if ($row['TotalFotos'] === null) {
                 $row['TotalFotos'] = 0;
             }
-            if ($row['TotalDocumentos'] === null) {
-                $row['TotalDocumentos'] = 0;
-            }
             $ots[] = $row;
+            $contador++;
         }
         if (isset($stmt)) {
             mysqli_stmt_close($stmt);
         }
         mysqli_free_result($result);
+        
+        error_log("obtenerOrdenesTrabajo: Se encontraron $contador OTs con los filtros aplicados");
+        error_log("Query ejecutada: " . $query);
+        if (!empty($filtros['numero_ot'])) {
+            error_log("Filtro numero_ot aplicado: '" . $filtros['numero_ot'] . "'");
+        }
+    } else {
+        error_log("Error en la consulta: " . mysqli_error($conn));
     }
 
     mysqli_close($conn);
@@ -275,54 +386,6 @@ function obtenerOrdenesTrabajo($filtros = []) {
     ];
 }
 
-/**
- * Valida documentación técnica de un vehículo/OT
- */
-function validarDocumentacion($ot_id, $documentos_validados, $observaciones, $usuario_id) {
-    $conn = conectar_Pepsico();
-    if (!$conn) {
-        return ['status' => 'error', 'message' => 'Error de conexión'];
-    }
-
-    mysqli_begin_transaction($conn);
-
-    try {
-        $ot_id = intval($ot_id);
-        $documentos_validados = (int)$documentos_validados;
-        $observaciones = mysqli_real_escape_string($conn, $observaciones);
-        $usuario_id = intval($usuario_id);
-
-        $query = "UPDATE ordenes_trabajo 
-                 SET DocumentosValidados = ?, 
-                     Observaciones = ?,
-                     FechaRecepcion = NOW()
-                 WHERE ID = ? AND RecepcionistaID = ?";
-
-        $stmt = mysqli_prepare($conn, $query);
-        if (!$stmt) {
-            throw new Exception('Error preparando consulta: ' . mysqli_error($conn));
-        }
-
-        mysqli_stmt_bind_param($stmt, 'isii', $documentos_validados, $observaciones, $ot_id, $usuario_id);
-
-        if (!mysqli_stmt_execute($stmt)) {
-            throw new Exception('Error ejecutando consulta: ' . mysqli_stmt_error($stmt));
-        }
-
-        mysqli_stmt_close($stmt);
-        mysqli_commit($conn);
-
-        return [
-            'status' => 'success',
-            'message' => 'Documentación validada correctamente'
-        ];
-    } catch (Exception $e) {
-        mysqli_rollback($conn);
-        return ['status' => 'error', 'message' => $e->getMessage()];
-    } finally {
-        mysqli_close($conn);
-    }
-}
 
 /**
  * Obtiene una OT específica por ID
@@ -348,17 +411,11 @@ function obtenerOTPorID($ot_id) {
     $ot = null;
 
     if ($result && $row = mysqli_fetch_assoc($result)) {
-        // Decodificar JSON de fotos y documentos
+        // Decodificar JSON de fotos
         if ($row['Fotos']) {
             $row['Fotos'] = json_decode($row['Fotos'], true);
         } else {
             $row['Fotos'] = [];
-        }
-        
-        if ($row['Documentos']) {
-            $row['Documentos'] = json_decode($row['Documentos'], true);
-        } else {
-            $row['Documentos'] = [];
         }
         
         $ot = $row;
@@ -404,34 +461,4 @@ function actualizarFotosOT($ot_id, $fotos) {
     ];
 }
 
-/**
- * Actualiza documentos de una OT
- */
-function actualizarDocumentosOT($ot_id, $documentos) {
-    $conn = conectar_Pepsico();
-    if (!$conn) {
-        return ['status' => 'error', 'message' => 'Error de conexión'];
-    }
-
-    $ot_id = intval($ot_id);
-    $documentos_json = json_encode($documentos);
-
-    $query = "UPDATE ordenes_trabajo SET Documentos = ? WHERE ID = ?";
-    $stmt = mysqli_prepare($conn, $query);
-    
-    if (!$stmt) {
-        mysqli_close($conn);
-        return ['status' => 'error', 'message' => 'Error preparando consulta: ' . mysqli_error($conn)];
-    }
-
-    mysqli_stmt_bind_param($stmt, 'si', $documentos_json, $ot_id);
-    $resultado = mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
-    mysqli_close($conn);
-
-    return [
-        'status' => $resultado ? 'success' : 'error',
-        'message' => $resultado ? 'Documentos actualizados correctamente' : 'Error al actualizar documentos'
-    ];
-}
 

@@ -4,7 +4,12 @@ require_once '../functions/f_comunicacion_proveedores.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $accion = $_POST['accion'] ?? '';
+    // Intentar obtener la acción de diferentes formas posibles
+    $accion = trim($_POST['accion'] ?? $_POST['action'] ?? '');
+    
+    // Log para depuración
+    error_log("s_comunicacion_proveedores.php - Acción recibida: '" . $accion . "'");
+    error_log("s_comunicacion_proveedores.php - POST completo: " . print_r($_POST, true));
     
     switch ($accion) {
         case 'crear_proveedor':

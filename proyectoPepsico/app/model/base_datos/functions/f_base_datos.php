@@ -50,10 +50,16 @@ function obtenerVehiculosFiltrados($filtros) {
     $sql = "SELECT 
                 ID,
                 Placa,
+                TipoVehiculo,
+                Marca,
+                Modelo,
+                Anio,
                 CONCAT(Marca, ' ', Modelo) as MarcaModelo,
                 ConductorNombre,
                 Estado,
-                FechaIngreso
+                FechaIngreso,
+                FechaRegistro,
+                Kilometraje
             FROM ingreso_vehiculos 
             WHERE 1=1";
     
@@ -407,62 +413,337 @@ function obtenerDatosTemporales() {
 // =============================================================================
 
 /**
- * Exporta CSV completo de la base de datos
+ * Exporta CSV completo de la base de datos (todas las pestañas)
  */
 function exportarCSVCompleto() {
     require_once __DIR__ . '/f_exportar_excel.php';
     
-    $conn = conectar_Pepsico();
-    $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
-    $result = $conn->query($sql);
-    
-    $datos = [];
-    while ($row = $result->fetch_assoc()) {
-        $datos[] = $row;
+    // Limpiar cualquier output previo
+    if (ob_get_level()) {
+        ob_end_clean();
     }
     
-    $conn->close();
+    // Headers para CSV
+    $filename = 'base_datos_completa_' . date('Y-m-d_H-i-s') . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    exportarBaseDatosCSV($datos);
+    $output = fopen('php://output', 'w');
+    
+    // BOM para UTF-8
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Título principal
+    fputcsv($output, ['BASE DE DATOS COMPLETA - TODAS LAS PESTAÑAS']);
+    fputcsv($output, ['Generado el ' . date('d/m/Y H:i:s') . ' - Sistema PepsiCo']);
+    fputcsv($output, []); // Línea en blanco
+    
+    // Obtener datos de todas las pestañas
+    $vehiculos = obtenerVehiculosFiltrados([]);
+    $agendas = obtenerAgendasTaller();
+    $repuestos = obtenerRepuestos();
+    $usuarios = obtenerUsuarios();
+    $conductores = obtenerAnalisisConductores();
+    
+    // Exportar Vehículos
+    fputcsv($output, ['=== VEHÍCULOS ===']);
+    fputcsv($output, ['Placa', 'Tipo Vehículo', 'Marca', 'Modelo', 'Año', 'Conductor', 'Fecha Ingreso', 'Estado', 'Kilometraje', 'Fecha Registro']);
+    foreach ($vehiculos as $vehiculo) {
+        $fechaIngreso = !empty($vehiculo['FechaIngreso']) ? date('d/m/Y H:i', strtotime($vehiculo['FechaIngreso'])) : '-';
+        $fechaRegistro = !empty($vehiculo['FechaRegistro']) ? date('d/m/Y H:i', strtotime($vehiculo['FechaRegistro'])) : '-';
+        fputcsv($output, [
+            $vehiculo['Placa'] ?? '-',
+            $vehiculo['TipoVehiculo'] ?? '-',
+            $vehiculo['Marca'] ?? '-',
+            $vehiculo['Modelo'] ?? '-',
+            $vehiculo['Anio'] ?? '-',
+            $vehiculo['ConductorNombre'] ?? '-',
+            $fechaIngreso,
+            $vehiculo['Estado'] ?? '-',
+            $vehiculo['Kilometraje'] ?? '-',
+            $fechaRegistro
+        ]);
+    }
+    fputcsv($output, []); // Línea en blanco
+    
+    // Exportar Agendas
+    fputcsv($output, ['=== AGENDAS ===']);
+    fputcsv($output, ['ID', 'Fecha', 'Hora Inicio', 'Hora Fin', 'Disponible', 'Observaciones', 'Fecha Creación']);
+    foreach ($agendas as $agenda) {
+        $fecha = !empty($agenda['Fecha']) ? date('d/m/Y', strtotime($agenda['Fecha'])) : '-';
+        $disponible = $agenda['Disponible'] == 1 ? 'Sí' : 'No';
+        $fechaCreacion = !empty($agenda['FechaCreacion']) ? date('d/m/Y H:i', strtotime($agenda['FechaCreacion'])) : '-';
+        fputcsv($output, [
+            $agenda['ID'] ?? '-',
+            $fecha,
+            $agenda['HoraInicio'] ?? '-',
+            $agenda['HoraFin'] ?? '-',
+            $disponible,
+            $agenda['Observaciones'] ?? '-',
+            $fechaCreacion
+        ]);
+    }
+    fputcsv($output, []); // Línea en blanco
+    
+    // Exportar Repuestos
+    fputcsv($output, ['=== REPUESTOS ===']);
+    fputcsv($output, ['ID', 'Nombre', 'Descripción', 'Stock', 'Stock Mínimo', 'Precio', 'Estado', 'Fecha Creación']);
+    foreach ($repuestos as $repuesto) {
+        $fechaCreacion = !empty($repuesto['FechaCreacion']) ? date('d/m/Y H:i', strtotime($repuesto['FechaCreacion'])) : '-';
+        fputcsv($output, [
+            $repuesto['ID'] ?? '-',
+            $repuesto['Nombre'] ?? '-',
+            $repuesto['Descripcion'] ?? '-',
+            $repuesto['Stock'] ?? 0,
+            $repuesto['StockMinimo'] ?? 0,
+            $repuesto['Precio'] ?? 0,
+            $repuesto['Estado'] ?? '-',
+            $fechaCreacion
+        ]);
+    }
+    fputcsv($output, []); // Línea en blanco
+    
+    // Exportar Usuarios
+    fputcsv($output, ['=== USUARIOS ===']);
+    fputcsv($output, ['ID', 'Nombre', 'Correo', 'Rol', 'Estado', 'Fecha Creación', 'Último Acceso']);
+    foreach ($usuarios as $usuario) {
+        $fechaCreacion = !empty($usuario['FechaCreacion']) ? date('d/m/Y H:i', strtotime($usuario['FechaCreacion'])) : '-';
+        $ultimoAcceso = !empty($usuario['UltimoAcceso']) ? date('d/m/Y H:i', strtotime($usuario['UltimoAcceso'])) : '-';
+        fputcsv($output, [
+            $usuario['ID'] ?? '-',
+            $usuario['NombreUsuario'] ?? '-',
+            $usuario['Correo'] ?? '-',
+            $usuario['Rol'] ?? '-',
+            $usuario['Estado'] ?? '-',
+            $fechaCreacion,
+            $ultimoAcceso
+        ]);
+    }
+    fputcsv($output, []); // Línea en blanco
+    
+    // Exportar Conductores
+    fputcsv($output, ['=== CONDUCTORES ===']);
+    fputcsv($output, ['ID', 'Nombre', 'Correo', 'Total Vehículos', 'Vehículos Únicos', 'Primera Visita', 'Última Visita', 'Estado']);
+    foreach ($conductores as $conductor) {
+        $primeraVisita = !empty($conductor['PrimeraVisita']) ? date('d/m/Y', strtotime($conductor['PrimeraVisita'])) : '-';
+        $ultimaVisita = !empty($conductor['UltimaVisita']) ? date('d/m/Y H:i', strtotime($conductor['UltimaVisita'])) : '-';
+        fputcsv($output, [
+            $conductor['ID'] ?? '-',
+            $conductor['Nombre'] ?? '-',
+            $conductor['Correo'] ?? '-',
+            $conductor['Vehiculos'] ?? 0,
+            $conductor['VehiculosUnicos'] ?? 0,
+            $primeraVisita,
+            $ultimaVisita,
+            $conductor['Estado'] ?? '-'
+        ]);
+    }
+    
+    fclose($output);
+    exit;
 }
 
 /**
- * Exporta datos en formato Excel con formato visual mejorado
+ * Exporta datos en formato Excel con formato visual mejorado (todas las pestañas)
  */
 function exportarExcelCompleto() {
-    require_once __DIR__ . '/f_exportar_excel.php';
-    
-    $conn = conectar_Pepsico();
-    $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
-    $result = $conn->query($sql);
-    
-    $datos = [];
-    while ($row = $result->fetch_assoc()) {
-        $datos[] = $row;
+    // Limpiar cualquier output previo
+    if (ob_get_level()) {
+        ob_end_clean();
     }
     
-    $conn->close();
+    // Headers para Excel
+    $filename = 'base_datos_completa_' . date('Y-m-d_H-i-s') . '.xls';
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    exportarBaseDatosExcel($datos);
+    // Obtener datos de todas las pestañas
+    $vehiculos = obtenerVehiculosFiltrados([]);
+    $agendas = obtenerAgendasTaller();
+    $repuestos = obtenerRepuestos();
+    $usuarios = obtenerUsuarios();
+    $conductores = obtenerAnalisisConductores();
+    
+    // Generar HTML simple que Excel puede interpretar
+    echo '<html>';
+    echo '<head>';
+    echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">';
+    echo '<style>';
+    echo 'body { font-family: Arial, sans-serif; margin: 20px; }';
+    echo '.titulo { font-size: 18px; font-weight: bold; color: #1f4788; background-color: #d9e1f2; padding: 15px; text-align: center; }';
+    echo '.subtitulo { font-size: 14px; font-weight: bold; color: #2e75b6; background-color: #e7f3ff; padding: 10px; margin-top: 20px; }';
+    echo 'table { border-collapse: collapse; width: 100%; margin: 10px 0; }';
+    echo 'th { background-color: #4472C4; color: white; font-weight: bold; padding: 10px; text-align: left; border: 1px solid #2e5a8a; }';
+    echo 'td { padding: 8px; border: 1px solid #d0d0d0; }';
+    echo 'tr:nth-child(even) { background-color: #f9f9f9; }';
+    echo '.separador { height: 20px; }';
+    echo '</style>';
+    echo '</head>';
+    echo '<body>';
+    
+    // Título principal
+    echo '<div class="titulo">BASE DE DATOS COMPLETA - TODAS LAS PESTAÑAS</div>';
+    echo '<div class="separador"></div>';
+    
+    // VEHÍCULOS
+    echo '<div class="subtitulo">VEHÍCULOS</div>';
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>Placa</th><th>Tipo Vehículo</th><th>Marca</th><th>Modelo</th><th>Año</th>';
+    echo '<th>Conductor</th><th>Fecha Ingreso</th><th>Estado</th><th>Kilometraje</th><th>Fecha Registro</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($vehiculos as $vehiculo) {
+        $fechaIngreso = !empty($vehiculo['FechaIngreso']) ? date('d/m/Y H:i', strtotime($vehiculo['FechaIngreso'])) : '-';
+        $fechaRegistro = !empty($vehiculo['FechaRegistro']) ? date('d/m/Y H:i', strtotime($vehiculo['FechaRegistro'])) : '-';
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($vehiculo['Placa'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['TipoVehiculo'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['Marca'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['Modelo'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['Anio'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['ConductorNombre'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fechaIngreso, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['Estado'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($vehiculo['Kilometraje'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fechaRegistro, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    echo '<div class="separador"></div>';
+    
+    // AGENDAS
+    echo '<div class="subtitulo">AGENDAS</div>';
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>ID</th><th>Fecha</th><th>Hora Inicio</th><th>Hora Fin</th><th>Disponible</th><th>Observaciones</th><th>Fecha Creación</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($agendas as $agenda) {
+        $fecha = !empty($agenda['Fecha']) ? date('d/m/Y', strtotime($agenda['Fecha'])) : '-';
+        $disponible = $agenda['Disponible'] == 1 ? 'Sí' : 'No';
+        $fechaCreacion = !empty($agenda['FechaCreacion']) ? date('d/m/Y H:i', strtotime($agenda['FechaCreacion'])) : '-';
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($agenda['ID'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fecha, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($agenda['HoraInicio'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($agenda['HoraFin'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($disponible, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($agenda['Observaciones'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fechaCreacion, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    echo '<div class="separador"></div>';
+    
+    // REPUESTOS
+    echo '<div class="subtitulo">REPUESTOS</div>';
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>ID</th><th>Nombre</th><th>Descripción</th><th>Stock</th><th>Stock Mínimo</th><th>Precio</th><th>Estado</th><th>Fecha Creación</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($repuestos as $repuesto) {
+        $fechaCreacion = !empty($repuesto['FechaCreacion']) ? date('d/m/Y H:i', strtotime($repuesto['FechaCreacion'])) : '-';
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($repuesto['ID'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['Nombre'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['Descripcion'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['Stock'] ?? 0, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['StockMinimo'] ?? 0, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['Precio'] ?? 0, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($repuesto['Estado'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fechaCreacion, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    echo '<div class="separador"></div>';
+    
+    // USUARIOS
+    echo '<div class="subtitulo">USUARIOS</div>';
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>ID</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Fecha Creación</th><th>Último Acceso</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($usuarios as $usuario) {
+        $fechaCreacion = !empty($usuario['FechaCreacion']) ? date('d/m/Y H:i', strtotime($usuario['FechaCreacion'])) : '-';
+        $ultimoAcceso = !empty($usuario['UltimoAcceso']) ? date('d/m/Y H:i', strtotime($usuario['UltimoAcceso'])) : '-';
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($usuario['ID'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($usuario['NombreUsuario'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($usuario['Correo'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($usuario['Rol'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($usuario['Estado'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($fechaCreacion, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($ultimoAcceso, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    echo '<div class="separador"></div>';
+    
+    // CONDUCTORES
+    echo '<div class="subtitulo">CONDUCTORES</div>';
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>ID</th><th>Nombre</th><th>Correo</th><th>Total Vehículos</th><th>Vehículos Únicos</th><th>Primera Visita</th><th>Última Visita</th><th>Estado</th>';
+    echo '</tr></thead><tbody>';
+    foreach ($conductores as $conductor) {
+        $primeraVisita = !empty($conductor['PrimeraVisita']) ? date('d/m/Y', strtotime($conductor['PrimeraVisita'])) : '-';
+        $ultimaVisita = !empty($conductor['UltimaVisita']) ? date('d/m/Y H:i', strtotime($conductor['UltimaVisita'])) : '-';
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($conductor['ID'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($conductor['Nombre'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($conductor['Correo'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($conductor['Vehiculos'] ?? 0, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($conductor['VehiculosUnicos'] ?? 0, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($primeraVisita, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($ultimaVisita, ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '<td>' . htmlspecialchars($conductor['Estado'] ?? '-', ENT_QUOTES, 'UTF-8') . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
+    
+    // Pie de página
+    echo '<div class="separador"></div>';
+    echo '<div style="text-align: center; color: #666; font-size: 11px; margin-top: 30px;">';
+    echo 'Generado el ' . date('d/m/Y H:i:s') . ' - Sistema PepsiCo';
+    echo '</div>';
+    
+    echo '</body></html>';
+    exit;
 }
 
 /**
- * Exporta datos en formato JSON
+ * Exporta datos en formato JSON (todas las pestañas)
  */
 function exportarJSONCompleto() {
     header('Content-Type: application/json; charset=utf-8');
     header('Content-Disposition: attachment; filename=base_datos_completa_' . date('Y-m-d') . '.json');
     
-    $conn = conectar_Pepsico();
-    $sql = "SELECT * FROM ingreso_vehiculos ORDER BY FechaIngreso DESC";
-    $result = $conn->query($sql);
+    // Obtener datos de todas las pestañas
+    $vehiculos = obtenerVehiculosFiltrados([]);
+    $agendas = obtenerAgendasTaller();
+    $repuestos = obtenerRepuestos();
+    $usuarios = obtenerUsuarios();
+    $conductores = obtenerAnalisisConductores();
     
-    $datos = [];
-    while ($row = $result->fetch_assoc()) {
-        $datos[] = $row;
-    }
-    
-    $conn->close();
+    // Estructurar datos
+    $datos = [
+        'fecha_exportacion' => date('Y-m-d H:i:s'),
+        'vehiculos' => $vehiculos,
+        'agendas' => $agendas,
+        'repuestos' => $repuestos,
+        'usuarios' => $usuarios,
+        'conductores' => $conductores,
+        'resumen' => [
+            'total_vehiculos' => count($vehiculos),
+            'total_agendas' => count($agendas),
+            'total_repuestos' => count($repuestos),
+            'total_usuarios' => count($usuarios),
+            'total_conductores' => count($conductores)
+        ]
+    ];
     
     echo json_encode($datos, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;

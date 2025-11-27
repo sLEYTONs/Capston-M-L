@@ -9,26 +9,54 @@ function buscarIngresoPendiente($placa) {
     $conn = conectar_Pepsico();
     
     if (!$conn) {
+        error_log("buscarIngresoPendiente: Error de conexión a la base de datos");
         throw new Exception('Error de conexión a la base de datos');
     }
     
+    // Normalizar la placa: eliminar espacios, guiones y convertir a mayúsculas
+    $placa_normalizada = strtoupper(trim(str_replace([' ', '-', '_'], '', $placa)));
+    $placa_upper = strtoupper(trim($placa));
+    
+    error_log("buscarIngresoPendiente: Buscando placa original='$placa', normalizada='$placa_normalizada', upper='$placa_upper'");
+    
+    // Buscar con diferentes variaciones de normalización - simplificado para mejor rendimiento
     $sql = "SELECT * FROM ingreso_vehiculos 
-            WHERE UPPER(REPLACE(Placa, ' ', '')) = UPPER(REPLACE(?, ' ', '')) 
-            AND Estado = 'Ingresado'";
+            WHERE Estado = 'Ingresado'
+            AND (
+                UPPER(REPLACE(REPLACE(REPLACE(Placa, ' ', ''), '-', ''), '_', '')) = ?
+                OR UPPER(TRIM(Placa)) = ?
+                OR Placa = ?
+            )
+            ORDER BY FechaIngreso DESC
+            LIMIT 1";
     
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
+        error_log("buscarIngresoPendiente: Error preparando consulta - " . $conn->error);
         $conn->close();
         throw new Exception('Error preparando la consulta: ' . $conn->error);
     }
     
-    $stmt->bind_param("s", $placa);
-    $stmt->execute();
+    $stmt->bind_param("sss", $placa_normalizada, $placa_upper, $placa);
+    
+    if (!$stmt->execute()) {
+        error_log("buscarIngresoPendiente: Error ejecutando consulta - " . $stmt->error);
+        $stmt->close();
+        $conn->close();
+        throw new Exception('Error ejecutando la consulta: ' . $stmt->error);
+    }
+    
     $result = $stmt->get_result();
     $vehiculo = $result->fetch_assoc();
     
     $stmt->close();
     $conn->close();
+    
+    if ($vehiculo) {
+        error_log("buscarIngresoPendiente: Vehículo encontrado - ID=" . $vehiculo['ID'] . ", Placa=" . $vehiculo['Placa']);
+    } else {
+        error_log("buscarIngresoPendiente: No se encontró vehículo con placa '$placa' (normalizada: '$placa_normalizada')");
+    }
     
     return $vehiculo;
 }

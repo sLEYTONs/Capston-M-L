@@ -188,6 +188,18 @@
         </li>
         <?php endif; ?>
 
+        <!-- Comunicación Flota y Proveedores -->
+        <?php if (tiene_acceso('comunicacion_flota_proveedores.php')): ?>
+        <li class="pc-item">
+          <a href="comunicacion_flota_proveedores.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-comments"></i>
+            </span>
+            <span class="pc-mtext">Comunicación Flota/Proveedores</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Reportes -->
         <?php if (tiene_acceso('reportes.php')): ?>
         <li class="pc-item">

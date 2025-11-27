@@ -50,7 +50,7 @@ class RecepcionTecnicaApp {
         $('#fotos-vehiculo').on('change', (e) => this.mostrarPreviewFotos(e.target.files));
         
         // Preview de documentos
-        $('#documentos-ot').on('change', (e) => this.mostrarPreviewDocumentos(e.target.files));
+        $('#documentos-tecnicos').on('change', (e) => this.mostrarPreviewDocumentos(e.target.files));
 
         // Guardar nueva OT
         $('#form-nueva-ot').on('submit', (e) => {
@@ -140,16 +140,6 @@ class RecepcionTecnicaApp {
                 },
                 { data: 'TipoTrabajo' },
                 { 
-                    data: 'DocumentosValidados',
-                    render: (data) => {
-                        if (data == 1) {
-                            return '<span class="badge bg-success"><i class="fas fa-check"></i> Validada</span>';
-                        } else {
-                            return '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pendiente</span>';
-                        }
-                    }
-                },
-                { 
                     data: 'TotalFotos',
                     render: (data) => {
                         const total = data || 0;
@@ -181,8 +171,8 @@ class RecepcionTecnicaApp {
 
     obtenerFiltros() {
         return {
-            placa: $('#filtro-placa').val(),
-            numero_ot: $('#filtro-numero-ot').val(),
+            placa: $('#filtro-placa').val().trim(),
+            numero_ot: $('#filtro-numero-ot').val().trim().toUpperCase(), // Normalizar a mayúsculas
             estado: $('#filtro-estado').val()
         };
     }
@@ -229,34 +219,84 @@ class RecepcionTecnicaApp {
             return;
         }
 
+        // Mostrar indicador de carga
+        $('#info-vehiculo-ot').html(
+            '<i class="fas fa-spinner fa-spin"></i> Buscando vehículo...'
+        ).removeClass('alert-info alert-warning alert-danger').addClass('alert-info').show();
+        $('#vehiculo-id-ot').val('');
+
+        // Calcular la ruta base dinámicamente
+        const currentPath = window.location.pathname;
+        let baseUrl = '../app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php';
+        if (currentPath.includes('/pages/')) {
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/'));
+            baseUrl = basePath + '/app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php';
+        }
+
+        console.log('Buscando vehículo con placa:', placa, 'URL:', baseUrl);
+
         $.ajax({
-            url: '../app/model/ingreso_vehiculos/scripts/s_ingreso_vehiculos.php',
+            url: baseUrl,
             type: 'POST',
             data: {
-                accion: 'buscar_por_placa',
+                action: 'buscar_por_placa',
                 placa: placa
             },
             dataType: 'json',
             success: (response) => {
+                console.log('Respuesta del servidor:', response);
                 if (response.success && response.data) {
                     const vehiculo = response.data;
-                    $('#vehiculo-id-ot').val(vehiculo.ID);
+                    const vehiculoId = vehiculo.ID || vehiculo.id;
+                    
+                    console.log('Vehículo encontrado - ID:', vehiculoId, 'Datos completos:', vehiculo);
+                    
+                    if (!vehiculoId) {
+                        $('#info-vehiculo-ot').html(
+                            '<i class="fas fa-exclamation-triangle"></i> Error: El vehículo no tiene un ID válido.'
+                        ).removeClass('alert-info').addClass('alert-danger').show();
+                        $('#vehiculo-id-ot').val('');
+                        return;
+                    }
+                    
+                    $('#vehiculo-id-ot').val(vehiculoId);
+                    console.log('vehiculo-id-ot establecido a:', $('#vehiculo-id-ot').val());
+                    
                     $('#info-vehiculo-ot').html(`
-                        <strong>Vehículo encontrado:</strong><br>
-                        ${vehiculo.Marca} ${vehiculo.Modelo} - ${vehiculo.Placa}<br>
-                        <small>Conductor: ${vehiculo.ConductorNombre}</small>
-                    `).show();
+                        <strong><i class="fas fa-check-circle"></i> Vehículo encontrado:</strong><br>
+                        ${vehiculo.Marca || 'N/A'} ${vehiculo.Modelo || 'N/A'} - ${vehiculo.Placa}<br>
+                        <small>Conductor: ${vehiculo.ConductorNombre || 'N/A'}</small>
+                    `).removeClass('alert-warning alert-danger').addClass('alert-info').show();
                 } else {
                     $('#info-vehiculo-ot').html(
-                        '<i class="fas fa-exclamation-triangle"></i> Vehículo no encontrado. Verifique la placa.'
+                        `<i class="fas fa-exclamation-triangle"></i> ${response.message || 'Vehículo no encontrado. Verifique que la placa esté correcta y que el vehículo haya ingresado al taller con estado "Ingresado".'}`
                     ).removeClass('alert-info').addClass('alert-warning').show();
                     $('#vehiculo-id-ot').val('');
                 }
             },
-            error: () => {
+            error: (xhr, status, error) => {
+                console.error('Error al buscar vehículo:', {xhr, status, error, responseText: xhr.responseText, url: baseUrl});
+                let mensaje = 'Error al buscar vehículo.';
+                try {
+                    if (xhr.responseText) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            mensaje = response.message;
+                        }
+                    }
+                } catch (e) {
+                    if (xhr.status === 404) {
+                        mensaje = 'No se encontró el servicio de búsqueda. Verifique la conexión.';
+                    } else if (xhr.status === 500) {
+                        mensaje = 'Error interno del servidor. Intente nuevamente.';
+                    } else if (xhr.status === 0) {
+                        mensaje = 'Error de conexión. Verifique su conexión a internet.';
+                    }
+                }
                 $('#info-vehiculo-ot').html(
-                    '<i class="fas fa-exclamation-triangle"></i> Error al buscar vehículo.'
-                ).removeClass('alert-info').addClass('alert-danger').show();
+                    `<i class="fas fa-exclamation-triangle"></i> ${mensaje}`
+                ).removeClass('alert-info alert-warning').addClass('alert-danger').show();
+                $('#vehiculo-id-ot').val('');
             }
         });
     }
@@ -301,53 +341,9 @@ class RecepcionTecnicaApp {
         });
     }
 
-    mostrarPreviewDocumentos(files) {
-        const preview = $('#preview-documentos');
-        preview.empty();
-        this.documentosSeleccionados = [];
-
-        if (!files || files.length === 0) return;
-
-        const ul = $('<ul class="list-group"></ul>');
-        
-        Array.from(files).forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const li = $(`
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="fas fa-file me-2"></i>${file.name}</span>
-                        <button type="button" class="btn btn-sm btn-outline-danger eliminar-documento" data-index="${index}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </li>
-                `);
-                
-                li.find('.eliminar-documento').on('click', () => {
-                    this.eliminarDocumento(index);
-                });
-                
-                ul.append(li);
-                
-                this.documentosSeleccionados.push({
-                    nombre: file.name,
-                    tipo: file.type,
-                    data: e.target.result
-                });
-            };
-            reader.readAsDataURL(file);
-        });
-        
-        preview.append(ul);
-    }
-
     eliminarFoto(index) {
         this.fotosSeleccionadas.splice(index, 1);
         this.actualizarPreviewFotos();
-    }
-
-    eliminarDocumento(index) {
-        this.documentosSeleccionados.splice(index, 1);
-        this.actualizarPreviewDocumentos();
     }
 
     actualizarPreviewFotos() {
@@ -370,48 +366,46 @@ class RecepcionTecnicaApp {
         });
     }
 
-    actualizarPreviewDocumentos() {
-        $('#preview-documentos').empty();
-        const ul = $('<ul class="list-group"></ul>');
-        
-        this.documentosSeleccionados.forEach((doc, index) => {
-            const li = $(`
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-file me-2"></i>${doc.nombre}</span>
-                    <button type="button" class="btn btn-sm btn-outline-danger eliminar-documento" data-index="${index}">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </li>
-            `);
-            
-            li.find('.eliminar-documento').on('click', () => {
-                this.eliminarDocumento(index);
-            });
-            
-            ul.append(li);
-        });
-        
-        $('#preview-documentos').append(ul);
-    }
 
     guardarNuevaOT() {
-        const vehiculoId = $('#vehiculo-id-ot').val();
-        
-        if (!vehiculoId) {
-            this.mostrarNotificacion('Por favor, busque y seleccione un vehículo', 'error');
+        // Prevenir doble envío
+        if (this.isLoading) {
             return;
         }
+
+        const vehiculoId = $('#vehiculo-id-ot').val();
+        
+        console.log('guardarNuevaOT - vehiculoId:', vehiculoId);
+        
+        if (!vehiculoId || vehiculoId === '' || vehiculoId === '0') {
+            this.mostrarNotificacion('Por favor, busque y seleccione un vehículo', 'error');
+            $('#info-vehiculo-ot').html(
+                '<i class="fas fa-exclamation-triangle"></i> Por favor, busque y seleccione un vehículo antes de crear la orden de trabajo.'
+            ).removeClass('alert-info').addClass('alert-warning').show();
+            return;
+        }
+
+        this.isLoading = true;
+        const btnSubmit = $('#form-nueva-ot').find('button[type="submit"]');
+        const btnTextOriginal = btnSubmit.html();
+        btnSubmit.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+        // Obtener valores del formulario
+        const tipoTrabajo = String($('#tipo-trabajo').val() || '');
+        const descripcionTrabajo = String($('#descripcion-trabajo').val() || '');
+        const documentosValidados = $('#documentos-validados').is(':checked') ? 1 : 0;
 
         const datos = {
             accion: 'crear_ot',
             vehiculo_id: vehiculoId,
-            tipo_trabajo: $('#tipo-trabajo').val(),
-            descripcion_trabajo: $('#descripcion-trabajo').val(),
-            observaciones: $('#observaciones-ot').val(),
-            documentos_validados: $('#documentos-validados').is(':checked') ? 1 : 0,
+            tipo_trabajo: tipoTrabajo,
+            descripcion_trabajo: descripcionTrabajo,
             fotos: JSON.stringify(this.fotosSeleccionadas),
-            documentos: JSON.stringify(this.documentosSeleccionados)
+            documentos: JSON.stringify(this.documentosSeleccionados),
+            documentos_validados: documentosValidados
         };
+
+        console.log('guardarNuevaOT - Datos a enviar:', datos);
 
         $.ajax({
             url: '../app/model/recepcion_tecnica/scripts/s_recepcion_tecnica.php',
@@ -419,18 +413,39 @@ class RecepcionTecnicaApp {
             data: datos,
             dataType: 'json',
             success: (response) => {
+                this.isLoading = false;
+                btnSubmit.prop('disabled', false).html(btnTextOriginal);
+                
+                console.log('guardarNuevaOT - Respuesta del servidor:', response);
+                
                 if (response.status === 'success') {
                     this.mostrarNotificacion('Orden de Trabajo creada correctamente', 'success');
                     $('#modalNuevaOT').modal('hide');
-                    this.cargarOTs();
                     this.limpiarFormularioNuevaOT();
+                    this.cargarOTs();
                 } else {
                     this.mostrarNotificacion('Error: ' + (response.message || 'Error desconocido'), 'error');
                 }
             },
             error: (xhr, status, error) => {
-                console.error('Error al guardar OT:', error);
-                this.mostrarNotificacion('Error al guardar OT. Por favor, intente nuevamente.', 'error');
+                this.isLoading = false;
+                btnSubmit.prop('disabled', false).html(btnTextOriginal);
+                
+                console.error('Error al guardar OT:', {xhr, status, error, responseText: xhr.responseText});
+                
+                let mensaje = 'Error al guardar OT. Por favor, intente nuevamente.';
+                try {
+                    if (xhr.responseText) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            mensaje = response.message;
+                        }
+                    }
+                } catch (e) {
+                    // Mantener mensaje por defecto
+                }
+                
+                this.mostrarNotificacion(mensaje, 'error');
             }
         });
     }
@@ -485,25 +500,8 @@ class RecepcionTecnicaApp {
                     <p>${ot.DescripcionTrabajo || '-'}</p>
                 </div>
             </div>
-            ${ot.Observaciones ? `
             <div class="row mt-3">
                 <div class="col-md-12">
-                    <h6>Observaciones</h6>
-                    <p>${ot.Observaciones}</p>
-                </div>
-            </div>
-            ` : ''}
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <h6>Documentación</h6>
-                    <p>${ot.DocumentosValidados == 1 ? '<span class="badge bg-success">Validada</span>' : '<span class="badge bg-warning">Pendiente</span>'}</p>
-                    ${ot.Documentos && ot.Documentos.length > 0 ? `
-                        <ul class="list-group">
-                            ${ot.Documentos.map(doc => `<li class="list-group-item"><i class="fas fa-file me-2"></i>${doc.nombre || 'Documento'}</li>`).join('')}
-                        </ul>
-                    ` : '<p class="text-muted">No hay documentos</p>'}
-                </div>
-                <div class="col-md-6">
                     <h6>Fotos</h6>
                     ${ot.Fotos && ot.Fotos.length > 0 ? `
                         <div class="row">
@@ -521,14 +519,119 @@ class RecepcionTecnicaApp {
         $('#contenido-ot').html(contenido);
     }
 
+    mostrarPreviewDocumentos(files) {
+        const preview = $('#preview-documentos');
+        preview.empty();
+        this.documentosSeleccionados = [];
+
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const icono = this.obtenerIconoDocumento(file.type);
+                const div = $(`
+                    <div class="col-md-4 mb-2">
+                        <div class="card">
+                            <div class="card-body p-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="${icono} fa-2x me-2"></i>
+                                    <div class="flex-grow-1">
+                                        <small class="d-block text-truncate" style="max-width: 150px;" title="${file.name}">${file.name}</small>
+                                        <small class="text-muted">${this.formatearTamaño(file.size)}</small>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-doc" data-index="${index}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                div.find('.btn-eliminar-doc').on('click', () => {
+                    this.eliminarDocumento(index);
+                });
+                
+                preview.append(div);
+                
+                this.documentosSeleccionados.push({
+                    nombre: file.name,
+                    tipo: file.type,
+                    tamaño: file.size,
+                    data: e.target.result
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    obtenerIconoDocumento(tipo) {
+        if (tipo.includes('pdf')) return 'fas fa-file-pdf text-danger';
+        if (tipo.includes('word') || tipo.includes('document')) return 'fas fa-file-word text-primary';
+        if (tipo.includes('excel') || tipo.includes('spreadsheet')) return 'fas fa-file-excel text-success';
+        if (tipo.includes('image')) return 'fas fa-file-image text-info';
+        return 'fas fa-file text-secondary';
+    }
+
+    formatearTamaño(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    eliminarDocumento(index) {
+        this.documentosSeleccionados.splice(index, 1);
+        this.actualizarPreviewDocumentos();
+    }
+
+    actualizarPreviewDocumentos() {
+        $('#preview-documentos').empty();
+        this.documentosSeleccionados.forEach((doc, index) => {
+            const icono = this.obtenerIconoDocumento(doc.tipo);
+            const div = $(`
+                <div class="col-md-4 mb-2">
+                    <div class="card">
+                        <div class="card-body p-2">
+                            <div class="d-flex align-items-center">
+                                <i class="${icono} fa-2x me-2"></i>
+                                <div class="flex-grow-1">
+                                    <small class="d-block text-truncate" style="max-width: 150px;" title="${doc.nombre}">${doc.nombre}</small>
+                                    <small class="text-muted">${this.formatearTamaño(doc.tamaño)}</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger btn-eliminar-doc" data-index="${index}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            div.find('.btn-eliminar-doc').on('click', () => {
+                this.eliminarDocumento(index);
+            });
+            
+            $('#preview-documentos').append(div);
+        });
+    }
+
     limpiarFormularioNuevaOT() {
-        $('#form-nueva-ot')[0].reset();
+        // Limpiar campos del formulario
+        $('#tipo-trabajo').val('');
+        $('#descripcion-trabajo').val('');
+        $('#buscador-placa-ot').val('');
         $('#vehiculo-id-ot').val('');
-        $('#info-vehiculo-ot').hide().removeClass('alert-warning alert-danger').addClass('alert-info');
+        $('#info-vehiculo-ot').hide().removeClass('alert-warning alert-danger alert-info').addClass('alert-info').html('');
+        $('#documentos-validados').prop('checked', false);
         this.fotosSeleccionadas = [];
         this.documentosSeleccionados = [];
         $('#preview-fotos').empty();
         $('#preview-documentos').empty();
+        $('#fotos-vehiculo').val('');
+        $('#documentos-tecnicos').val('');
     }
 
     mostrarNotificacion(mensaje, tipo = 'info') {

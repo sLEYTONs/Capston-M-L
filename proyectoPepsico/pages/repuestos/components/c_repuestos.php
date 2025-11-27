@@ -10,9 +10,6 @@
                             Inventario de Repuestos
                         </h4>
                         <div class="card-actions">
-                            <button class="btn btn-primary btn-sm" id="btn-nuevo-repuesto">
-                                <i class="fas fa-plus me-1"></i> Nuevo Repuesto
-                            </button>
                             <button class="btn btn-outline-secondary btn-sm" id="btn-refresh">
                                 <i class="fas fa-sync-alt me-1"></i>
                             </button>

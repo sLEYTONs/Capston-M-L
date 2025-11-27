@@ -3,7 +3,13 @@ class CoordinacionJefeTaller {
     constructor() {
         this.dataTable = null;
         this.baseUrl = this.getBaseUrl();
+        this.usuarioRol = this.getUsuarioRol();
         this.inicializar();
+    }
+
+    getUsuarioRol() {
+        // Obtener el rol del usuario desde el HTML o una variable global
+        return window.usuarioRol || '';
     }
 
     getBaseUrl() {
@@ -23,10 +29,13 @@ class CoordinacionJefeTaller {
     }
 
     inicializarEventos() {
-        $('#form-comunicacion-jefe').on('submit', (e) => {
-            e.preventDefault();
-            this.enviarComunicacion();
-        });
+        // Solo inicializar el formulario de nueva comunicación si no es Jefe de Taller
+        if (this.usuarioRol !== 'Jefe de Taller') {
+            $('#form-comunicacion-jefe').on('submit', (e) => {
+                e.preventDefault();
+                this.enviarComunicacion();
+            });
+        }
 
         $('#btn-actualizar-comunicaciones').on('click', () => {
             this.cargarComunicaciones();
@@ -36,6 +45,18 @@ class CoordinacionJefeTaller {
         $(document).on('click', '.btn-ver-detalles', (e) => {
             const id = $(e.currentTarget).data('id');
             this.verDetalles(id);
+        });
+
+        // Evento para botón responder (solo Jefe de Taller)
+        $(document).on('click', '.btn-responder-comunicacion', (e) => {
+            const id = $(e.currentTarget).data('id');
+            this.abrirModalResponder(id);
+        });
+
+        // Evento para formulario de respuesta
+        $('#form-responder-comunicacion').on('submit', (e) => {
+            e.preventDefault();
+            this.enviarRespuesta();
         });
     }
 
@@ -90,6 +111,11 @@ class CoordinacionJefeTaller {
                         minute: '2-digit'
                     })
                 },
+                // Columna "De" solo para Jefe de Taller
+                ...(this.usuarioRol === 'Jefe de Taller' ? [{
+                    data: 'UsuarioNombre',
+                    render: (data) => data || 'N/A'
+                }] : []),
                 { data: 'TipoSolicitud' },
                 { data: 'Asunto' },
                 { 
@@ -124,11 +150,20 @@ class CoordinacionJefeTaller {
                     data: null,
                     orderable: false,
                     render: (data) => {
-                        return `
-                            <button class="btn btn-sm btn-info btn-ver-detalles" data-id="${data.ID}" title="Ver Detalles">
+                        let botones = `
+                            <button class="btn btn-sm btn-info btn-ver-detalles me-1" data-id="${data.ID}" title="Ver Detalles">
                                 <i class="fas fa-eye"></i>
                             </button>
                         `;
+                        // Si es Jefe de Taller y la comunicación no tiene respuesta, mostrar botón responder
+                        if (this.usuarioRol === 'Jefe de Taller' && !data.Respuesta) {
+                            botones += `
+                                <button class="btn btn-sm btn-primary btn-responder-comunicacion" data-id="${data.ID}" title="Responder">
+                                    <i class="fas fa-reply"></i>
+                                </button>
+                            `;
+                        }
+                        return botones;
                     }
                 }
             ]
@@ -218,7 +253,10 @@ class CoordinacionJefeTaller {
             success: (response) => {
                 if (response.status === 'success' && response.data) {
                     const data = response.data;
-                    const html = `
+                    let html = `
+                        <div class="mb-3">
+                            <strong>De:</strong> ${data.UsuarioNombre || 'N/A'}
+                        </div>
                         <div class="mb-3">
                             <strong>Fecha:</strong> ${new Date(data.FechaCreacion).toLocaleString('es-ES')}
                         </div>
@@ -240,20 +278,39 @@ class CoordinacionJefeTaller {
                         </div>
                         <div class="mb-3">
                             <strong>Estado:</strong> 
-                            <span class="badge bg-${data.Estado === 'Pendiente' ? 'warning' : data.Estado === 'Aprobada' ? 'success' : 'danger'}">
+                            <span class="badge bg-${data.Estado === 'Pendiente' ? 'warning' : data.Estado === 'Aprobada' ? 'success' : data.Estado === 'En Proceso' ? 'info' : 'danger'}">
                                 ${data.Estado}
                             </span>
                         </div>
                         ${data.Respuesta ? `
                             <div class="mb-3">
                                 <strong>Respuesta:</strong>
-                                <div class="alert alert-info mt-2">${data.Respuesta}</div>
+                                <div class="alert alert-success mt-2">${data.Respuesta}</div>
                                 <small class="text-muted">Fecha: ${data.FechaRespuesta ? new Date(data.FechaRespuesta).toLocaleString('es-ES') : '-'}</small>
                             </div>
                         ` : ''}
                     `;
                     
                     $('#detalles-comunicacion').html(html);
+                    
+                    // Agregar botón de responder en el footer si es Jefe de Taller y no hay respuesta
+                    let footer = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>';
+                    if (this.usuarioRol === 'Jefe de Taller' && !data.Respuesta) {
+                        footer = `
+                            <button type="button" class="btn btn-primary" id="btn-responder-desde-detalles" data-id="${data.ID}" data-asunto="${data.Asunto}">
+                                <i class="fas fa-reply me-2"></i>Responder
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        `;
+                    }
+                    $('#footer-detalles-comunicacion').html(footer);
+                    
+                    // Evento para botón responder desde detalles
+                    $('#btn-responder-desde-detalles').off('click').on('click', () => {
+                        $('#modal-detalles-comunicacion').modal('hide');
+                        this.abrirModalResponder(data.ID, data.Asunto);
+                    });
+                    
                     const modal = new bootstrap.Modal(document.getElementById('modal-detalles-comunicacion'));
                     modal.show();
                 }
@@ -261,6 +318,77 @@ class CoordinacionJefeTaller {
             error: (xhr, status, error) => {
                 console.error('Error al cargar detalles:', error);
                 this.mostrarNotificacion('Error al cargar los detalles', 'error');
+            }
+        });
+    }
+
+    abrirModalResponder(id, asunto = '') {
+        $('#comunicacion-id-respuesta').val(id);
+        
+        // Si no se proporciona el asunto, obtenerlo de la comunicación
+        if (!asunto) {
+            $.ajax({
+                url: this.baseUrl,
+                type: 'POST',
+                data: { 
+                    accion: 'obtener_detalles',
+                    id: id
+                },
+                dataType: 'json',
+                success: (response) => {
+                    if (response.status === 'success' && response.data) {
+                        $('#asunto-comunicacion-respuesta').text(response.data.Asunto || 'Sin asunto');
+                        $('#mensaje-respuesta-comunicacion').val('');
+                        $('#modal-responder-comunicacion').modal('show');
+                    }
+                }
+            });
+        } else {
+            $('#asunto-comunicacion-respuesta').text(asunto);
+            $('#mensaje-respuesta-comunicacion').val('');
+            $('#modal-responder-comunicacion').modal('show');
+        }
+    }
+
+    enviarRespuesta() {
+        const id = $('#comunicacion-id-respuesta').val();
+        const respuesta = $('#mensaje-respuesta-comunicacion').val().trim();
+
+        if (!respuesta) {
+            this.mostrarNotificacion('Por favor, ingrese un mensaje de respuesta', 'error');
+            return;
+        }
+
+        const btnSubmit = $('#form-responder-comunicacion button[type="submit"]');
+        const textoOriginal = btnSubmit.html();
+        btnSubmit.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Enviando...');
+
+        $.ajax({
+            url: this.baseUrl,
+            type: 'POST',
+            data: {
+                accion: 'responder_comunicacion',
+                id: id,
+                respuesta: respuesta
+            },
+            dataType: 'json',
+            success: (response) => {
+                btnSubmit.prop('disabled', false).html(textoOriginal);
+                
+                if (response.status === 'success') {
+                    this.mostrarNotificacion('Respuesta enviada correctamente', 'success');
+                    $('#modal-responder-comunicacion').modal('hide');
+                    $('#form-responder-comunicacion')[0].reset();
+                    this.cargarComunicaciones();
+                    this.cargarEstadisticas();
+                } else {
+                    this.mostrarNotificacion('Error: ' + (response.message || 'Error desconocido'), 'error');
+                }
+            },
+            error: (xhr, status, error) => {
+                btnSubmit.prop('disabled', false).html(textoOriginal);
+                console.error('Error al enviar respuesta:', error);
+                this.mostrarNotificacion('Error de conexión. Por favor, intente nuevamente.', 'error');
             }
         });
     }
