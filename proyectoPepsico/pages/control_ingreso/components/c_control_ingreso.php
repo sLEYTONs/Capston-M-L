@@ -424,3 +424,29 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Mensaje de Éxito -->
+<div class="modal fade" id="modalExito" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Operación Exitosa
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle fa-3x text-success"></i>
+                </div>
+                <h5 class="mb-3" id="modalExitoTitulo">Operación completada</h5>
+                <p class="text-muted mb-0" id="modalExitoMensaje"></p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-2"></i>Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

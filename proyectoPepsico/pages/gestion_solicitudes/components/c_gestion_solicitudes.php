@@ -77,7 +77,7 @@
                 <hr>
                 <div id="acciones-solicitud">
                     <h6 class="mb-3">
-                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible (Horario laboral: 9:00 AM - 6:00 PM):
+                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible (Horario: 9:00 AM - 11:00 PM):
                     </h6>
                     
                     <div class="alert alert-info mb-3">

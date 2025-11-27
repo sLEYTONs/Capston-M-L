@@ -154,7 +154,8 @@ function verificarSolicitudDuplicada($mecanico_id, $repuesto_id, $asignacion_id 
         
         // Verificar si existe CUALQUIER solicitud pendiente o aprobada para el mismo repuesto del mismo mecánico
         // Sin importar si tiene asignación o no, para evitar duplicados
-        $query = "SELECT ID, Estado, FechaSolicitud, Cantidad, Urgencia, AsignacionID
+        // IMPORTANTE: No permitir duplicados del mismo repuesto, independientemente de la asignación
+        $query = "SELECT ID, Estado, FechaSolicitud, Cantidad, Urgencia, AsignacionID, Motivo
                   FROM solicitudes_repuestos 
                   WHERE MecanicoID = $mecanico_id 
                   AND RepuestoID = $repuesto_id 
@@ -164,15 +165,19 @@ function verificarSolicitudDuplicada($mecanico_id, $repuesto_id, $asignacion_id 
         
         $result = mysqli_query($conn, $query);
         if ($result && mysqli_num_rows($result) > 0) {
-            return mysqli_fetch_assoc($result);
+            $solicitud = mysqli_fetch_assoc($result);
+            mysqli_close($conn);
+            return $solicitud;
         }
         
+        mysqli_close($conn);
         return null;
     } catch (Exception $e) {
         error_log("Error al verificar solicitud duplicada: " . $e->getMessage());
+        if ($conn) {
+            mysqli_close($conn);
+        }
         return null; // En caso de error, permitir continuar
-    } finally {
-        mysqli_close($conn);
     }
 }
 
@@ -207,6 +212,8 @@ function crearSolicitudRepuestos($datos) {
             $queryAsignacion = "SELECT ID FROM asignaciones_mecanico WHERE ID = $asignacion_id AND MecanicoID = $mecanico_id";
             $resultAsignacion = mysqli_query($conn, $queryAsignacion);
             if (!$resultAsignacion || mysqli_num_rows($resultAsignacion) == 0) {
+                mysqli_rollback($conn);
+                mysqli_close($conn);
                 return [
                     'status' => 'error',
                     'message' => 'La asignación no existe o no pertenece al mecánico'
@@ -219,7 +226,22 @@ function crearSolicitudRepuestos($datos) {
 
         // Verificar si ya existe una solicitud pendiente o aprobada para el mismo repuesto
         // (sin importar si tiene asignación o no, para evitar duplicados)
-        $solicitudExistente = verificarSolicitudDuplicada($mecanico_id, $repuesto_id, $asignacion_id);
+        // IMPORTANTE: Verificar DENTRO de la transacción con FOR UPDATE para evitar condiciones de carrera
+        $queryVerificar = "SELECT ID, Estado, FechaSolicitud, Cantidad, Urgencia, AsignacionID, Motivo
+                          FROM solicitudes_repuestos 
+                          WHERE MecanicoID = $mecanico_id 
+                          AND RepuestoID = $repuesto_id 
+                          AND Estado IN ('Pendiente', 'Aprobada')
+                          ORDER BY FechaSolicitud DESC
+                          LIMIT 1
+                          FOR UPDATE"; // Bloqueo de fila para evitar condiciones de carrera
+        
+        $resultVerificar = mysqli_query($conn, $queryVerificar);
+        $solicitudExistente = null;
+        if ($resultVerificar && mysqli_num_rows($resultVerificar) > 0) {
+            $solicitudExistente = mysqli_fetch_assoc($resultVerificar);
+        }
+        
         if ($solicitudExistente) {
             // Obtener información del repuesto para el mensaje
             $queryRepuesto = "SELECT Nombre, Codigo FROM repuestos WHERE ID = $repuesto_id";
@@ -249,6 +271,10 @@ function crearSolicitudRepuestos($datos) {
             $mensajeAsignacion = $tieneAsignacion && $placa 
                 ? " para el vehículo $placa" 
                 : " (sin asignación de vehículo)";
+            
+            // Hacer rollback antes de retornar
+            mysqli_rollback($conn);
+            mysqli_close($conn);
             
             return [
                 'status' => 'duplicado',

@@ -371,6 +371,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'message' => 'Acción no válida'
                 ]);
                 break;
+
+            case 'obtener_todas_agendas':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $filtroFecha = !empty($_POST['filtro_fecha']) ? trim($_POST['filtro_fecha']) : null;
+                $filtroDisponible = isset($_POST['filtro_disponible']) && $_POST['filtro_disponible'] !== '' ? intval($_POST['filtro_disponible']) : null;
+
+                $resultado = obtenerTodasLasAgendas($filtroFecha, $filtroDisponible);
+                echo json_encode($resultado);
+                break;
+
+            case 'eliminar_agenda':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                if (empty($_POST['agenda_id'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'ID de agenda no proporcionado'
+                    ]);
+                    exit;
+                }
+
+                $resultado = eliminarAgenda(intval($_POST['agenda_id']));
+                echo json_encode($resultado);
+                break;
         }
     } catch (Exception $e) {
         // Asegurar que siempre devolvamos JSON válido

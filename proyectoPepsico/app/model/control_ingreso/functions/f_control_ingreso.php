@@ -117,19 +117,22 @@ function registrarIngresoBasico($placa, $usuario_id) {
     $conn = conectar_Pepsico();
     
     // Verificar si ya existe un registro activo con esa placa
-    $sqlCheck = "SELECT COUNT(*) as total FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+    $sqlCheck = "SELECT ID, Estado FROM ingreso_vehiculos WHERE Placa = ?";
     $stmtCheck = $conn->prepare($sqlCheck);
     $stmtCheck->bind_param("s", $placa);
     $stmtCheck->execute();
     $resultCheck = $stmtCheck->get_result();
-    $row = $resultCheck->fetch_assoc();
+    $vehiculoExistente = $resultCheck->fetch_assoc();
+    $stmtCheck->close();
     
-    if ($row['total'] > 0) {
-        $stmtCheck->close();
+    // Si existe un vehículo con estado 'Ingresado', no permitir duplicado
+    if ($vehiculoExistente && $vehiculoExistente['Estado'] === 'Ingresado') {
         $conn->close();
         return ['success' => false, 'message' => 'Ya existe un vehículo activo con esta placa'];
     }
-    $stmtCheck->close();
+    
+    // Si existe un vehículo con otro estado, lo actualizaremos en lugar de insertar
+    $vehiculo_id_existente = $vehiculoExistente ? $vehiculoExistente['ID'] : null;
     
     // Verificar si la columna Fotos existe en solicitudes_agendamiento
     $columna_fotos_existe = false;
@@ -139,8 +142,17 @@ function registrarIngresoBasico($placa, $usuario_id) {
         $columna_fotos_existe = true;
     }
     
-    // Verificar que tenga una solicitud de agendamiento aprobada para hoy
+    // Verificar que tenga una solicitud de agendamiento aprobada o atrasada para hoy
+    // Incluimos 'Atrasado' porque un vehículo puede llegar entre 10-30 minutos después y aún puede ingresar
+    // 
+    // IMPORTANTE: Esta consulta busca en la tabla solicitudes_agendamiento (s)
+    // La columna Proposito existe en solicitudes_agendamiento (s.Proposito) pero NO en ingreso_vehiculos
+    // Por eso NO se inserta Proposito en ingreso_vehiculos, solo se usa para verificar la agenda
     $fecha = date('Y-m-d');
+    
+    // Log para debugging
+    error_log("registrarIngresoBasico - Buscando placa: $placa, fecha: $fecha");
+    
     $sqlAgenda = "SELECT 
                     s.ID as SolicitudID,
                     s.Placa,
@@ -149,9 +161,8 @@ function registrarIngresoBasico($placa, $usuario_id) {
                     s.Modelo,
                     s.Anio,
                     s.ConductorNombre,
-                    s.Proposito,
-                    s.Observaciones" . 
-                    ($columna_fotos_existe ? ", s.Fotos" : "") . ",
+                    s.Proposito,  -- Esta columna existe en solicitudes_agendamiento, se usa solo para referencia
+                    s.Estado as EstadoSolicitud,
                     a.ID as AgendaID,
                     a.Fecha as FechaAgenda,
                     a.HoraInicio,
@@ -159,81 +170,214 @@ function registrarIngresoBasico($placa, $usuario_id) {
                   FROM solicitudes_agendamiento s
                   INNER JOIN agenda_taller a ON s.AgendaID = a.ID
                   WHERE s.Placa = ? 
-                    AND s.Estado = 'Aprobada'
+                    AND s.Estado IN ('Aprobada', 'Atrasado')
+                    AND s.AgendaID IS NOT NULL
                     AND a.Fecha = ?
                   ORDER BY s.FechaCreacion DESC
                   LIMIT 1";
     
     $stmtAgenda = $conn->prepare($sqlAgenda);
+    if (!$stmtAgenda) {
+        error_log("Error preparando consulta de agenda en registrarIngresoBasico: " . mysqli_error($conn));
+        $conn->close();
+        return ['success' => false, 'message' => 'Error al verificar la agenda del vehículo'];
+    }
+    
     $stmtAgenda->bind_param("ss", $placa, $fecha);
-    $stmtAgenda->execute();
+    
+    if (!$stmtAgenda->execute()) {
+        error_log("Error ejecutando consulta de agenda en registrarIngresoBasico: " . mysqli_stmt_error($stmtAgenda));
+        $stmtAgenda->close();
+        $conn->close();
+        return ['success' => false, 'message' => 'Error al verificar la agenda del vehículo'];
+    }
+    
     $resultAgenda = $stmtAgenda->get_result();
     $agenda = $resultAgenda->fetch_assoc();
     $stmtAgenda->close();
     
     if (!$agenda) {
+        // Log para debugging - verificar qué solicitudes existen para esta placa
+        $sqlDebug = "SELECT s.ID, s.Placa, s.Estado, a.Fecha as FechaAgenda, DATE(a.Fecha) as FechaAgendaDate
+                    FROM solicitudes_agendamiento s
+                    LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
+                    WHERE s.Placa = ? AND s.AgendaID IS NOT NULL
+                    ORDER BY s.FechaCreacion DESC
+                    LIMIT 5";
+        $stmtDebug = $conn->prepare($sqlDebug);
+        if ($stmtDebug) {
+            $stmtDebug->bind_param("s", $placa);
+            $stmtDebug->execute();
+            $resultDebug = $stmtDebug->get_result();
+            $debugInfo = [];
+            while ($row = $resultDebug->fetch_assoc()) {
+                $debugInfo[] = $row;
+            }
+            error_log("Debug - Solicitudes encontradas para placa $placa: " . json_encode($debugInfo));
+            error_log("Debug - Fecha buscada: $fecha");
+            $stmtDebug->close();
+        }
+        
         $conn->close();
-        return ['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada para hoy. Solo se pueden ingresar vehículos con agenda aprobada.'];
+        return ['success' => false, 'message' => 'Este vehículo no tiene una hora asignada aprobada o atrasada para hoy. Solo se pueden ingresar vehículos con agenda aprobada o que hayan llegado dentro del margen permitido.'];
     }
     
-    // Obtener las fotos de la solicitud (si existen y la columna existe)
-    $fotos = NULL;
-    if ($columna_fotos_existe && !empty($agenda['Fotos'])) {
-        $fotos = $agenda['Fotos'];
+    error_log("registrarIngresoBasico - Agenda encontrada: ID=" . $agenda['AgendaID'] . ", Estado=" . ($agenda['EstadoSolicitud'] ?? 'N/A') . ", Fecha=" . $agenda['FechaAgenda']);
+    
+    // Verificar qué columnas existen en la tabla ingreso_vehiculos
+    $columnas_existentes = [];
+    $checkColumnas = "SHOW COLUMNS FROM ingreso_vehiculos";
+    $resultColumnas = $conn->query($checkColumnas);
+    if ($resultColumnas) {
+        while ($row = $resultColumnas->fetch_assoc()) {
+            $columnas_existentes[] = $row['Field'];
+        }
     }
     
-    // Insertar registro usando los datos de la solicitud aprobada
-    $sql = "INSERT INTO ingreso_vehiculos (
-        Placa, 
-        TipoVehiculo, 
-        Marca, 
-        Modelo,
-        Anio,
-        ConductorNombre, 
-        Proposito, 
-        Observaciones" . 
-        ($columna_fotos_existe ? ", Fotos" : "") . ",
-        Estado, 
-        EstadoIngreso, 
-        FechaIngreso,
-        UsuarioRegistro
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?" . 
-        ($columna_fotos_existe ? ", ?" : "") . ", 'Ingresado', 'Bueno', NOW(), ?)";
+    // Construir INSERT solo con las columnas que existen en la tabla
+    // Campos básicos requeridos
+    $campos = ["Placa", "TipoVehiculo", "Marca", "Modelo", "ConductorNombre", "Estado", "FechaIngreso", "UsuarioRegistro"];
+    $valores = ["?", "?", "?", "?", "?", "'Ingresado'", "NOW()", "?"];
+    $tipos = "sssssi";
+    $parametros = [
+        $agenda['Placa'],
+        $agenda['TipoVehiculo'],
+        $agenda['Marca'],
+        $agenda['Modelo'],
+        $agenda['ConductorNombre'],
+        $usuario_id
+    ];
     
-    $stmt = $conn->prepare($sql);
-    $anio = !empty($agenda['Anio']) ? intval($agenda['Anio']) : null;
+    // Agregar Anio si existe la columna y tiene valor
+    if (in_array('Anio', $columnas_existentes)) {
+        $campos[] = "Anio";
+        $anio = !empty($agenda['Anio']) ? intval($agenda['Anio']) : null;
+        if ($anio !== null) {
+            $valores[] = "?";
+            $tipos .= "i";
+            $parametros[] = $anio;
+        } else {
+            $valores[] = "NULL";
+        }
+    }
     
-    if ($columna_fotos_existe) {
-        $stmt->bind_param("ssssissisi", 
-            $agenda['Placa'],
-            $agenda['TipoVehiculo'],
-            $agenda['Marca'],
-            $agenda['Modelo'],
-            $anio,
-            $agenda['ConductorNombre'],
-            $agenda['Proposito'],
-            $agenda['Observaciones'],
-            $fotos,
-            $usuario_id
-        );
+    // Agregar FechaRegistro si existe la columna
+    if (in_array('FechaRegistro', $columnas_existentes)) {
+        $campos[] = "FechaRegistro";
+        $valores[] = "NOW()";
+    }
+    
+    // Agregar EstadoIngreso si existe la columna
+    if (in_array('EstadoIngreso', $columnas_existentes)) {
+        $campos[] = "EstadoIngreso";
+        $valores[] = "'Bueno'";
+    }
+    
+    // NOTA: Proposito y Observaciones NO se insertan porque no existen en ingreso_vehiculos
+    // Esos datos están en la tabla solicitudes_agendamiento (s.Proposito, s.Observaciones)
+    
+    // Si ya existe un registro con esa placa, actualizarlo en lugar de insertar
+    if ($vehiculo_id_existente) {
+        // Construir UPDATE - mapear campos con sus valores correctamente
+        $updateCampos = [];
+        $updateTipos = "";
+        $updateParametros = [];
+        $paramIndex = 0; // Índice para rastrear la posición en $parametros
+        
+        // Mapear campos con valores, excluyendo Placa
+        foreach ($campos as $index => $campo) {
+            if ($campo !== 'Placa') {
+                if ($valores[$index] === '?') {
+                    // Es un parámetro - obtener el tipo y valor del array de parámetros
+                    $updateCampos[] = "$campo = ?";
+                    $updateTipos .= substr($tipos, $paramIndex, 1);
+                    $updateParametros[] = $parametros[$paramIndex];
+                    $paramIndex++;
+                } else {
+                    // Es un valor literal (NOW(), 'Ingresado', etc.)
+                    $updateCampos[] = "$campo = " . $valores[$index];
+                }
+            } else {
+                // Si es Placa y es un parámetro, saltarlo pero incrementar el índice
+                if ($valores[$index] === '?') {
+                    $paramIndex++;
+                }
+            }
+        }
+        
+        // Agregar ID al final de los parámetros
+        $updateTipos .= "i";
+        $updateParametros[] = $vehiculo_id_existente;
+        
+        $sql = "UPDATE ingreso_vehiculos SET " . implode(", ", $updateCampos) . " WHERE ID = ?";
+        
+        error_log("SQL UPDATE en registrarIngresoBasico: " . $sql);
+        error_log("Tipos UPDATE: " . $updateTipos);
+        error_log("Parámetros UPDATE: " . print_r($updateParametros, true));
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log("Error preparando UPDATE en registrarIngresoBasico: " . mysqli_error($conn));
+            $conn->close();
+            return ['success' => false, 'message' => 'Error al preparar la consulta de actualización: ' . mysqli_error($conn)];
+        }
+        
+        // Usar call_user_func_array para bind_param dinámico
+        $bindParams = array_merge([$updateTipos], $updateParametros);
+        $refs = [];
+        foreach ($bindParams as $key => $value) {
+            $refs[$key] = &$bindParams[$key];
+        }
+        call_user_func_array([$stmt, 'bind_param'], $refs);
+        
+        $result = $stmt->execute();
+        
+        if (!$result) {
+            error_log("Error ejecutando UPDATE en registrarIngresoBasico: " . mysqli_stmt_error($stmt));
+            $errorMsg = mysqli_stmt_error($stmt);
+            $stmt->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'Error al actualizar ingreso: ' . $errorMsg];
+        }
+        
+        $nuevo_id = $vehiculo_id_existente;
+        $stmt->close();
     } else {
-        $stmt->bind_param("ssssissi", 
-            $agenda['Placa'],
-            $agenda['TipoVehiculo'],
-            $agenda['Marca'],
-            $agenda['Modelo'],
-            $anio,
-            $agenda['ConductorNombre'],
-            $agenda['Proposito'],
-            $agenda['Observaciones'],
-            $usuario_id
-        );
+        // No existe, hacer INSERT
+        $sql = "INSERT INTO ingreso_vehiculos (" . implode(", ", $campos) . ") VALUES (" . implode(", ", $valores) . ")";
+        
+        error_log("SQL INSERT en registrarIngresoBasico: " . $sql);
+        error_log("Parámetros: " . print_r($parametros, true));
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log("Error preparando INSERT en registrarIngresoBasico: " . mysqli_error($conn));
+            $conn->close();
+            return ['success' => false, 'message' => 'Error al preparar la consulta de ingreso: ' . mysqli_error($conn)];
+        }
+        
+        // Usar call_user_func_array para bind_param dinámico
+        $bindParams = array_merge([$tipos], $parametros);
+        $refs = [];
+        foreach ($bindParams as $key => $value) {
+            $refs[$key] = &$bindParams[$key];
+        }
+        call_user_func_array([$stmt, 'bind_param'], $refs);
+        
+        $result = $stmt->execute();
+        
+        if (!$result) {
+            error_log("Error ejecutando INSERT en registrarIngresoBasico: " . mysqli_stmt_error($stmt));
+            $errorMsg = mysqli_stmt_error($stmt);
+            $stmt->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'Error al registrar ingreso: ' . $errorMsg];
+        }
+        
+        $nuevo_id = $conn->insert_id;
+        $stmt->close();
     }
-    $result = $stmt->execute();
     
-    $nuevo_id = $conn->insert_id;
-    
-    $stmt->close();
     $conn->close();
     
     return [
@@ -316,6 +460,14 @@ function obtenerVehiculosAgendados($fecha = null) {
     $vehiculos = [];
     
     try {
+        // Asegurar que la fecha esté en formato YYYY-MM-DD
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            error_log("Formato de fecha inválido en obtenerVehiculosAgendados: " . $fecha);
+            $fecha = date('Y-m-d');
+        }
+        
+        // Consulta para obtener vehículos agendados para la fecha especificada
+        // Incluye estados: Aprobada, Atrasado (puede tener agenda válida), y No llegó (para mostrar histórico)
         $sql = "SELECT 
                     s.ID as SolicitudID,
                     s.Placa,
@@ -346,23 +498,39 @@ function obtenerVehiculosAgendados($fecha = null) {
                 LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
                 LEFT JOIN ingreso_vehiculos iv ON s.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci 
                     AND iv.Estado = 'Ingresado'
-                WHERE s.Estado = 'Aprobada'
-                    AND a.Fecha >= ?
-                ORDER BY a.Fecha ASC, a.HoraInicio ASC";
+                WHERE s.AgendaID IS NOT NULL
+                    AND DATE(a.Fecha) = ?
+                    AND s.Estado IN ('Aprobada', 'Atrasado', 'No llegó')
+                ORDER BY a.HoraInicio ASC";
+        
+        error_log("obtenerVehiculosAgendados - Fecha buscada: " . $fecha);
         
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
+            error_log("Error preparando consulta en obtenerVehiculosAgendados: " . mysqli_error($conn));
             $conn->close();
             return [];
         }
         
         $stmt->bind_param("s", $fecha);
-        $stmt->execute();
+        
+        if (!$stmt->execute()) {
+            error_log("Error ejecutando consulta en obtenerVehiculosAgendados: " . mysqli_stmt_error($stmt));
+            $stmt->close();
+            $conn->close();
+            return [];
+        }
+        
         $result = $stmt->get_result();
+        $count = 0;
         
         while ($row = $result->fetch_assoc()) {
             $vehiculos[] = $row;
+            $count++;
+            error_log("Vehículo encontrado - Placa: " . $row['Placa'] . ", Estado: " . $row['EstadoSolicitud'] . ", Fecha: " . $row['FechaAgenda']);
         }
+        
+        error_log("obtenerVehiculosAgendados - Total vehículos encontrados: " . $count);
         
         $stmt->close();
         $conn->close();
@@ -755,8 +923,11 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         ];
     }
     
-    // Si no está ingresado, verificar si tiene una solicitud de agendamiento aprobada
-    // Primero buscar cualquier solicitud aprobada para esta placa
+    // Si no está ingresado, verificar si tiene una solicitud de agendamiento aprobada o atrasada
+    // Incluimos 'Atrasado' porque un vehículo puede llegar entre 10-30 minutos después y aún puede ingresar
+    // Buscar solicitud aprobada o atrasada para esta placa y fecha actual
+    $fechaActual = date('Y-m-d');
+    
     $sqlAgenda = "SELECT 
                     s.ID as SolicitudID,
                     s.Placa,
@@ -767,6 +938,7 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                     s.ConductorNombre,
                     s.Proposito,
                     s.Observaciones,
+                    s.Estado as EstadoSolicitud,
                     a.ID as AgendaID,
                     a.Fecha as FechaAgenda,
                     a.HoraInicio,
@@ -776,29 +948,47 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                   INNER JOIN agenda_taller a ON s.AgendaID = a.ID
                   LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
                   WHERE s.Placa = ? 
-                    AND s.Estado = 'Aprobada'
+                    AND s.Estado IN ('Aprobada', 'Atrasado')
+                    AND s.AgendaID IS NOT NULL
+                    AND a.Fecha = ?
                   ORDER BY a.Fecha DESC, a.HoraInicio DESC
                   LIMIT 1";
     
     $stmtAgenda = $conn->prepare($sqlAgenda);
-    $stmtAgenda->bind_param("s", $placa);
-    $stmtAgenda->execute();
-    $resultAgenda = $stmtAgenda->get_result();
+    if (!$stmtAgenda) {
+        error_log("Error preparando consulta de agenda en verificarEstadoVehiculo: " . mysqli_error($conn));
+        $conn->close();
+        return null;
+    }
     
+    $stmtAgenda->bind_param("ss", $placa, $fechaActual);
+    
+    if (!$stmtAgenda->execute()) {
+        error_log("Error ejecutando consulta de agenda en verificarEstadoVehiculo: " . mysqli_stmt_error($stmtAgenda));
+        $stmtAgenda->close();
+        $conn->close();
+        return null;
+    }
+    
+    $resultAgenda = $stmtAgenda->get_result();
     $solicitud = $resultAgenda->fetch_assoc();
     $stmtAgenda->close();
     
-    // Si no tiene ninguna solicitud aprobada, no puede ingresar
+    // Si no tiene ninguna solicitud aprobada o atrasada para hoy, no puede ingresar
     if (!$solicitud) {
         $conn->close();
         return null;
     }
     
-    // Verificar que la fecha de la agenda sea del día actual
-    $fechaActual = date('Y-m-d');
+    // Verificar que la fecha de la agenda sea del día actual (doble verificación)
     $fechaAgenda = $solicitud['FechaAgenda'];
     
-    // Si la fecha de la agenda es diferente al día actual
+    // Normalizar fechas para comparación (asegurar formato YYYY-MM-DD)
+    if (is_string($fechaAgenda)) {
+        $fechaAgenda = date('Y-m-d', strtotime($fechaAgenda));
+    }
+    
+    // Si la fecha de la agenda es diferente al día actual (esto no debería pasar si la consulta está bien)
     if ($fechaAgenda != $fechaActual) {
         $conn->close();
         
@@ -865,19 +1055,27 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         }
     }
     
-    // Si la fecha es del día actual, verificar el horario con margen de atraso
+    // Si la fecha es del día actual, verificar el horario con márgenes de tiempo
     $horaActual = date('H:i:s');
     $horaInicio = $solicitud['HoraInicio'];
     $horaFin = $solicitud['HoraFin'];
     
-    // Margen de atraso: 30 minutos después de la hora de inicio
+    // Calcular timestamps y márgenes
     $horaInicioTimestamp = strtotime($horaInicio);
     $horaActualTimestamp = strtotime($horaActual);
-    $horaLimiteAtrasadoTimestamp = $horaInicioTimestamp + (30 * 60); // 30 minutos en segundos
     
-    // Verificar si está dentro del rango permitido (desde la hora de inicio hasta 30 minutos después)
-    if ($horaActualTimestamp < $horaInicioTimestamp) {
-        // Llegó antes de la hora asignada
+    // Márgenes: 10 minutos antes, 10 minutos después (margen normal), 30 minutos después (límite atrasado)
+    $horaLimiteAntesTimestamp = $horaInicioTimestamp - (10 * 60); // 10 minutos antes
+    $horaLimiteNormalTimestamp = $horaInicioTimestamp + (10 * 60); // 10 minutos después
+    $horaLimiteAtrasadoTimestamp = $horaInicioTimestamp + (30 * 60); // 30 minutos después
+    
+    // Calcular diferencia en minutos
+    $diferenciaSegundos = $horaActualTimestamp - $horaInicioTimestamp;
+    $diferenciaMinutos = round($diferenciaSegundos / 60);
+    
+    // Caso 1: Llegó más de 10 minutos antes - No puede ingresar (debe esperar)
+    if ($horaActualTimestamp < $horaLimiteAntesTimestamp) {
+        $minutosAntes = abs($diferenciaMinutos);
         $conn->close();
         return [
             'vehiculo' => [
@@ -902,10 +1100,12 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
             'tiene_agenda' => true,
             'puede_ingresar' => false,
             'puede_salir' => false,
-            'mensaje' => 'El vehículo llegó antes de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). Debe esperar hasta su hora de cita.'
+            'mensaje' => "El vehículo llegó {$minutosAntes} minutos antes de la hora asignada (" . date('H:i', strtotime($horaInicio)) . "). Debe esperar hasta 10 minutos antes de su hora de cita."
         ];
-    } elseif ($horaActualTimestamp > $horaLimiteAtrasadoTimestamp) {
-        // Llegó después de 30 minutos - Marcar como "No llegó" y cerrar proceso
+    }
+    
+    // Caso 2: Llegó más de 30 minutos después - No puede ingresar, marcar como "No llegó"
+    if ($horaActualTimestamp > $horaLimiteAtrasadoTimestamp) {
         marcarSolicitudNoLlego($solicitud['SolicitudID']);
         
         $conn->close();
@@ -935,11 +1135,51 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
             'es_atrasado' => true,
             'no_llego' => true,
             'tipo_atraso' => 'no_llego',
-            'mensaje' => 'El vehículo no llegó a tiempo. Pasó más de 30 minutos de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). La solicitud ha sido marcada como "No llegó" y el proceso ha sido cerrado.',
+            'mensaje' => 'El vehículo no llegó a tiempo. Pasó más de 30 minutos de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). La solicitud ha sido marcada como "No llegó" y el proceso ha sido cerrado. Debe crear una nueva solicitud de agendamiento.',
             'hora_actual' => $horaActual
         ];
-    } elseif ($horaActualTimestamp > $horaInicioTimestamp) {
-        // Llegó dentro del margen de 30 minutos - Marcar como "Atrasado" y cancelar proceso
+    }
+    
+    // Caso 3: Llegó entre 10 y 30 minutos después - Puede ingresar pero se marca como "Atrasado"
+    // O si el estado ya es 'Atrasado' y la fecha coincide con hoy, permitir ingreso directamente
+    $estadoSolicitud = $solicitud['EstadoSolicitud'] ?? 'Aprobada';
+    
+    if ($estadoSolicitud === 'Atrasado') {
+        // Si ya está marcado como atrasado y la fecha es de hoy, permitir ingreso directamente
+        // (ya fue marcado como atrasado anteriormente, no necesitamos volver a marcarlo)
+        $conn->close();
+        return [
+            'vehiculo' => [
+                'ID' => null,
+                'Placa' => $solicitud['Placa'],
+                'TipoVehiculo' => $solicitud['TipoVehiculo'],
+                'Marca' => $solicitud['Marca'],
+                'Modelo' => $solicitud['Modelo'],
+                'Anio' => $solicitud['Anio'],
+                'ConductorNombre' => $solicitud['ConductorNombre'],
+                'Proposito' => $solicitud['Proposito'],
+                'Observaciones' => $solicitud['Observaciones']
+            ],
+            'agenda' => [
+                'SolicitudID' => $solicitud['SolicitudID'],
+                'AgendaID' => $solicitud['AgendaID'],
+                'FechaAgenda' => $solicitud['FechaAgenda'],
+                'HoraInicio' => $solicitud['HoraInicio'],
+                'HoraFin' => $solicitud['HoraFin'],
+                'ChoferNombre' => $solicitud['ChoferNombre']
+            ],
+            'tiene_agenda' => true,
+            'puede_ingresar' => true, // Puede ingresar aunque esté marcado como atrasado
+            'puede_salir' => false,
+            'es_atrasado' => true,
+            'tipo_atraso' => 'hora',
+            'mensaje' => "El vehículo tiene una solicitud marcada como 'Atrasado' para hoy. Puede proceder con el ingreso.",
+            'hora_actual' => $horaActual
+        ];
+    }
+    
+    if ($horaActualTimestamp > $horaLimiteNormalTimestamp && $horaActualTimestamp <= $horaLimiteAtrasadoTimestamp) {
+        // Marcar como atrasado pero permitir ingreso
         marcarSolicitudAtrasada($solicitud['SolicitudID']);
         
         $conn->close();
@@ -964,16 +1204,17 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'ChoferNombre' => $solicitud['ChoferNombre']
             ],
             'tiene_agenda' => true,
-            'puede_ingresar' => false, // No puede ingresar - proceso cancelado
+            'puede_ingresar' => true, // Puede ingresar aunque llegó atrasado
             'puede_salir' => false,
             'es_atrasado' => true,
             'tipo_atraso' => 'hora',
-            'mensaje' => 'El vehículo llegó dentro del margen de atraso permitido (30 minutos), pero el proceso ha sido cancelado. La solicitud ha sido marcada como "Atrasado". Debe crear una nueva solicitud de agendamiento.',
+            'mensaje' => "El vehículo llegó con {$diferenciaMinutos} minutos de atraso. La solicitud ha sido marcada como 'Atrasado', pero puede proceder con el ingreso.",
             'hora_actual' => $horaActual
         ];
     }
     
-    // Si está dentro del rango permitido, puede ingresar
+    // Caso 4: Llegó dentro del margen normal (10 minutos antes hasta 10 minutos después) - Puede ingresar normalmente
+    // Este caso cubre: desde 10 minutos antes hasta 10 minutos después de la hora asignada
     $conn->close();
     return [
         'vehiculo' => [

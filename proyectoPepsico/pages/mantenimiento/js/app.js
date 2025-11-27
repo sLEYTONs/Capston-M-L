@@ -2,7 +2,20 @@ class TareasMecanico {
     constructor() {
         this.dataTable = null;
         this.isLoading = false;
+        this.basePath = this.getBasePath();
         this.init();
+    }
+
+    getBasePath() {
+        // Obtener la ruta base del proyecto desde la URL actual
+        const currentPath = window.location.pathname;
+        // Si estamos en pages/mantenimiento/, obtener la parte antes de /pages/
+        if (currentPath.includes('/pages/')) {
+            const basePath = currentPath.substring(0, currentPath.indexOf('/pages/'));
+            return basePath; // Retorna /Capston-M-L/proyectoPepsico
+        }
+        // Fallback: asumir que estamos en la raíz
+        return '';
     }
 
     init() {
@@ -188,8 +201,9 @@ class TareasMecanico {
 
         $('#guardar-avance').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
 
+        const url = (this.basePath || '') + '/app/model/tareas/scripts/s_guardar_avances.php';
         $.ajax({
-            url: '../app/model/tareas/scripts/s_guardar_avance.php',
+            url: url,
             type: 'POST',
             data: {
                 asignacion_id: asignacionId,

@@ -69,6 +69,26 @@ function cargarMisSolicitudes() {
     });
 }
 
+// Función helper para parsear fechas sin problemas de zona horaria
+function parsearFecha(fechaString) {
+    if (!fechaString) return null;
+    // Si viene en formato YYYY-MM-DD, parsear correctamente
+    if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const partes = fechaString.split('-');
+        // Crear fecha en hora local (no UTC) para evitar problemas de zona horaria
+        return new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+    }
+    // Si ya viene formateada o en otro formato, usar Date normal
+    return new Date(fechaString);
+}
+
+function formatearFechaAgenda(fechaString) {
+    if (!fechaString) return null;
+    const fecha = parsearFecha(fechaString);
+    if (!fecha || isNaN(fecha.getTime())) return null;
+    return fecha.toLocaleDateString('es-ES');
+}
+
 function mostrarSolicitudes(solicitudes) {
     const tbody = document.querySelector('#mis-solicitudes-table tbody');
     if (!tbody) return;
@@ -87,10 +107,12 @@ function mostrarSolicitudes(solicitudes) {
         // Usar fecha y hora asignadas por el supervisor si existen, sino mostrar "Pendiente"
         let fechaHoraAsignada = 'Pendiente';
         if (solicitud.FechaAgenda && solicitud.HoraInicioAgenda) {
-            const fecha = new Date(solicitud.FechaAgenda).toLocaleDateString('es-ES');
-            const horaInicio = solicitud.HoraInicioAgenda.substring(0, 5); // Formato HH:MM
-            const horaFin = solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : '';
-            fechaHoraAsignada = `${fecha} ${horaInicio}${horaFin ? ' - ' + horaFin : ''}`;
+            const fecha = formatearFechaAgenda(solicitud.FechaAgenda);
+            if (fecha) {
+                const horaInicio = solicitud.HoraInicioAgenda.substring(0, 5); // Formato HH:MM
+                const horaFin = solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : '';
+                fechaHoraAsignada = `${fecha} ${horaInicio}${horaFin ? ' - ' + horaFin : ''}`;
+            }
         }
         
         // Mostrar fecha y hora de respuesta (cuando el supervisor aprobó/rechazó)

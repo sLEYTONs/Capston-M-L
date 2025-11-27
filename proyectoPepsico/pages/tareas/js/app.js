@@ -724,8 +724,9 @@ class TareasMecanico {
             formData.append('avance_fotos[]', foto);
         });
 
+        const url = (this.basePath || '') + '/app/model/tareas/scripts/s_guardar_avances.php';
         $.ajax({
-            url: '../app/model/tareas/scripts/s_guardar_avance.php',
+            url: url,
             type: 'POST',
             data: formData,
             processData: false,

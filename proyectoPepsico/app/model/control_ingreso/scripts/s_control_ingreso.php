@@ -64,8 +64,14 @@ try {
                 exit();
             }
             
-            $resultado = registrarIngresoBasico($placa, $usuario_id);
-            echo json_encode($resultado);
+            try {
+                $resultado = registrarIngresoBasico($placa, $usuario_id);
+                echo json_encode($resultado);
+            } catch (Exception $e) {
+                error_log("Error en registrarIngresoBasico: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
+                echo json_encode(['success' => false, 'message' => 'Error al registrar ingreso: ' . $e->getMessage()]);
+            }
             break;
             
         case 'registrarSalida':

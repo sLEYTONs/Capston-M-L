@@ -478,7 +478,7 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
 
 /**
  * Obtiene las horas disponibles en la agenda para una fecha específica
- * Solo retorna horas en el rango laboral de 9:00 a 18:00 (6pm)
+ * Retorna horas en el rango de 9:00 a 23:00 (11pm) para pruebas
  * Opcionalmente puede filtrar por mecánico para excluir horas ya asignadas a ese mecánico
  */
 function obtenerHorasDisponibles($fecha, $mecanico_id = null) {
@@ -501,14 +501,14 @@ function obtenerHorasDisponibles($fecha, $mecanico_id = null) {
     $fecha = mysqli_real_escape_string($conn, $fecha);
     $mecanico_id = $mecanico_id ? intval($mecanico_id) : null;
 
-    // Obtener todas las horas disponibles para la fecha en el rango laboral (9:00 a 18:00)
+    // Obtener todas las horas disponibles para la fecha en el rango de 9:00 a 23:00 (para pruebas)
     $query = "SELECT 
                 ID, HoraInicio, HoraFin, Disponible, Observaciones
             FROM agenda_taller
             WHERE Fecha = '$fecha' 
             AND Disponible = 1
             AND HoraInicio >= '09:00:00'
-            AND HoraFin <= '18:00:00'
+            AND HoraFin <= '23:00:00'
             ORDER BY HoraInicio";
 
     $result = mysqli_query($conn, $query);
@@ -956,15 +956,145 @@ function gestionarAgendaTaller($datos) {
             'message' => 'Agenda actualizada correctamente',
             'agenda_id' => $agenda_id
         ];
-
     } catch (Exception $e) {
         mysqli_rollback($conn);
+        mysqli_close($conn);
         return [
             'status' => 'error',
             'message' => $e->getMessage()
         ];
-    } finally {
+    }
+}
+
+/**
+ * Obtiene todas las agendas del taller con información de solicitudes asignadas
+ */
+function obtenerTodasLasAgendas($filtroFecha = null, $filtroDisponible = null) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    $where = [];
+
+    if ($filtroFecha) {
+        $filtroFecha = mysqli_real_escape_string($conn, $filtroFecha);
+        $where[] = "a.Fecha = '$filtroFecha'";
+    }
+
+    if ($filtroDisponible !== null) {
+        $filtroDisponible = intval($filtroDisponible);
+        $where[] = "a.Disponible = $filtroDisponible";
+    }
+
+    $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    $query = "SELECT 
+                a.ID,
+                a.Fecha,
+                a.HoraInicio,
+                a.HoraFin,
+                a.Disponible,
+                a.Observaciones,
+                a.FechaCreacion,
+                a.FechaActualizacion,
+                COUNT(DISTINCT CASE WHEN s.Estado = 'Aprobada' THEN s.ID END) as SolicitudesAprobadas,
+                COUNT(DISTINCT CASE WHEN s.Estado = 'Pendiente' THEN s.ID END) as SolicitudesPendientes
+              FROM agenda_taller a
+              LEFT JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+              $whereClause
+              GROUP BY a.ID
+              ORDER BY a.Fecha DESC, a.HoraInicio DESC";
+
+    $result = mysqli_query($conn, $query);
+    if (!$result) {
         mysqli_close($conn);
+        return ['status' => 'error', 'message' => 'Error en consulta: ' . mysqli_error($conn)];
+    }
+
+    $agendas = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $agendas[] = [
+            'ID' => $row['ID'],
+            'Fecha' => $row['Fecha'],
+            'HoraInicio' => $row['HoraInicio'],
+            'HoraFin' => $row['HoraFin'],
+            'Disponible' => (bool)$row['Disponible'],
+            'Observaciones' => $row['Observaciones'],
+            'FechaCreacion' => $row['FechaCreacion'],
+            'FechaActualizacion' => $row['FechaActualizacion'],
+            'SolicitudesAprobadas' => (int)$row['SolicitudesAprobadas'],
+            'SolicitudesPendientes' => (int)$row['SolicitudesPendientes']
+        ];
+    }
+
+    mysqli_close($conn);
+
+    return [
+        'status' => 'success',
+        'data' => $agendas
+    ];
+}
+
+/**
+ * Elimina una agenda del taller
+ * Solo permite eliminar si no está asignada a ninguna solicitud aprobada
+ */
+function eliminarAgenda($agenda_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    mysqli_begin_transaction($conn);
+
+    try {
+        $agenda_id = intval($agenda_id);
+
+        // Verificar si está asignada a alguna solicitud aprobada
+        $queryCheck = "SELECT COUNT(*) as total 
+                      FROM solicitudes_agendamiento 
+                      WHERE AgendaID = $agenda_id 
+                      AND Estado = 'Aprobada'";
+        $resultCheck = mysqli_query($conn, $queryCheck);
+        $check = mysqli_fetch_assoc($resultCheck);
+
+        if ($check['total'] > 0) {
+            throw new Exception("No se puede eliminar una agenda que está asignada a una solicitud aprobada");
+        }
+
+        // Si hay solicitudes pendientes, actualizar su AgendaID a NULL
+        $queryUpdateSolicitudes = "UPDATE solicitudes_agendamiento 
+                                  SET AgendaID = NULL 
+                                  WHERE AgendaID = $agenda_id 
+                                  AND Estado = 'Pendiente'";
+
+        if (!mysqli_query($conn, $queryUpdateSolicitudes)) {
+            throw new Exception("Error al actualizar solicitudes: " . mysqli_error($conn));
+        }
+
+        // Eliminar la agenda
+        $query = "DELETE FROM agenda_taller WHERE ID = $agenda_id";
+
+        if (!mysqli_query($conn, $query)) {
+            throw new Exception("Error al eliminar agenda: " . mysqli_error($conn));
+        }
+
+        mysqli_commit($conn);
+        mysqli_close($conn);
+
+        return [
+            'status' => 'success',
+            'message' => 'Agenda eliminada correctamente'
+        ];
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
     }
 }
 

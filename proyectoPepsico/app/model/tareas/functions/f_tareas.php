@@ -286,9 +286,23 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
         // Convertir array de fotos a JSON
         $fotos_json = !empty($fotos_procesadas) ? json_encode($fotos_procesadas) : null;
 
-        // 1. Insertar el avance con fotos
-        $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado, Fotos) 
-                       VALUES ('$asignacion_id', '$descripcion', '$estado', '$fotos_json')";
+        // Verificar si la columna Fotos existe en la tabla
+        $columna_fotos_existe = false;
+        $checkColumna = "SHOW COLUMNS FROM avances_mecanico LIKE 'Fotos'";
+        $resultColumna = mysqli_query($conn, $checkColumna);
+        if ($resultColumna && mysqli_num_rows($resultColumna) > 0) {
+            $columna_fotos_existe = true;
+        }
+
+        // 1. Insertar el avance (con o sin fotos según si la columna existe)
+        if ($columna_fotos_existe && $fotos_json) {
+            $fotos_json_escaped = mysqli_real_escape_string($conn, $fotos_json);
+            $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado, Fotos) 
+                           VALUES ('$asignacion_id', '$descripcion', '$estado', '$fotos_json_escaped')";
+        } else {
+            $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado) 
+                           VALUES ('$asignacion_id', '$descripcion', '$estado')";
+        }
         $resultAvance = mysqli_query($conn, $queryAvance);
 
         if (!$resultAvance) {
@@ -331,6 +345,14 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
 }
 
 function subirFotoAvance($archivo) {
+    // Validar que el archivo tenga la estructura correcta
+    if (!isset($archivo['name']) || !isset($archivo['tmp_name']) || !isset($archivo['size'])) {
+        return [
+            'success' => false,
+            'message' => 'Estructura de archivo inválida'
+        ];
+    }
+    
     $directorio_base = '../../uploads/avances/';
     
     // Crear directorio si no existe

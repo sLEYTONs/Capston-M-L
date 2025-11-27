@@ -20,7 +20,8 @@ $paginas_por_rol = [
         'solicitudes_agendamiento.php', 'gestion_solicitudes.php',
         'control_ingreso.php', 'vehiculos_agendados.php', 'tareas.php',
         'mantenimiento.php', 'calidad.php', 'repuestos.php', 'recepcion_tecnica.php',
-        'gestion_pausas_repuestos.php', 'estado_solicitudes_repuestos.php'
+        'gestion_pausas_repuestos.php', 'estado_solicitudes_repuestos.php',
+        'administrar_agendas.php'
     ],
     'Jefe de Taller' => [
         'consulta.php', 'reportes.php', 'base_datos.php',
@@ -47,7 +48,8 @@ $paginas_por_rol = [
         'consulta.php',
         'gestion_solicitudes.php',
         'reportes.php',
-        'base_datos.php'
+        'base_datos.php',
+        'administrar_agendas.php'
     ],
     'Chofer' => [
         'solicitudes_agendamiento.php',

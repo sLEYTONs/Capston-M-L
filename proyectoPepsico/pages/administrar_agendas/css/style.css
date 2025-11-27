@@ -1,0 +1,26 @@
+/* Estilos para Administrar Agendas */
+.btn-group .btn {
+    margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+#tabla-agendas tbody tr {
+    cursor: default;
+}
+
+#tabla-agendas tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.35em 0.65em;
+}
+
+.modal-header.bg-danger {
+    background-color: #dc3545 !important;
+}
+

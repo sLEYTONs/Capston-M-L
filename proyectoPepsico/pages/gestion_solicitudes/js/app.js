@@ -366,10 +366,13 @@ class GestionSolicitudes {
                 right: 'timeGridWeek,timeGridDay'
             },
             slotMinTime: '09:00:00',
-            slotMaxTime: '18:00:00',
+            slotMaxTime: '23:00:00',
             slotDuration: '01:00:00',
+            scrollTime: '09:00:00',
             allDaySlot: false,
             height: 'auto',
+            contentHeight: 'auto',
+            aspectRatio: 1.8,
             locale: 'es',
             firstDay: 1, // Lunes
             weekends: true,
@@ -860,13 +863,30 @@ class GestionSolicitudes {
             })
             : 'N/A';
 
+        // Función helper para parsear fechas sin problemas de zona horaria
+        const parsearFecha = (fechaString) => {
+            if (!fechaString) return null;
+            // Si viene en formato YYYY-MM-DD, parsear correctamente
+            if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const partes = fechaString.split('-');
+                // Crear fecha en hora local (no UTC) para evitar problemas de zona horaria
+                return new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+            }
+            // Si ya viene formateada o en otro formato, usar Date normal
+            return new Date(fechaString);
+        };
+
         const fechaAgenda = (solicitud.FechaAgenda || solicitud.Fecha)
-            ? new Date(solicitud.FechaAgenda || solicitud.Fecha).toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })
+            ? (() => {
+                const fecha = parsearFecha(solicitud.FechaAgenda || solicitud.Fecha);
+                if (!fecha || isNaN(fecha.getTime())) return 'N/A';
+                return fecha.toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            })()
             : 'N/A';
 
         const horaInicio = (solicitud.HoraInicioAgenda || solicitud.HoraInicio)

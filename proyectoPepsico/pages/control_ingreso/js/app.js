@@ -95,16 +95,20 @@ class ControlIngresoApp {
                     const data = response.data;
                     this.vehiculoActual = data;
                     
-                    // Si es atrasado, mostrar modal de atrasado
-                    if (data.es_atrasado) {
+                    // Si es atrasado y NO puede ingresar (más de 30 minutos o más de 10 minutos antes), mostrar modal
+                    if (data.es_atrasado && !data.puede_ingresar) {
                         this.mostrarModalAtrasado(data);
                         // También mostrar información básica
                         if (data.vehiculo) {
                             this.mostrarInformacionBasica(data);
                         }
                     } else if (data.tiene_agenda && data.agenda && data.puede_ingresar) {
-                        // Si tiene agenda aprobada y puede ingresar, mostrar información de la agenda
+                        // Si tiene agenda aprobada y puede ingresar (incluso si está atrasado entre 10-30 min)
                         this.mostrarInformacionConAgenda(data);
+                        // Si está atrasado pero puede ingresar, mostrar advertencia
+                        if (data.es_atrasado && data.tipo_atraso === 'hora' && data.mensaje) {
+                            this.mostrarAlerta(data.mensaje, 'warning');
+                        }
                     } else if (data.tiene_agenda && data.agenda && !data.puede_ingresar) {
                         // Tiene agenda pero no puede ingresar (fuera de horario, otro día, etc.)
                         this.mostrarInformacionConAgenda(data);
@@ -331,31 +335,44 @@ class ControlIngresoApp {
         const tieneVehiculo = this.vehiculoActual !== null;
         const tieneFotos = this.fotosCapturadas.length > 0;
         
-        // Mínimo 2 fotos requeridas
-        const fotosSuficientes = this.fotosCapturadas.length >= 2;
+        // Fotos son opcionales - no se requieren para confirmar ingreso
+        // const fotosSuficientes = this.fotosCapturadas.length >= 2;
         
-        // Para ingreso: solo si tiene agenda aprobada
+        // Para ingreso: solo si tiene agenda aprobada o atrasada (pero puede ingresar)
         const puedeIngresar = tieneVehiculo && this.vehiculoActual.puede_ingresar;
         // Para salida: solo si el vehículo está ingresado
         const puedeSalir = tieneVehiculo && this.vehiculoActual.puede_salir;
         
-        $('#btnProcesarIngreso').prop('disabled', !puedeIngresar || !fotosSuficientes);
-        $('#btnProcesarSalida').prop('disabled', !puedeSalir || !fotosSuficientes);
+        // Fotos son opcionales, solo se requiere que tenga vehículo y pueda ingresar
+        $('#btnProcesarIngreso').prop('disabled', !puedeIngresar);
+        $('#btnProcesarSalida').prop('disabled', !puedeSalir || !tieneFotos); // Para salida sí se requieren fotos
         $('#btnReportarNovedad').prop('disabled', !tieneVehiculo);
     }
 
     procesarIngreso() {
-        if (!this.vehiculoActual || this.fotosCapturadas.length < 2) {
-            this.mostrarAlerta('Capture al menos 2 fotos del vehículo antes de registrar el ingreso', 'warning');
+        if (!this.vehiculoActual) {
+            this.mostrarAlerta('Primero busque un vehículo por placa', 'warning');
             return;
         }
 
+        // Verificar que tenga agenda y pueda ingresar
+        if (!this.vehiculoActual.puede_ingresar) {
+            this.mostrarAlerta('Este vehículo no puede ingresar en este momento. Verifique la hora asignada.', 'warning');
+            return;
+        }
+
+        // Las fotos son opcionales - si hay fotos, se guardarán, pero no son requeridas
         this.registrarIngresoBasico();
     }
 
     registrarIngresoBasico() {
         // Obtener la placa del vehículo, manejando tanto vehículos ingresados como con agenda
         const placa = this.vehiculoActual.vehiculo ? this.vehiculoActual.vehiculo.Placa : this.vehiculoActual.Placa;
+        
+        if (!placa) {
+            this.mostrarAlerta('No se pudo obtener la placa del vehículo', 'error');
+            return;
+        }
         
         $.ajax({
             url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
@@ -367,16 +384,20 @@ class ControlIngresoApp {
             dataType: 'json',
             success: (response) => {
                 if (response.success) {
-                    this.guardarTodasLasFotos(placa);
-                    this.mostrarAlerta('✅ Ingreso registrado correctamente. El conductor completará la información restante.', 'success');
+                    // Guardar fotos si hay (opcionales)
+                    if (this.fotosCapturadas.length > 0) {
+                        this.guardarTodasLasFotos(placa);
+                    }
+                    this.mostrarModalExito('Ingreso registrado correctamente', 'El vehículo ha sido ingresado al taller.');
                     this.limpiarInterfaz();
                     this.cargarEstadisticas();
                 } else {
-                    this.mostrarAlerta(response.message, 'error');
+                    this.mostrarAlerta(response.message || 'Error al registrar ingreso', 'error');
                 }
             },
-            error: () => {
-                this.mostrarAlerta('Error al registrar ingreso', 'error');
+            error: (xhr, status, error) => {
+                console.error('Error en registrarIngresoBasico:', error, xhr.responseText);
+                this.mostrarAlerta('Error al registrar ingreso: ' + error, 'error');
             }
         });
     }
@@ -405,7 +426,7 @@ class ControlIngresoApp {
             success: (response) => {
                 if (response.success) {
                     this.guardarTodasLasFotos(placa);
-                    this.mostrarAlerta('✅ Salida registrada correctamente', 'success');
+                    this.mostrarModalExito('Salida registrada correctamente', 'El vehículo ha sido registrado como salido del taller.');
                     this.limpiarInterfaz();
                     this.cargarEstadisticas();
                 } else {
@@ -522,7 +543,7 @@ class ControlIngresoApp {
         this.fotosCapturadas.push(nuevaFoto);
         this.actualizarGaleriaFotos();
         
-        this.mostrarAlerta(`✅ Foto ${tipo.replace('-', ' ')} capturada correctamente`, 'success');
+        this.mostrarAlerta(`Foto ${tipo.replace('-', ' ')} capturada correctamente`, 'success');
         $('#modalFoto').modal('hide');
         this.actualizarEstadoBotones();
     }
@@ -762,12 +783,16 @@ class ControlIngresoApp {
             $('#modalAtrasadoIconoAlerta').removeClass('text-info').addClass('text-danger');
             $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: No Llegó');
             
-            const mensajeNoLlego = `El vehículo <strong>NO LLEGÓ</strong> a tiempo. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} El margen de atraso permitido es de 30 minutos.`;
+            const mensajeNoLlego = `El vehículo <strong>NO LLEGÓ</strong> a tiempo. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} El margen máximo de atraso permitido es de 30 minutos.`;
             $('#mensajeAtrasado').html(mensajeNoLlego);
             
             $('#modalAtrasadoInfoTexto').html(`
-                La solicitud ha sido marcada automáticamente como <strong class="text-danger">"No llegó"</strong> y el proceso ha sido cerrado.
-                El conductor debe crear una nueva solicitud de agendamiento.
+                <div class="alert alert-danger mb-0">
+                    <strong><i class="fas fa-exclamation-triangle me-2"></i>No se puede confirmar el ingreso:</strong><br>
+                    El vehículo no llegó a la hora asignada y ha pasado más de 30 minutos del tiempo permitido.<br>
+                    La solicitud ha sido marcada automáticamente como <strong>"No llegó"</strong> y el proceso ha sido cerrado.<br><br>
+                    <strong>El conductor deberá crear una nueva solicitud de agendamiento.</strong>
+                </div>
             `);
         } else if (tipoAtraso === 'fecha') {
             // Fecha pasada
@@ -837,6 +862,13 @@ class ControlIngresoApp {
         setTimeout(() => {
             $('.alert').alert('close');
         }, 5000);
+    }
+
+    mostrarModalExito(titulo, mensaje) {
+        $('#modalExitoTitulo').text(titulo);
+        $('#modalExitoMensaje').text(mensaje);
+        const modal = new bootstrap.Modal(document.getElementById('modalExito'));
+        modal.show();
     }
 }
 

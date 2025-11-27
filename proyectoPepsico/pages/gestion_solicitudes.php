@@ -33,7 +33,7 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
             z-index: 10;
         }
         #calendario-horas-disponibles {
-            min-height: 400px;
+            min-height: 600px;
         }
         #info-seleccion-hora {
             margin-top: 15px;

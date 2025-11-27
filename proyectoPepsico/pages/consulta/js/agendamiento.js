@@ -88,6 +88,26 @@ class GestionAgendamiento {
         });
     }
 
+    // Función helper para parsear fechas sin problemas de zona horaria
+    parsearFecha(fechaString) {
+        if (!fechaString) return null;
+        // Si viene en formato YYYY-MM-DD, parsear correctamente
+        if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const partes = fechaString.split('-');
+            // Crear fecha en hora local (no UTC) para evitar problemas de zona horaria
+            return new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+        }
+        // Si ya viene formateada o en otro formato, usar Date normal
+        return new Date(fechaString);
+    }
+
+    formatearFechaAgenda(fechaString) {
+        if (!fechaString) return 'Sin asignar';
+        const fecha = this.parsearFecha(fechaString);
+        if (!fecha || isNaN(fecha.getTime())) return 'Sin asignar';
+        return fecha.toLocaleDateString('es-ES');
+    }
+
     mostrarSolicitudes(solicitudes) {
         const tbody = document.querySelector('#solicitudes-table tbody');
         if (!tbody) return;
@@ -102,9 +122,7 @@ class GestionAgendamiento {
         solicitudes.forEach(solicitud => {
             const row = document.createElement('tr');
             const estadoClass = this.getEstadoClass(solicitud.Estado);
-            const fechaAgenda = solicitud.FechaAgenda 
-                ? new Date(solicitud.FechaAgenda).toLocaleDateString('es-ES')
-                : 'Sin asignar';
+            const fechaAgenda = this.formatearFechaAgenda(solicitud.FechaAgenda);
             const horaAgenda = solicitud.HoraInicioAgenda 
                 ? `${solicitud.HoraInicioAgenda.substring(0, 5)} - ${solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : ''}`
                 : 'Sin asignar';
@@ -229,7 +247,7 @@ class GestionAgendamiento {
                 ${solicitud.FechaAgenda ? `
                 <div class="col-md-6">
                     <h6>Fecha y Hora Asignada</h6>
-                    <p><strong>Fecha:</strong> ${new Date(solicitud.FechaAgenda).toLocaleDateString('es-ES')}</p>
+                    <p><strong>Fecha:</strong> ${this.formatearFechaAgenda(solicitud.FechaAgenda)}</p>
                     ${solicitud.HoraInicioAgenda ? `<p><strong>Hora:</strong> ${solicitud.HoraInicioAgenda.substring(0, 5)} - ${solicitud.HoraFinAgenda ? solicitud.HoraFinAgenda.substring(0, 5) : ''}</p>` : ''}
                 </div>
                 ` : ''}

@@ -7,6 +7,32 @@ class VehiculosAgendados {
         this.inicializar();
     }
 
+    // Función helper para parsear fechas sin problemas de zona horaria
+    parsearFecha(fechaString) {
+        if (!fechaString) return null;
+        // Si viene en formato YYYY-MM-DD, parsear correctamente
+        if (fechaString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const partes = fechaString.split('-');
+            // Crear fecha en hora local (no UTC) para evitar problemas de zona horaria
+            return new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+        }
+        // Si ya viene formateada o en otro formato, usar Date normal
+        return new Date(fechaString);
+    }
+
+    formatearFechaAgenda(fechaString, opciones = {}) {
+        if (!fechaString) return 'N/A';
+        const fecha = this.parsearFecha(fechaString);
+        if (!fecha || isNaN(fecha.getTime())) return 'N/A';
+        const opcionesDefault = {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        };
+        return fecha.toLocaleDateString('es-ES', { ...opcionesDefault, ...opciones });
+    }
+
     getBaseUrl() {
         // Obtener la ruta actual y construir la ruta al script
         const currentPath = window.location.pathname;
@@ -50,7 +76,28 @@ class VehiculosAgendados {
         if ($.fn.DataTable) {
             this.table = $('#vehiculos-agendados-table').DataTable({
                 language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+                    "sProcessing": "Procesando...",
+                    "sLengthMenu": "Mostrar _MENU_ registros",
+                    "sZeroRecords": "No se encontraron resultados",
+                    "sEmptyTable": "Ningún dato disponible en esta tabla",
+                    "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                    "sInfoPostFix": "",
+                    "sSearch": "Buscar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Cargando...",
+                    "oPaginate": {
+                        "sFirst": "Primero",
+                        "sLast": "Último",
+                        "sNext": "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
                 },
                 responsive: true,
                 order: [[3, 'asc'], [4, 'asc']], // Ordenar por fecha y hora
@@ -110,14 +157,8 @@ class VehiculosAgendados {
         vehiculos.forEach(vehiculo => {
             const row = document.createElement('tr');
             
-            // Formatear fecha
-            const fechaAgenda = new Date(vehiculo.FechaAgenda);
-            const fechaFormateada = fechaAgenda.toLocaleDateString('es-ES', {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
+            // Formatear fecha usando el método helper
+            const fechaFormateada = this.formatearFechaAgenda(vehiculo.FechaAgenda);
 
             // Formatear hora
             const horaInicio = vehiculo.HoraInicio ? vehiculo.HoraInicio.substring(0, 5) : 'N/A';
@@ -185,9 +226,8 @@ class VehiculosAgendados {
             return;
         }
 
-        // Formatear fecha
-        const fechaAgenda = new Date(vehiculo.FechaAgenda);
-        const fechaFormateada = fechaAgenda.toLocaleDateString('es-ES', {
+        // Formatear fecha usando el método helper
+        const fechaFormateada = this.formatearFechaAgenda(vehiculo.FechaAgenda, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',

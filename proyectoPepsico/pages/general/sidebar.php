@@ -164,6 +164,18 @@
         </li>
         <?php endif; ?>
 
+        <!-- Administrar Agendas - Solo para Supervisor -->
+        <?php if (tiene_acceso('administrar_agendas.php')): ?>
+        <li class="pc-item">
+          <a href="administrar_agendas.php" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-calendar-alt"></i>
+            </span>
+            <span class="pc-mtext">Administrar Agendas</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Recepción Técnica -->
         <?php if (tiene_acceso('recepcion_tecnica.php')): ?>
         <li class="pc-item">
