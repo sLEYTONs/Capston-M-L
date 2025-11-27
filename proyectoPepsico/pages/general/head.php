@@ -34,23 +34,39 @@
             padding-bottom: 2rem;
             }
 
-            /* Page Header fijo arriba a la izquierda (después del sidebar) */
-            .page-header {
-            position: fixed;
-            top: 0;
-            left: 280px; /* Ancho del sidebar */
-            right: 0;
-            z-index: 1025; /* Por encima de otros elementos */
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            padding: 1.25rem 0; /* Solo padding vertical */
-            margin-top: 0;
-            margin-left: 2rem; /* Margen izquierdo para separación visual */
-            transition: left 0.3s ease, margin-left 0.3s ease; /* Transición suave al cambiar tamaño */
+            /* Custom Page Header fijo arriba a la izquierda (después del sidebar) */
+            .custom-page-header-wrapper {
+            height: 55px; /* La altura de tu custom-page-header, incluyendo padding */
+            }
+            
+            /* Estilos personalizados para custom-page-header */
+            html body .pc-container .custom-page-header,
+            html body .custom-page-header,
+            body .pc-container .custom-page-header,
+            body .custom-page-header,
+            .custom-page-header {
+            display: flex !important;
+            align-items: center !important;
+            position: fixed !important;
+            top: var(--header-height, 60px) !important; /* Pegado al header principal */
+            left: 280px !important;
+            right: 0 !important;
+            z-index: 1023 !important;
+            min-height: 55px !important;
+            padding: 13px 0px !important;
+            background: #f8f9fa !important;
+            border-radius: 8px !important;
+            width: auto !important;
+            margin: 0 !important;
+            margin-top: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 0 !important;
+            box-shadow: none !important;
             }
 
             /* Page-block dentro del header para mejor control */
-            .page-header .page-block {
+            .custom-page-header .page-block {
             max-width: 1400px;
             margin: 0 auto;
             width: 100%;
@@ -58,22 +74,22 @@
             }
 
             /* Contenido del header fijo en su posición */
-            .page-header .page-block .row {
+            .custom-page-header .page-block .row {
             margin-left: 3rem !important; /* Margen izquierdo fijo para mantener posición */
             margin-right: 0;
             }
 
-            .page-header .page-block .col-md-12 {
+            .custom-page-header .page-block .col-md-12 {
             padding-left: 0;
             padding-right: 0;
             }
 
-            .page-header h5 {
+            .custom-page-header h5 {
             margin-left: 0 !important;
             margin-bottom: 0.5rem !important;
             }
 
-            .page-header .breadcrumb {
+            .custom-page-header .breadcrumb {
             margin-left: 0 !important;
             margin-bottom: 0 !important;
             padding-left: 0;
@@ -87,13 +103,17 @@
             transition: margin-left 0.1s ease, width 0.1s ease; /* Transición más rápida */
             }
             
-            /* Reducir transición del sidebar para que no empuje tanto el contenido */
+            /* Transición suave del sidebar para hover */
             @media (min-width: 1025px) {
             .pc-sidebar {
-                transition: transform 0.15s ease !important; /* Transición más rápida con transform */
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Transición suave y elegante */
+                will-change: transform; /* Optimización de rendimiento */
             }
             .pc-sidebar.pc-sidebar-hide {
                 transform: translateX(-100%) !important; /* Ocultar con transform sin cambiar width */
+            }
+            .pc-sidebar:not(.pc-sidebar-hide) {
+                transform: translateX(0) !important; /* Mostrar sidebar */
             }
             .pc-sidebar ~ .pc-header {
                 transition: left 0.15s ease !important;
@@ -102,56 +122,65 @@
             .pc-sidebar ~ .pc-container {
                 transition: margin-left 0.15s ease !important; /* Transición más rápida */
             }
+            
+            /* Ocultar botones del header en desktop */
+            .pc-sidebar-collapse,
+            #sidebar-hide {
+                display: none !important;
+            }
             }
 
             /* Contenido centrado en la página */
             .pc-content {
-            margin-top: 90px; /* Altura del page-header con padding */
+            margin-top: calc(var(--header-height, 60px) + var(--page-header-height, 55px)); /* Altura del pc-header + custom-page-header */
             max-width: 1400px;
             margin-left: auto;
             margin-right: auto;
             padding: 0 1rem;
+            padding-top: 1rem; /* Pequeño espacio después del header */
             padding-bottom: 6rem !important; /* Espacio amplio para separar del footer */
             width: 100%;
             }
 
             /* Responsive para tablets */
             @media (max-width: 1200px) and (min-width: 1025px) {
-            .page-header {
+            .custom-page-header {
+                top: var(--header-height, 60px);
                 padding: 1rem 0;
                 margin-left: 1.5rem;
             }
-            .page-header .page-block {
+            .custom-page-header .page-block {
                 padding: 0 1.5rem;
             }
-            .page-header .page-block .row {
+            .custom-page-header .page-block .row {
                 margin-left: 3rem !important; /* Mantener posición fija */
             }
             .pc-content {
-                margin-top: 85px;
+                margin-top: calc(var(--header-height, 60px) + var(--page-header-height, 85px));
                 padding-bottom: 6rem !important; /* Espacio amplio para separar del footer */
             }
             }
 
             /* Responsive para tablets pequeñas */
             @media (max-width: 1024px) and (min-width: 769px) {
-            .page-header {
-                left: 0;
+            .custom-page-header {
+                top: var(--header-height, 60px) !important;
+                left: auto !important;
                 padding: 1rem 0;
                 margin-left: 1.5rem;
             }
-            .page-header .page-block {
+            .custom-page-header .page-block {
                 padding: 0 1.5rem;
             }
-            .page-header .page-block .row {
+            .custom-page-header .page-block .row {
                 margin-left: 3rem !important; /* Mantener posición fija */
             }
             .pc-container {
-                margin-left: 0;
-                width: 100%;
+                margin-left: 0 !important;
+                width: 100% !important;
             }
             .pc-content {
-                margin-top: 80px;
+                margin-top: calc(var(--header-height, 60px) + var(--page-header-height, 80px));
                 padding: 0 1rem;
                 padding-bottom: 5rem !important; /* Espacio amplio para separar del footer */
             }
@@ -159,32 +188,33 @@
 
             /* Responsive para móviles */
             @media (max-width: 768px) {
-            .page-header {
-                left: 0;
+            .custom-page-header {
+                top: var(--header-height, 60px) !important;
+                left: auto !important;
                 padding: 0.875rem 0;
                 margin-left: 1rem;
                 box-shadow: 0 2px 6px rgba(0,0,0,0.1);
             }
-            .page-header .page-block {
+            .custom-page-header .page-block {
                 padding: 0 1rem;
             }
-            .page-header .page-block .row {
+            .custom-page-header .page-block .row {
                 margin-left: 2rem !important; /* Posición fija en móviles */
             }
             .pc-container {
-                margin-left: 0;
-                width: 100%;
+                margin-left: 0 !important;
+                width: 100% !important;
             }
             .pc-content {
-                margin-top: 75px;
+                margin-top: calc(var(--header-height, 60px) + var(--page-header-height, 75px));
                 padding: 0 0.75rem;
                 padding-bottom: 5rem !important; /* Espacio amplio para separar del footer */
             }
-            .page-header h5 {
+            .custom-page-header h5 {
                 font-size: 1rem;
                 margin-bottom: 0.25rem !important;
             }
-            .page-header .breadcrumb {
+            .custom-page-header .breadcrumb {
                 font-size: 0.8rem;
                 margin-bottom: 0;
             }
@@ -192,25 +222,26 @@
 
             /* Responsive para móviles pequeños */
             @media (max-width: 480px) {
-            .page-header {
+            .custom-page-header {
+                top: var(--header-height, 60px) !important;
                 padding: 0.75rem 0;
                 margin-left: 0.75rem;
             }
-            .page-header .page-block {
+            .custom-page-header .page-block {
                 padding: 0 0.75rem;
             }
-            .page-header .page-block .row {
+            .custom-page-header .page-block .row {
                 margin-left: 1rem !important; /* Posición fija en móviles pequeños */
             }
             .pc-content {
-                margin-top: 70px;
+                margin-top: calc(var(--header-height, 60px) + var(--page-header-height, 70px));
                 padding: 0 0.5rem;
                 padding-bottom: 4rem !important; /* Espacio amplio para separar del footer */
             }
-            .page-header h5 {
+            .custom-page-header h5 {
                 font-size: 0.9rem;
             }
-            .page-header .breadcrumb {
+            .custom-page-header .breadcrumb {
                 font-size: 0.75rem;
             }
             }
@@ -222,7 +253,7 @@
 
     <!-- [Meta Tags] -->
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     <!-- [Favicon] -->
@@ -238,6 +269,7 @@
     <!-- [CSS Templates / Styles] -->
     <link rel="stylesheet" href="../assets/css/style.css" id="main-style-link">
     <link rel="stylesheet" href="../assets/css/style-preset.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
     
 
         <!-- DataTables CSS -->
@@ -255,5 +287,37 @@
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    
+    <!-- [Responsive DataTables Helper] -->
+    <script src="../assets/js/responsive-datatables.js"></script>
+
+    <!-- CSS personalizado para custom-page-header - debe ir al final para sobrescribir todos los estilos -->
+    <style>
+        /* Estilos personalizados para custom-page-header con máxima especificidad y prioridad */
+        html body .pc-container .custom-page-header,
+        html body .custom-page-header,
+        body .pc-container .custom-page-header,
+        body .custom-page-header,
+        .custom-page-header {
+            display: flex !important;
+            align-items: center !important;
+            position: fixed !important;
+            top: var(--header-height, 60px) !important; /* Pegado al header principal */
+            left: 280px !important;
+            right: 0 !important;
+            z-index: 1023 !important;
+            min-height: 55px !important;
+            padding: 13px 0px !important;
+            background: #f8f9fa !important;
+            border-radius: 8px !important;
+            width: auto !important;
+            margin: 0 !important;
+            margin-top: 0 !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 0 !important;
+            box-shadow: none !important;
+        }
+    </style>
 
 </head>

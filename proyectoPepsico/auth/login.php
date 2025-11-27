@@ -90,8 +90,8 @@ function obtener_pagina_principal_directa($rol) {
         </div>
     </div>
 
-    <div class="flex w-full md:w-1/2 items-center justify-center">
-        <div class="bg-white shadow-2xl rounded-2xl w-full max-w-md p-10 mx-6 animate-fadeIn">
+    <div class="flex w-full md:w-1/2 items-center justify-center px-4 py-8">
+        <div class="bg-white shadow-2xl rounded-2xl w-full max-w-md p-6 md:p-10 mx-auto animate-fadeIn">
             <div class="flex items-center space-x-3 mb-8">
                 <img src="../assets/images/pepsicoLogo.png" alt="pepsico" class="w-12 h-12" />
                 <h3 class="text-2xl font-semibold text-gray-800">Ingreso al Portal</h3>
@@ -130,6 +130,57 @@ function obtener_pagina_principal_directa($rol) {
         to { opacity: 1; transform: translateY(0); }
     }
     .animate-fadeIn { animation: fadeIn 0.6s ease-out; }
+    
+    /* Responsive para login */
+    @media (max-width: 768px) {
+        body {
+            flex-direction: column;
+        }
+        
+        .hidden.md\:flex {
+            display: none !important;
+        }
+        
+        .flex.w-full.md\:w-1\/2 {
+            width: 100% !important;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .bg-white.shadow-2xl {
+            padding: 1.5rem !important;
+            margin: 0 !important;
+        }
+        
+        h3 {
+            font-size: 1.25rem;
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            font-size: 16px; /* Evitar zoom en iOS */
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .bg-white.shadow-2xl {
+            padding: 1rem !important;
+            border-radius: 1rem;
+        }
+        
+        .flex.items-center.space-x-3 {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .flex.items-center.space-x-3 img {
+            margin-bottom: 0.5rem;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+        }
+    }
     </style>
 </body>
 </html>

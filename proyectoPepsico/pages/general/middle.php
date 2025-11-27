@@ -15,13 +15,26 @@ $usuario_rol = $_SESSION['usuario']['rol'];
 // Definir páginas permitidas para cada rol
 $paginas_por_rol = [
     'Administrador' => [
+        // El administrador tiene acceso a TODAS las páginas
+        // Esta lista es solo para referencia, la función tiene_acceso() retorna true para Administrador
         'base_datos.php', 'consulta.php', 'gestion_usuarios.php', 
         'ingreso_vehiculos.php', 'reportes.php', 'mis_solicitudes.php',
         'solicitudes_agendamiento.php', 'gestion_solicitudes.php',
         'control_ingreso.php', 'vehiculos_agendados.php', 'tareas.php',
         'mantenimiento.php', 'calidad.php', 'repuestos.php', 'recepcion_tecnica.php',
         'gestion_pausas_repuestos.php', 'estado_solicitudes_repuestos.php',
-        'administrar_agendas.php'
+        'administrar_agendas.php', 'coordinacion_taller_fallas.php',
+        'coordinacion_jefe_taller.php', 'comunicacion_flota_proveedores.php',
+        'recepcion_devolucion_vehiculos.php', 'control_gastos_vehiculos.php',
+        'inventario_coordinador.php', 'gestion_cambios_perdidas.php',
+        'control_duplicados_chapas.php', 'registro_prestamos_temporales.php',
+        'coordinacion_jefe_flota.php', 'control_llaves.php',
+        'gestion_incidentes_siniestros.php', 'supervisar_politicas_uso.php',
+        'vehiculos_asignados.php', 'solicitar_repuestos.php',
+        'registro_insumos_vehiculo.php', 'recepcion_entrega_repuestos.php',
+        'comunicacion_proveedores.php', 'gestion_repuestos_jefe.php',
+        'reportes_semanales.php'
+        // Nota: El administrador tiene acceso a TODAS las páginas mediante tiene_acceso()
     ],
     'Jefe de Taller' => [
         'consulta.php', 'reportes.php', 'base_datos.php',

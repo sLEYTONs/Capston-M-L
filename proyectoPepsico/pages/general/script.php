@@ -50,6 +50,42 @@
     layout_rtl_change('false');
     preset_change("preset-1");
     
+    // Calcular y establecer la altura del header principal para posicionar el custom-page-header
+    function updatePageHeaderPosition() {
+      const pcHeader = document.querySelector('.pc-header');
+      const pageHeader = document.querySelector('.custom-page-header');
+      
+      if (pcHeader && pageHeader) {
+        const headerHeight = pcHeader.offsetHeight;
+        document.documentElement.style.setProperty('--header-height', headerHeight + 'px');
+        
+        // Calcular altura del custom-page-header
+        const pageHeaderHeight = pageHeader.offsetHeight;
+        document.documentElement.style.setProperty('--page-header-height', pageHeaderHeight + 'px');
+        
+        // Establecer posición del custom-page-header pegado al header (sin espacio)
+        pageHeader.style.top = headerHeight + 'px';
+      }
+    }
+    
+    // Actualizar posición al cargar
+    setTimeout(updatePageHeaderPosition, 100);
+    
+    // Actualizar posición al redimensionar la ventana
+    window.addEventListener('resize', updatePageHeaderPosition);
+    
+    // Observar cambios en el header (por si cambia de tamaño)
+    const headerObserver = new MutationObserver(updatePageHeaderPosition);
+    const pcHeader = document.querySelector('.pc-header');
+    if (pcHeader) {
+      headerObserver.observe(pcHeader, {
+        attributes: true,
+        attributeFilter: ['class', 'style'],
+        childList: true,
+        subtree: true
+      });
+    }
+    
     // Reinicializar dropdowns para asegurar funcionamiento
     setTimeout(() => {
       const dropdowns = document.querySelectorAll('.dropdown-toggle');

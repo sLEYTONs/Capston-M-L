@@ -31,23 +31,22 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <div class="notification-container" id="notification-container"></div>
     
     <div class="pc-container">
-        <div class="pc-content">
-            <div class="page-header">
-                <div class="page-block">
-                    <div class="row align-items-center">
-                        <div class="col-md-12">
-                            <h5 class="mb-1">Mis Tareas Asignadas</h5>
-                            <nav aria-label="breadcrumb">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="tareas.php">Inicio</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Tareas</li>
-                                </ol>
-                            </nav>
-                        </div>
+        <div class="custom-page-header" style="top: 75px;">
+            <div class="page-block">
+                <div class="row align-items-center">
+                    <div class="col-md-12">
+                        <h5 class="mb-1">Mis Tareas Asignadas</h5>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="tareas.php">Inicio</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Tareas</li>
+                            </ol>
+                        </nav>
                     </div>
                 </div>
             </div>
-            
+        </div>
+        <div class="pc-content">
             <?php include 'tareas/components/c_tareas.php'; ?>
         </div>
     </div>

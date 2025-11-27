@@ -7,9 +7,9 @@
 
 .repuestos-container {
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
     width: 100%;
-    max-width: 100%;
+    max-width: 1400px;
 }
 
 .repuestos-container .row {
@@ -25,6 +25,17 @@
 
 .repuestos-container .row > [class*="col-"]:first-child {
     padding-left: 0;
+}
+
+/* Restaurar ancho original de col-md-9 y col-md-3 */
+.repuestos-container .col-md-9 {
+    flex: 0 0 75%;
+    max-width: 75%;
+}
+
+.repuestos-container .col-md-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
 }
 
 .card {
@@ -68,28 +79,192 @@
     padding: 1.5rem;
 }
 
-/* DataTable más ancho */
+/* DataTable con scroll X */
 #repuestos-table {
     width: 100% !important;
+    table-layout: auto;
+    margin: 0 auto;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+/* Forzar que el scrollbar sea visible */
+.repuestos-container .card-body {
+    overflow: visible;
+}
+
+.repuestos-container .card-body .table-responsive {
+    max-height: none;
+    overflow-x: scroll !important;
+    overflow-y: visible !important;
 }
 
 #repuestos-table th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #495057;
-    padding: 12px;
+    padding: 12px 8px;
     border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+    font-size: 0.9rem;
 }
 
 #repuestos-table td {
-    padding: 12px;
+    padding: 12px 10px;
     vertical-align: middle;
+    font-size: 0.9rem;
+    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ajustar columnas específicas para mejor distribución */
+#repuestos-table th:nth-child(1),
+#repuestos-table td:nth-child(1) {
+    width: 8%;
+    min-width: 90px;
+    max-width: 120px;
+}
+
+#repuestos-table th:nth-child(2),
+#repuestos-table td:nth-child(2) {
+    width: 30%;
+    min-width: 200px;
+    max-width: 350px;
+}
+
+#repuestos-table th:nth-child(3),
+#repuestos-table td:nth-child(3) {
+    width: 15%;
+    min-width: 140px;
+    max-width: 200px;
+}
+
+#repuestos-table th:nth-child(4),
+#repuestos-table td:nth-child(4) {
+    width: 10%;
+    min-width: 100px;
+    max-width: 130px;
+}
+
+#repuestos-table th:nth-child(5),
+#repuestos-table td:nth-child(5) {
+    width: 12%;
+    min-width: 120px;
+    max-width: 150px;
+}
+
+#repuestos-table th:nth-child(6),
+#repuestos-table td:nth-child(6) {
+    width: 10%;
+    min-width: 100px;
+    max-width: 130px;
+}
+
+#repuestos-table th:nth-child(7),
+#repuestos-table td:nth-child(7) {
+    width: 15%;
+    min-width: 150px;
+    max-width: 200px;
 }
 
 .table-responsive {
-    overflow: visible !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
     width: 100%;
-    margin-bottom: 3rem; /* Espacio adicional después del DataTable */
+    margin-bottom: 3rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Estilos para hacer visible el scrollbar */
+.table-responsive::-webkit-scrollbar {
+    height: 12px;
+    background-color: #f5f5f5;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+    border-radius: 6px;
+}
+
+/* DataTables wrapper con scroll X */
+.dataTables_wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    margin: 0 auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Estilos para scrollbar en DataTables wrapper */
+.dataTables_wrapper::-webkit-scrollbar {
+    height: 12px;
+    background-color: #f5f5f5;
+}
+
+.dataTables_wrapper::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 6px;
+}
+
+.dataTables_wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+.dataTables_wrapper::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+    border-radius: 6px;
+}
+
+.dataTables_scrollHead,
+.dataTables_scrollBody {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+/* Asegurar que el contenedor de la tabla tenga scroll X */
+.repuestos-container .card-body .table-responsive {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar para Firefox */
+.repuestos-container .card-body .table-responsive,
+.dataTables_wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f5f5f5;
+}
+
+/* Ajustar el tamaño de la tabla para que quepa sin scroll */
+#repuestos-table {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Ajustar columnas para que quepan en el ancho disponible */
+#repuestos-table th,
+#repuestos-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#repuestos-table td:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
 }
 
 /* Espacio para el wrapper del DataTable y su paginación */
@@ -106,11 +281,7 @@
     padding-bottom: 1rem !important;
 }
 
-/* Asegurar que el DataTable tenga espacio suficiente */
-#repuestos-table {
-    width: 100% !important;
-    table-layout: auto; /* Permite que las columnas se ajusten al contenido */
-}
+/* Ya está definido arriba */
 
 /* Badges de stock */
 .badge {
@@ -172,7 +343,10 @@
     padding-left: 0 !important;
     transition: none !important;
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: 1400px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 0 1rem !important;
     padding-bottom: 12rem !important; /* Espacio muy amplio para separar del footer y la paginación */
     min-height: calc(100vh - 200px); /* Altura mínima para que el contenido tenga espacio */
 }
@@ -191,8 +365,8 @@
     }
 }
 
-/* Evitar que el page-header empuje el contenido */
-.page-header {
+/* Evitar que el custom-page-header empuje el contenido */
+.custom-page-header {
     padding-left: 0 !important;
     margin-left: 0 !important;
 }

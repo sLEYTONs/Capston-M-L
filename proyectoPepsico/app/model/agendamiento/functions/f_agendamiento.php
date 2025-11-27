@@ -173,86 +173,49 @@ function crearSolicitudAgendamiento($datos) {
         $observaciones = !empty($datos['observaciones']) ? mysqli_real_escape_string($conn, $datos['observaciones']) : NULL;
         // Fecha y hora se asignarán cuando el supervisor apruebe
 
-        // Verificar que no exista una solicitud pendiente o aprobada activa para la misma placa
-        // Permitir crear nueva solicitud si el estado es "Atrasado" o "No llegó" (proceso cancelado)
-        $fechaActual = date('Y-m-d');
-        $horaActual = date('H:i:s');
-        
-        $checkQuery = "SELECT sa.ID, sa.Estado, a.Fecha as FechaAgenda, a.HoraInicio, a.HoraFin
+        // Verificar que no exista una solicitud aprobada activa para la misma placa
+        // Si hay una solicitud aprobada, no se puede crear otra (sin importar la fecha)
+        $checkQuery = "SELECT sa.ID, sa.Estado, a.Fecha as FechaAgenda
                        FROM solicitudes_agendamiento sa
                        LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
                        WHERE sa.Placa = '$placa' 
-                       AND sa.Estado IN ('Pendiente', 'Aprobada', 'Atrasado', 'No llegó')
+                       AND sa.Estado = 'Aprobada'
                        ORDER BY sa.FechaCreacion DESC
                        LIMIT 1";
         $checkResult = mysqli_query($conn, $checkQuery);
         
         if (mysqli_num_rows($checkResult) > 0) {
             $solicitudExistente = mysqli_fetch_assoc($checkResult);
-            
-            // Si es "Atrasado" o "No llegó", permitir crear nueva solicitud
-            if ($solicitudExistente['Estado'] === 'Atrasado' || $solicitudExistente['Estado'] === 'No llegó') {
-                // Permitir crear nueva solicitud - el proceso anterior está cancelado
-            } 
-            // Si es "Pendiente", no permitir
-            else if ($solicitudExistente['Estado'] === 'Pendiente') {
-                throw new Exception("Ya existe una solicitud pendiente para esta placa");
-            }
-            // Si es "Aprobada", verificar si la fecha/hora ya pasó
-            else if ($solicitudExistente['Estado'] === 'Aprobada') {
-                if ($solicitudExistente['FechaAgenda']) {
-                    $fechaAgenda = $solicitudExistente['FechaAgenda'];
-                    $horaInicio = $solicitudExistente['HoraInicio'];
-                    
-                    // Si la fecha es futura, no permitir
-                    if ($fechaAgenda > $fechaActual) {
-                        throw new Exception("Ya existe una solicitud aprobada para esta placa con fecha futura. No se puede crear una nueva solicitud.");
-                    }
-                    // Si la fecha es hoy, verificar la hora (con margen de 30 minutos)
-                    else if ($fechaAgenda == $fechaActual && $horaInicio) {
-                        $horaInicioTimestamp = strtotime($horaInicio);
-                        $horaActualTimestamp = strtotime($horaActual);
-                        $horaLimiteTimestamp = $horaInicioTimestamp + (30 * 60); // 30 minutos
-                        
-                        // Si aún no ha pasado el margen de 30 minutos, no permitir
-                        if ($horaActualTimestamp <= $horaLimiteTimestamp) {
-                            throw new Exception("Ya existe una solicitud aprobada para esta placa que aún está vigente. No se puede crear una nueva solicitud.");
-                        }
-                        // Si ya pasó el margen, permitir (se marcará como atrasado automáticamente)
-                    }
-                    // Si la fecha es pasada, permitir crear nueva
-                } else {
-                    // Si no tiene fecha asignada, no permitir
-                    throw new Exception("Ya existe una solicitud aprobada para esta placa. No se puede crear una nueva solicitud.");
-                }
-            }
+            throw new Exception("Ya existe una solicitud aprobada para esta placa. No se puede crear una nueva solicitud mientras la solicitud aprobada esté activa.");
+        }
+        
+        // Verificar que no exista una solicitud pendiente para la misma placa
+        $checkPendiente = "SELECT ID, Estado
+                           FROM solicitudes_agendamiento
+                           WHERE Placa = '$placa' 
+                           AND Estado = 'Pendiente'
+                           ORDER BY FechaCreacion DESC
+                           LIMIT 1";
+        $resultPendiente = mysqli_query($conn, $checkPendiente);
+        
+        if (mysqli_num_rows($resultPendiente) > 0) {
+            throw new Exception("Ya existe una solicitud pendiente para esta placa. Espere a que sea procesada antes de crear una nueva.");
         }
 
-        // Verificar si el vehículo ya está en mantenimiento
-        // Un vehículo está en mantenimiento si tiene una asignación activa con mecánico
-        // PERO solo si la solicitud asociada NO está en estado "Atrasado" o "No llegó"
-        $checkMantenimiento = "SELECT iv.ID, iv.Placa, iv.Estado as EstadoVehiculo, 
-                              a.ID as AsignacionID, a.Estado as EstadoAsignacion,
-                              u.NombreUsuario as MecanicoNombre,
-                              sa.Estado as EstadoSolicitud
-                              FROM ingreso_vehiculos iv
-                              LEFT JOIN asignaciones_mecanico a ON iv.ID = a.VehiculoID 
-                                  AND a.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
-                              LEFT JOIN usuarios u ON a.MecanicoID = u.UsuarioID
-                              LEFT JOIN solicitudes_agendamiento sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
-                                  AND sa.Estado IN ('Aprobada', 'Atrasado', 'No llegó')
-                              WHERE iv.Placa = '$placa'
-                              AND a.ID IS NOT NULL
-                              AND (sa.Estado IS NULL OR sa.Estado NOT IN ('Atrasado', 'No llegó'))
-                              ORDER BY sa.FechaCreacion DESC
-                              LIMIT 1";
-        $resultMantenimiento = mysqli_query($conn, $checkMantenimiento);
-        if ($resultMantenimiento && mysqli_num_rows($resultMantenimiento) > 0) {
-            $vehiculoMantenimiento = mysqli_fetch_assoc($resultMantenimiento);
-            $mecanico = !empty($vehiculoMantenimiento['MecanicoNombre']) 
-                       ? $vehiculoMantenimiento['MecanicoNombre'] 
-                       : 'un mecánico';
-            throw new Exception("El vehículo con placa $placa ya está en mantenimiento asignado a $mecanico. No se puede crear una nueva solicitud mientras el vehículo esté en mantenimiento.");
+        // Verificar si el vehículo ya está ingresado en el taller
+        // Un vehículo está ingresado si tiene Estado = 'Ingresado' o 'Asignado' en ingreso_vehiculos
+        $checkIngresado = "SELECT ID, Placa, Estado as EstadoVehiculo
+                           FROM ingreso_vehiculos
+                           WHERE Placa = '$placa'
+                           AND Estado IN ('Ingresado', 'Asignado')
+                           ORDER BY FechaRegistro DESC
+                           LIMIT 1";
+        $resultIngresado = mysqli_query($conn, $checkIngresado);
+        
+        if ($resultIngresado && mysqli_num_rows($resultIngresado) > 0) {
+            $vehiculoIngresado = mysqli_fetch_assoc($resultIngresado);
+            $estado = $vehiculoIngresado['EstadoVehiculo'];
+            throw new Exception("El vehículo con placa $placa ya está ingresado en el taller (Estado: $estado). No se puede crear una nueva solicitud mientras el vehículo esté en mantenimiento.");
         }
 
         // Procesar fotos si existen

@@ -33,8 +33,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <?php include 'general/header.php'; ?>
     
     <div class="pc-container">
-        <div class="pc-content">
-            <div class="page-header">
+        <div class="custom-page-header" style="top: 75px;">
                 <div class="page-block">
                     <div class="row align-items-center">
                         <div class="col-md-12">
@@ -49,6 +48,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                     </div>
                 </div>
             </div>
+        <div class="pc-content">
             
             <?php include 'consulta/contents.php'; ?>
         </div>

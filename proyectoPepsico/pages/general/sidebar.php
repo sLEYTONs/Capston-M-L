@@ -5,8 +5,19 @@
 </div>
 <!-- [ Pre-loader ] End -->
 
+<!-- Botón hamburguesa para móviles -->
+<button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Área de detección de hover en el borde derecho (solo desktop) -->
+<div class="sidebar-hover-trigger" id="sidebarHoverTrigger"></div>
+
+<!-- Overlay para móviles -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- [ Sidebar Menu ] start -->
-<nav class="pc-sidebar">
+<nav class="pc-sidebar" id="pcSidebar">
   <div class="navbar-wrapper">
     <!-- Header del sidebar con logo PepsiCo -->
     <div class="sidebar-header">
@@ -16,6 +27,10 @@
           <span class="logo-text">Taller Mecánico</span>
         </div>
       </div>
+      <!-- Botón de cerrar para móviles -->
+      <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Cerrar menú">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
     
     <div class="navbar-content">
@@ -793,12 +808,19 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .pc-sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    position: fixed;
+    left: -280px;
+    top: 0;
+    height: 100vh;
+    z-index: 1030;
+    transform: translateX(0);
+    transition: left 0.3s ease;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
   }
   
   .pc-sidebar.mobile-open {
-    transform: translateX(0);
+    left: 0;
   }
   
   .sidebar-logo {
@@ -808,6 +830,87 @@
   
   .logo-text {
     font-size: 1rem;
+  }
+  
+  /* Botón de cerrar en el sidebar para móviles */
+  .sidebar-close-btn {
+    display: block;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+  
+  .sidebar-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+  }
+}
+
+@media (min-width: 1025px) {
+  .sidebar-close-btn {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    display: none !important;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+  
+  /* Área de detección de hover en el borde izquierdo */
+  .sidebar-hover-trigger {
+    display: block !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 30px;
+    height: 100vh;
+    z-index: 1029 !important;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 1;
+  }
+  
+  /* Cuando el sidebar está colapsado, mostrar el área de hover */
+  .pc-sidebar.pc-sidebar-hide ~ .sidebar-hover-trigger,
+  body:not(:has(.pc-sidebar:not(.pc-sidebar-hide))) .sidebar-hover-trigger {
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Cuando el sidebar está abierto, mantener visible pero con menor prioridad */
+  .pc-sidebar:not(.pc-sidebar-hide) ~ .sidebar-hover-trigger {
+    display: block !important;
+    opacity: 0.3;
+    pointer-events: auto;
+  }
+  
+  /* Efecto visual sutil cuando el mouse está sobre el área de detección */
+  .sidebar-hover-trigger:hover {
+    background: rgba(0, 75, 147, 0.1);
+    opacity: 1 !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar-hover-trigger {
+    display: none !important;
   }
 }
 </style>
@@ -865,5 +968,166 @@ document.addEventListener('DOMContentLoaded', function() {
       this.style.transform = 'translateX(0)';
     });
   });
+  
+  // Funcionalidad del menú móvil
+  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+  const sidebar = document.getElementById('pcSidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+  
+  function openSidebar() {
+    sidebar.classList.add('mobile-open');
+    sidebarOverlay.classList.add('active');
+    document.body.classList.add('sidebar-open');
+    document.body.style.overflow = 'hidden';
+    // Asegurar que el contenido no se mueva
+    const container = document.querySelector('.pc-container');
+    if (container) {
+      container.style.marginLeft = '0';
+      container.style.width = '100%';
+    }
+  }
+  
+  function closeSidebar() {
+    sidebar.classList.remove('mobile-open');
+    sidebarOverlay.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+    document.body.style.overflow = '';
+    // Asegurar que el contenido permanezca en su lugar
+    const container = document.querySelector('.pc-container');
+    if (container) {
+      container.style.marginLeft = '0';
+      container.style.width = '100%';
+    }
+  }
+  
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', openSidebar);
+  }
+  
+  if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', closeSidebar);
+  }
+  
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+  }
+  
+  // Cerrar sidebar al hacer clic en un enlace en móviles
+  if (window.innerWidth <= 1024) {
+    const sidebarLinks = document.querySelectorAll('.pc-sidebar .pc-link');
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        // Solo cerrar si no es un submenú
+        if (!this.parentElement.classList.contains('pc-hasmenu')) {
+          setTimeout(closeSidebar, 300);
+        }
+      });
+    });
+  }
+  
+  // Cerrar sidebar al redimensionar la ventana si se vuelve desktop
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 1024) {
+      closeSidebar();
+    }
+  });
+  
+  // Funcionalidad de hover para abrir sidebar en desktop
+  const sidebarHoverTrigger = document.getElementById('sidebarHoverTrigger');
+  let hoverTimeout;
+  let isHovering = false;
+  
+  // Usar la variable sidebar ya declarada arriba
+  if (sidebarHoverTrigger && sidebar && window.innerWidth > 1024) {
+    // Asegurar que el área de detección esté siempre visible cuando el sidebar está oculto
+    function updateHoverTriggerVisibility() {
+      if (sidebar.classList.contains('pc-sidebar-hide')) {
+        sidebarHoverTrigger.style.display = 'block';
+        sidebarHoverTrigger.style.opacity = '1';
+        sidebarHoverTrigger.style.pointerEvents = 'auto';
+      } else {
+        sidebarHoverTrigger.style.opacity = '0.3';
+      }
+    }
+    
+    // Verificar estado inicial
+    updateHoverTriggerVisibility();
+    
+    // Observar cambios en la clase del sidebar
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          updateHoverTriggerVisibility();
+        }
+      });
+    });
+    
+    observer.observe(sidebar, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    // Abrir sidebar cuando el mouse entra en el área de detección
+    sidebarHoverTrigger.addEventListener('mouseenter', function() {
+      clearTimeout(hoverTimeout);
+      isHovering = true;
+      if (sidebar) {
+        sidebar.classList.remove('pc-sidebar-hide');
+        sidebar.style.transform = 'translateX(0)';
+        sidebar.style.left = '0';
+        sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+      }
+    });
+    
+    // Mantener el sidebar abierto cuando el mouse está sobre él
+    sidebar.addEventListener('mouseenter', function() {
+      clearTimeout(hoverTimeout);
+      isHovering = true;
+      sidebar.classList.remove('pc-sidebar-hide');
+      sidebar.style.transform = 'translateX(0)';
+      sidebar.style.left = '0';
+      sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    });
+    
+    // Cerrar el sidebar cuando el mouse sale (con delay)
+    sidebar.addEventListener('mouseleave', function(e) {
+      isHovering = false;
+      // Verificar si el mouse se movió al área de detección
+      const relatedTarget = e.relatedTarget;
+      if (relatedTarget && (relatedTarget === sidebarHoverTrigger || sidebarHoverTrigger.contains(relatedTarget))) {
+        return; // No cerrar si el mouse se movió al área de detección
+      }
+      
+      hoverTimeout = setTimeout(function() {
+        if (!isHovering && sidebar && !sidebar.matches(':hover') && !sidebarHoverTrigger.matches(':hover')) {
+          sidebar.classList.add('pc-sidebar-hide');
+          sidebar.style.transform = 'translateX(-100%)';
+          sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        }
+      }, 500); // Delay de 500ms antes de cerrar
+    });
+    
+    // Cerrar cuando el mouse sale del área de detección
+    sidebarHoverTrigger.addEventListener('mouseleave', function(e) {
+      const relatedTarget = e.relatedTarget;
+      // Verificar si el mouse se movió al sidebar
+      if (relatedTarget && (relatedTarget === sidebar || sidebar.contains(relatedTarget))) {
+        return; // No cerrar si el mouse se movió al sidebar
+      }
+      
+      isHovering = false;
+      hoverTimeout = setTimeout(function() {
+        if (!isHovering && sidebar && !sidebar.matches(':hover')) {
+          sidebar.classList.add('pc-sidebar-hide');
+          sidebar.style.transform = 'translateX(-100%)';
+          sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        }
+      }, 500);
+    });
+    
+    // Debug en consola
+    console.log('Sidebar hover inicializado. Trigger:', sidebarHoverTrigger, 'Sidebar:', sidebar);
+  }
 });
 </script>

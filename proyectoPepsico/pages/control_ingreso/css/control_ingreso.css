@@ -49,9 +49,32 @@
     font-weight: 600;
 }
 
+/* Botones de operación con flexbox */
+.d-flex.gap-2 .btn {
+    padding: 12px 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
 .btn-check:checked + .btn {
     border-width: 2px;
     font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Asegurar que los botones se vean juntos */
+.control-ingreso-container .col-md-4 .d-flex.gap-2 {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.control-ingreso-container .col-md-4 .d-flex.gap-2 .btn {
+    flex: 1 1 auto;
+    margin: 0;
 }
 
 /* Cámara y fotos */
@@ -258,11 +281,83 @@
 /* Espacio para separar el contenido del footer */
 .pc-content {
     padding-bottom: 6rem !important;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1rem;
+}
+
+/* Ajustar el tamaño de col-md-4 para mejor visualización */
+.control-ingreso-container .col-md-4 {
+    flex: 0 0 35%;
+    max-width: 35%;
+    padding-right: 1.5rem;
+}
+
+.control-ingreso-container .col-md-8 {
+    flex: 0 0 65%;
+    max-width: 65%;
+    padding-left: 1.5rem;
+}
+
+/* Mejorar el contenido dentro de col-md-4 */
+.control-ingreso-container .col-md-4 .card {
+    width: 100%;
+}
+
+.control-ingreso-container .col-md-4 .card-body {
+    padding: 1.5rem;
+}
+
+/* Ajustar botones y elementos dentro del panel de control */
+.control-ingreso-container .col-md-4 .btn-action {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.control-ingreso-container .col-md-4 .btn-group {
+    width: 100%;
+}
+
+.control-ingreso-container .col-md-4 .btn-group .btn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+}
+
+.control-ingreso-container .col-md-4 .input-group {
+    width: 100%;
+}
+
+.control-ingreso-container .col-md-4 .form-control {
+    font-size: 0.95rem;
+    padding: 10px 12px;
+}
+
+.control-ingreso-container .col-md-4 .alert {
+    font-size: 0.9rem;
+    padding: 1rem;
+}
+
+.control-ingreso-container .col-md-4 .alert .h5 {
+    font-size: 1.5rem;
+    font-weight: 700;
 }
 
 @media (max-width: 768px) {
     .pc-content {
         padding-bottom: 5rem !important;
+    }
+    
+    .control-ingreso-container .col-md-4,
+    .control-ingreso-container .col-md-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 

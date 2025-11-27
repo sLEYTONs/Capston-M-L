@@ -1,4 +1,4 @@
-<div class="row">
+<div class="row control-ingreso-container">
     <!-- Panel de Control Principal -->
     <div class="col-md-4">
         <!-- Tarjeta de Operación -->
@@ -10,14 +10,14 @@
                 <!-- Selector de Operación -->
                 <div class="mb-4">
                     <label class="form-label fw-bold">Tipo de Operación</label>
-                    <div class="btn-group w-100" role="group">
+                    <div class="d-flex gap-2" role="group">
                         <input type="radio" class="btn-check" name="tipoOperacion" id="ingreso" value="ingreso" checked>
-                        <label class="btn btn-outline-success" for="ingreso">
+                        <label class="btn btn-outline-success flex-fill" for="ingreso">
                             <i class="fas fa-sign-in-alt me-2"></i>Ingreso
                         </label>
                         
                         <input type="radio" class="btn-check" name="tipoOperacion" id="salida" value="salida">
-                        <label class="btn btn-outline-warning" for="salida">
+                        <label class="btn btn-outline-warning flex-fill" for="salida">
                             <i class="fas fa-sign-out-alt me-2"></i>Salida
                         </label>
                     </div>

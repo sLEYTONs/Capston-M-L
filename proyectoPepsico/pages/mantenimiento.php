@@ -29,23 +29,22 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <?php include 'general/header.php'; ?>
     
     <div class="pc-container">
-        <div class="pc-content">
-            <div class="page-header">
-                <div class="page-block">
-                    <div class="row align-items-center">
-                        <div class="col-md-12">
-                            <h5 class="mb-1">Programación de Mantenimiento</h5>
-                            <nav aria-label="breadcrumb">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item"><a href="#">Inicio</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Mantenimiento</li>
-                                </ol>
-                            </nav>
-                        </div>
+        <div class="custom-page-header" style="top: 75px;">
+            <div class="page-block">
+                <div class="row align-items-center">
+                    <div class="col-md-12">
+                        <h5 class="mb-1">Programación de Mantenimiento</h5>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item"><a href="#">Inicio</a></li>
+                                <li class="breadcrumb-item active" aria-current="page">Mantenimiento</li>
+                            </ol>
+                        </nav>
                     </div>
                 </div>
             </div>
-            
+        </div>
+        <div class="pc-content">
             <?php include 'mantenimiento/contents.php'; ?>
             
             <!-- Espaciador para el footer -->

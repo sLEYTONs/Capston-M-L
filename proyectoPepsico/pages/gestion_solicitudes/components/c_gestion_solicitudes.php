@@ -1,12 +1,12 @@
 <main class="main">
     <div class="container">
         <div class="search-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>
+            <div class="d-flex align-items-center mb-3">
+                <h2 class="mb-0">
                     <i class="fas fa-calendar-check me-2"></i>
                     Gestión de Solicitudes de Agendamiento
                 </h2>
-                <div>
+                <div class="ms-auto">
                     <button class="btn btn-success" id="btn-gestionar-agenda" data-bs-toggle="modal" data-bs-target="#agendaModal">
                         <i class="fas fa-calendar-plus me-2"></i>Gestionar Agenda
                     </button>

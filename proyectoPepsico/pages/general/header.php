@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !h
         <!-- [Mobile Menu Block] start -->
         <div class="me-auto pc-mob-drp">
             <ul class="list-unstyled">
-                <!-- Menu collapse Icon -->
-                <li class="pc-h-item pc-sidebar-collapse">
+                <!-- Menu collapse Icon - Solo visible en móviles/tablets -->
+                <li class="pc-h-item pc-sidebar-collapse d-lg-none">
                     <a href="#" class="pc-head-link ms-0" id="sidebar-hide">
                         <i class="ti ti-menu-2"></i>
                     </a>
                 </li>
-                <li class="pc-h-item pc-sidebar-popup">
+                <li class="pc-h-item pc-sidebar-popup d-lg-none">
                     <a href="#" class="pc-head-link ms-0" id="mobile-collapse">
                         <i class="ti ti-menu-2"></i>
                     </a>

@@ -135,7 +135,10 @@ class InventarioRepuestos {
                 }
             ],
             order: [[1, 'asc']],
-            responsive: true,
+            responsive: false,
+            scrollX: true,
+            scrollY: false,
+            autoWidth: false,
             drawCallback: () => {
                 // Recalcular espacio después de cada redibujado
                 setTimeout(() => {
