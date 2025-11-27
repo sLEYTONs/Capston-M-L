@@ -203,6 +203,49 @@ body {
     max-width: 100%;
 }
 
+/* Centrar el contenido de las celdas del datatable */
+#results-table th,
+#results-table td {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+/* Mantener algunas columnas con alineación específica */
+#results-table th:nth-child(1),
+#results-table td:nth-child(1) {
+    text-align: center !important; /* Placa centrada */
+}
+
+#results-table th:nth-child(2),
+#results-table td:nth-child(2) {
+    text-align: center !important; /* Vehículo centrado */
+}
+
+#results-table th:nth-child(3),
+#results-table td:nth-child(3) {
+    text-align: center !important; /* Conductor centrado */
+}
+
+#results-table th:nth-child(4),
+#results-table td:nth-child(4) {
+    text-align: center !important; /* Fecha centrada */
+}
+
+#results-table th:nth-child(5),
+#results-table td:nth-child(5) {
+    text-align: center !important; /* Mecánico centrado */
+}
+
+#results-table th:nth-child(6),
+#results-table td:nth-child(6) {
+    text-align: center !important; /* Estado centrado */
+}
+
+#results-table th:nth-child(7),
+#results-table td:nth-child(7) {
+    text-align: center !important; /* Acciones centradas */
+}
+
 #results-table thead th {
     background: var(--primary-color);
     color: white;

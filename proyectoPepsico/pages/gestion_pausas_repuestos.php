@@ -1,8 +1,8 @@
 <?php
 include 'general/middle.php';
 
-// Verificar acceso - Solo Mecánico y Administrador
-$roles_permitidos = ['Mecánico', 'Administrador'];
+// Verificar acceso - Mecánico, Administrador y Jefe de Taller
+$roles_permitidos = ['Mecánico', 'Administrador', 'Jefe de Taller'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     redirigir_no_autorizado();
 }

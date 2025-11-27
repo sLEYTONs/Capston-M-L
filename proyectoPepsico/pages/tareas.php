@@ -1,7 +1,7 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Administrador', 'Mecánico'];
+$roles_permitidos = ['Administrador', 'Mecánico', 'Jefe de Taller'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
     $pagina_principal = obtener_pagina_principal($usuario_rol);
     header('Location: ' . $pagina_principal);

@@ -1,8 +1,9 @@
 <?php
 include 'general/middle.php';
 
-// Solo Administradores pueden acceder
-if ($usuario_rol !== 'Administrador') {
+// Solo Administradores y Jefe de Taller pueden acceder
+$roles_permitidos = ['Administrador', 'Jefe de Taller'];
+if (!in_array($usuario_rol, $roles_permitidos)) {
     redirigir_no_autorizado();
 }
 ?>
