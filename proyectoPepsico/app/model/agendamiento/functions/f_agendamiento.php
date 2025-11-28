@@ -80,10 +80,11 @@ function obtenerVehiculoPorPatente($patente, $conductor_nombre = null) {
         $patente = mysqli_real_escape_string($conn, $patente);
         
         // Buscar en la tabla ingreso_vehiculos (vehículos registrados)
+        // Obtener el registro más reciente por FechaRegistro
         $query = "SELECT Placa, TipoVehiculo, Marca, Modelo, Anio, ConductorNombre
                   FROM ingreso_vehiculos
                   WHERE Placa = '$patente'
-                  ORDER BY FechaIngreso DESC
+                  ORDER BY FechaRegistro DESC
                   LIMIT 1";
         
         $result = mysqli_query($conn, $query);
@@ -202,21 +203,12 @@ function crearSolicitudAgendamiento($datos) {
             throw new Exception("Ya existe una solicitud pendiente para esta placa. Espere a que sea procesada antes de crear una nueva.");
         }
 
-        // Verificar si el vehículo ya está ingresado en el taller
-        // Un vehículo está ingresado si tiene Estado = 'Ingresado' o 'Asignado' en ingreso_vehiculos
-        $checkIngresado = "SELECT ID, Placa, Estado as EstadoVehiculo
-                           FROM ingreso_vehiculos
-                           WHERE Placa = '$placa'
-                           AND Estado IN ('Ingresado', 'Asignado')
-                           ORDER BY FechaRegistro DESC
-                           LIMIT 1";
-        $resultIngresado = mysqli_query($conn, $checkIngresado);
-        
-        if ($resultIngresado && mysqli_num_rows($resultIngresado) > 0) {
-            $vehiculoIngresado = mysqli_fetch_assoc($resultIngresado);
-            $estado = $vehiculoIngresado['EstadoVehiculo'];
-            throw new Exception("El vehículo con placa $placa ya está ingresado en el taller (Estado: $estado). No se puede crear una nueva solicitud mientras el vehículo esté en mantenimiento.");
-        }
+        // NOTA: Se eliminó la validación que bloqueaba la creación de solicitudes
+        // cuando el vehículo ya está ingresado en ingreso_vehiculos.
+        // Esto permite que los choferes creen nuevas solicitudes de agendamiento
+        // incluso si el vehículo ya está registrado en el sistema con estado 'Ingresado'.
+        // Los datos del vehículo se obtendrán automáticamente desde ingreso_vehiculos
+        // mediante la función obtenerVehiculoPorPatente().
 
         // Procesar fotos si existen
         $fotos_json = NULL;
@@ -1230,6 +1222,207 @@ function notificarRechazoSolicitud($solicitud_id) {
     }
     
     return $resultado;
+}
+
+/**
+ * Marca todos los vehículos como salidos del taller, excepto el especificado
+ * @param string $placaExcluir - Placa del vehículo que NO se marcará como salido
+ * @return array - Resultado de la operación
+ */
+function marcarVehiculosComoSalidos($placaExcluir = 'WLVY22') {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        $placaExcluir = mysqli_real_escape_string($conn, $placaExcluir);
+        
+        // Verificar si la columna FechaSalida existe
+        $checkColumn = "SELECT COUNT(*) as existe 
+                       FROM INFORMATION_SCHEMA.COLUMNS 
+                       WHERE TABLE_SCHEMA = DATABASE() 
+                       AND TABLE_NAME = 'ingreso_vehiculos' 
+                       AND COLUMN_NAME = 'FechaSalida'";
+        $resultCheck = mysqli_query($conn, $checkColumn);
+        $columnExists = false;
+        if ($resultCheck) {
+            $row = mysqli_fetch_assoc($resultCheck);
+            $columnExists = ($row['existe'] > 0);
+        }
+        
+        if (!$columnExists) {
+            mysqli_close($conn);
+            throw new Exception("La columna FechaSalida no existe en la tabla ingreso_vehiculos. Ejecute el script add_fecha_salida_ingreso_vehiculos.sql primero.");
+        }
+        
+        // Iniciar transacción después de verificar la columna
+        mysqli_begin_transaction($conn);
+        
+        // Normalizar la placa a excluir (mayúsculas, sin espacios)
+        $placaExcluirUpper = strtoupper(trim($placaExcluir));
+        
+        // Primero, verificar qué vehículos hay
+        $queryListar = "SELECT ID, Placa, Estado, FechaSalida 
+                       FROM ingreso_vehiculos 
+                       ORDER BY ID";
+        $resultListar = mysqli_query($conn, $queryListar);
+        $vehiculosLista = [];
+        while ($row = mysqli_fetch_assoc($resultListar)) {
+            $vehiculosLista[] = $row;
+        }
+        error_log("marcarVehiculosComoSalidos - Total vehículos en BD: " . count($vehiculosLista));
+        
+        // Contar cuántos vehículos se van a actualizar (excluyendo la placa especificada)
+        $queryCount = "SELECT COUNT(*) as total 
+                      FROM ingreso_vehiculos 
+                      WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
+                      AND (FechaSalida IS NULL OR FechaSalida = '')";
+        $resultCount = mysqli_query($conn, $queryCount);
+        $countRow = mysqli_fetch_assoc($resultCount);
+        $totalVehiculos = $countRow['total'];
+        
+        error_log("marcarVehiculosComoSalidos - Vehículos a actualizar: $totalVehiculos (excluyendo placa: $placaExcluirUpper)");
+        
+        if ($totalVehiculos == 0) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            return [
+                'status' => 'info',
+                'message' => "No hay vehículos para actualizar. Todos los vehículos (excepto $placaExcluirUpper) ya tienen fecha de salida o no existen.",
+                'vehiculos_actualizados' => 0,
+                'debug' => [
+                    'total_vehiculos_bd' => count($vehiculosLista),
+                    'placa_excluir' => $placaExcluirUpper
+                ]
+            ];
+        }
+        
+        // Desactivar autocommit para asegurar que la transacción funcione
+        mysqli_autocommit($conn, false);
+        
+        // Actualizar todos los vehículos excepto el especificado
+        // Usar UPPER y TRIM para comparación case-insensitive
+        // Actualizar TODOS los vehículos que no sean la placa excluida, sin importar si ya tienen FechaSalida
+        $placaExcluirEscaped = mysqli_real_escape_string($conn, $placaExcluirUpper);
+        $query = "UPDATE ingreso_vehiculos 
+                  SET FechaSalida = NOW(),
+                      Estado = 'Disponible'
+                  WHERE UPPER(TRIM(Placa)) != '$placaExcluirEscaped'";
+        
+        error_log("marcarVehiculosComoSalidos - Query: $query");
+        error_log("marcarVehiculosComoSalidos - Placa a excluir (original): $placaExcluir");
+        error_log("marcarVehiculosComoSalidos - Placa a excluir (upper): $placaExcluirUpper");
+        
+        if (!mysqli_query($conn, $query)) {
+            $error = mysqli_error($conn);
+            error_log("marcarVehiculosComoSalidos - Error SQL: $error");
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            throw new Exception("Error al actualizar vehículos: $error");
+        }
+        
+        $vehiculosActualizados = mysqli_affected_rows($conn);
+        error_log("marcarVehiculosComoSalidos - Vehículos actualizados (affected_rows): $vehiculosActualizados");
+        
+        if ($vehiculosActualizados == 0) {
+            // Si no se actualizó ninguno, verificar por qué
+            $queryDebug = "SELECT ID, Placa, Estado, FechaSalida 
+                          FROM ingreso_vehiculos 
+                          LIMIT 10";
+            $resultDebug = mysqli_query($conn, $queryDebug);
+            $debugInfo = [];
+            while ($row = mysqli_fetch_assoc($resultDebug)) {
+                $debugInfo[] = $row;
+            }
+            error_log("marcarVehiculosComoSalidos - Debug - Primeros 10 vehículos: " . json_encode($debugInfo));
+            
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            return [
+                'status' => 'warning',
+                'message' => "No se actualizó ningún vehículo. Verifique que existan vehículos en la base de datos y que la placa a excluir sea correcta.",
+                'vehiculos_actualizados' => 0,
+                'debug' => [
+                    'query' => $query,
+                    'placa_excluir' => $placaExcluirUpper,
+                    'vehiculos_en_bd' => $debugInfo
+                ]
+            ];
+        }
+        
+        // Verificar que se actualizaron correctamente
+        $queryVerify = "SELECT COUNT(*) as total 
+                       FROM ingreso_vehiculos 
+                       WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
+                       AND FechaSalida IS NOT NULL 
+                       AND FechaSalida != ''";
+        $resultVerify = mysqli_query($conn, $queryVerify);
+        $verifyRow = mysqli_fetch_assoc($resultVerify);
+        $vehiculosConFechaSalida = $verifyRow['total'];
+        
+        error_log("marcarVehiculosComoSalidos - Vehículos con FechaSalida después de actualizar: $vehiculosConFechaSalida");
+        
+        // Listar algunos vehículos actualizados para verificación
+        $queryEjemplos = "SELECT ID, Placa, Estado, FechaSalida 
+                         FROM ingreso_vehiculos 
+                         WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
+                         AND FechaSalida IS NOT NULL 
+                         LIMIT 5";
+        $resultEjemplos = mysqli_query($conn, $queryEjemplos);
+        $ejemplos = [];
+        while ($row = mysqli_fetch_assoc($resultEjemplos)) {
+            $ejemplos[] = $row;
+        }
+        error_log("marcarVehiculosComoSalidos - Ejemplos de vehículos actualizados: " . json_encode($ejemplos));
+        
+        // Hacer commit de la transacción
+        if (!mysqli_commit($conn)) {
+            $error = mysqli_error($conn);
+            error_log("marcarVehiculosComoSalidos - Error en commit: $error");
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            throw new Exception("Error al confirmar los cambios: $error");
+        }
+        
+        error_log("marcarVehiculosComoSalidos - Transacción confirmada exitosamente");
+        
+        // Verificar una vez más después del commit
+        $queryFinal = "SELECT COUNT(*) as total 
+                      FROM ingreso_vehiculos 
+                      WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
+                      AND FechaSalida IS NOT NULL 
+                      AND FechaSalida != ''";
+        $resultFinal = mysqli_query($conn, $queryFinal);
+        $finalRow = mysqli_fetch_assoc($resultFinal);
+        $totalFinal = $finalRow['total'];
+        
+        error_log("marcarVehiculosComoSalidos - Verificación final: $totalFinal vehículos con FechaSalida");
+        
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'message' => "Se marcaron $vehiculosActualizados vehículo(s) como salidos del taller (excepto placa $placaExcluirUpper). Total con fecha de salida: $totalFinal",
+            'vehiculos_actualizados' => $vehiculosActualizados,
+            'vehiculos_con_fecha_salida' => $totalFinal,
+            'debug' => [
+                'query_ejecutada' => $query,
+                'affected_rows' => $vehiculosActualizados,
+                'verificacion_final' => $totalFinal,
+                'ejemplos' => $ejemplos
+            ]
+        ];
+        
+    } catch (Exception $e) {
+        mysqli_rollback($conn);
+        mysqli_close($conn);
+        error_log("marcarVehiculosComoSalidos - Excepción: " . $e->getMessage());
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
 }
 
 ?>

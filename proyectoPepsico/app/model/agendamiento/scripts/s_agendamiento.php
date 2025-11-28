@@ -410,6 +410,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $resultado = eliminarAgenda(intval($_POST['agenda_id']));
                 echo json_encode($resultado);
                 break;
+
+            case 'marcar_vehiculos_salidos':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                // Obtener placa a excluir (por defecto WLVY22)
+                $placaExcluir = !empty($_POST['placa_excluir']) ? trim($_POST['placa_excluir']) : 'WLVY22';
+                
+                $resultado = marcarVehiculosComoSalidos($placaExcluir);
+                echo json_encode($resultado);
+                break;
         }
     } catch (Exception $e) {
         // Asegurar que siempre devolvamos JSON válido

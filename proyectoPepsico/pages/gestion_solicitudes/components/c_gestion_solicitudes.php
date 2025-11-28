@@ -6,13 +6,15 @@
                     <i class="fas fa-calendar-check me-2"></i>
                     Gestión de Solicitudes de Agendamiento
                 </h2>
-                <div class="ms-auto">
-                    <button class="btn btn-success" id="btn-gestionar-agenda" data-bs-toggle="modal" data-bs-target="#agendaModal">
+                <div class="ms-auto d-flex gap-2">
+
+                    <button class="btn btn-success" id="btn-gestionar-agenda" data-bs-toggle="modal"
+                        data-bs-target="#agendaModal">
                         <i class="fas fa-calendar-plus me-2"></i>Gestionar Agenda
                     </button>
                 </div>
             </div>
-            
+
             <!-- Filtros -->
             <div class="search-form">
                 <div class="search-fields">
@@ -77,43 +79,45 @@
                 <hr>
                 <div id="acciones-solicitud">
                     <h6 class="mb-3">
-                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible (Horario: 9:00 AM - 11:00 PM):
+                        <i class="fas fa-calendar-alt me-2"></i>Seleccionar Fecha y Hora Disponible (Horario: 9:00 AM -
+                        11:00 PM):
                     </h6>
-                    
+
                     <div class="alert alert-info mb-3">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>Instrucciones:</strong> Haz clic en cualquier bloque de hora disponible (verde) en el calendario para seleccionarlo.
+                        <strong>Instrucciones:</strong> Haz clic en cualquier bloque de hora disponible (verde) en el
+                        calendario para seleccionarlo.
                     </div>
-                    
+
                     <!-- Calendario con horas disponibles -->
                     <div class="mb-3">
                         <div id="calendario-horas-disponibles" style="min-height: 400px;"></div>
                     </div>
-                    
+
                     <!-- Información de selección -->
                     <div id="info-seleccion-hora" class="alert alert-success" style="display: none;">
                         <i class="fas fa-check-circle me-2"></i>
                         <strong>Hora seleccionada:</strong> <span id="hora-seleccionada-texto"></span>
                     </div>
-                    
+
                     <!-- Input oculto para almacenar el ID de la agenda seleccionada -->
                     <input type="hidden" id="agenda-id-seleccionada" name="hora-disponible" required>
-                    
+
                     <hr class="my-4">
-                    
+
                     <h6 class="mb-3">
                         <i class="fas fa-wrench me-2"></i>Mecánicos Disponibles:
                     </h6>
                     <div id="mecanicos-disponibles-container" class="mb-3">
                         <!-- Se cargarán los mecánicos disponibles -->
                     </div>
-                    
+
                     <hr class="my-4">
-                    
+
                     <div class="mb-3">
                         <label for="motivo-rechazo" class="form-label">Motivo de Rechazo (si aplica):</label>
-                        <textarea class="form-control" id="motivo-rechazo" rows="3" 
-                                  placeholder="Ingrese el motivo del rechazo..."></textarea>
+                        <textarea class="form-control" id="motivo-rechazo" rows="3"
+                            placeholder="Ingrese el motivo del rechazo..."></textarea>
                     </div>
                 </div>
             </div>
@@ -187,4 +191,3 @@
         </div>
     </div>
 </div>
-

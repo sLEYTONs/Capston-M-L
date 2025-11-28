@@ -9,26 +9,23 @@ function buscarVehiculos($filtros) {
         return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
     }
 
-    // Construir la consulta para mostrar vehículos con solicitud aprobada y hora asignada
-    // Si el vehículo está en ingreso_vehiculos, usar esos datos, sino usar los de la solicitud
+    // Construir la consulta para mostrar TODOS los vehículos con su estado real
+    // Determina si está en circulación, en mecánico, con solicitud, etc.
             $query = "SELECT 
-                COALESCE(iv.ID, sa.ID) as ID,
-                COALESCE(iv.Placa, sa.Placa) as Placa,
-                COALESCE(iv.TipoVehiculo, sa.TipoVehiculo) as TipoVehiculo,
-                COALESCE(iv.Marca, sa.Marca) as Marca,
-                COALESCE(iv.Modelo, sa.Modelo) as Modelo,
-                COALESCE(iv.Anio, sa.Anio) as Anio,
-                COALESCE(iv.ConductorNombre, sa.ConductorNombre) as ConductorNombre,
+                iv.ID,
+                iv.Placa,
+                iv.TipoVehiculo,
+                iv.Marca,
+                iv.Modelo,
+                iv.Anio,
+                iv.ConductorNombre,
                 DATE_FORMAT(iv.FechaIngreso, '%d/%m/%Y %H:%i') as FechaIngresoFormateada,
-                DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
-                CASE 
-                    WHEN sa.Estado = 'No llegó' THEN 'No llegó'
-                    WHEN sa.Estado = 'Atrasado' THEN 'Atrasado'
-                    ELSE COALESCE(iv.Estado, 'Pendiente Ingreso')
-                END as Estado,
+                DATE_FORMAT(COALESCE(sa.FechaCreacion, sa.FechaActualizacion, iv.FechaRegistro), '%d/%m/%Y %H:%i') as FechaSolicitudFormateada,
+                iv.Estado as EstadoVehiculo,
                 iv.Kilometraje,
                 DATE_FORMAT(iv.FechaRegistro, '%d/%m/%Y %H:%i') as FechaRegistroFormateada,
                 COALESCE(u.NombreUsuario, '') as MecanicoNombre,
+                ultima_asignacion.EstadoAsignacion,
                 sa.ID as SolicitudID,
                 sa.Proposito,
                 sa.Observaciones as ObservacionesSolicitud,
@@ -43,12 +40,53 @@ function buscarVehiculos($filtros) {
                 chofer.NombreUsuario as ChoferNombre,
                 DATE_FORMAT(sa.FechaActualizacion, '%d/%m/%Y %H:%i') as FechaAprobacionFormateada,
                 CASE 
-                    WHEN iv.ID IS NOT NULL THEN 1 
-                    ELSE 0 
-                END as VehiculoIngresado
-            FROM solicitudes_agendamiento sa
-            INNER JOIN agenda_taller a ON sa.AgendaID = a.ID
-            LEFT JOIN ingreso_vehiculos iv ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                    -- Si tiene asignación activa con mecánico, está en mecánico
+                    WHEN ultima_asignacion.VehiculoID IS NOT NULL AND ultima_asignacion.EstadoAsignacion IN ('Asignado', 'En Proceso', 'En Revisión', 'En Pausa') THEN 
+                        CASE ultima_asignacion.EstadoAsignacion
+                            WHEN 'Asignado' THEN 'Asignado a Mecánico'
+                            WHEN 'En Proceso' THEN 'En Reparación'
+                            WHEN 'En Revisión' THEN 'En Revisión'
+                            WHEN 'En Pausa' THEN 'En Pausa'
+                            ELSE 'En Taller'
+                        END
+                    -- Si está completado, está listo para salir
+                    WHEN iv.Estado = 'Completado' OR ultima_asignacion.EstadoAsignacion = 'Completado' THEN 'Listo para Salir'
+                    -- Si está ingresado pero sin asignación, está en espera
+                    WHEN iv.Estado = 'Ingresado' THEN 'En Taller - Espera'
+                    WHEN iv.Estado = 'Asignado' THEN 'En Taller - Asignado'
+                    -- Si tiene solicitud pendiente
+                    WHEN sa.Estado = 'Pendiente' THEN 'Solicitud Pendiente'
+                    WHEN sa.Estado = 'Aprobada' THEN 'Solicitud Aprobada'
+                    WHEN sa.Estado = 'Atrasado' THEN 'Solicitud Atrasada'
+                    WHEN sa.Estado = 'No llegó' THEN 'No Llegó'
+                    -- Si está disponible, está en circulación
+                    WHEN iv.Estado = 'Disponible' THEN 'En Circulación'
+                    -- Si no tiene estado de taller ni asignación, probablemente está en circulación
+                    WHEN iv.Estado NOT IN ('Ingresado', 'Asignado', 'Completado') AND ultima_asignacion.VehiculoID IS NULL THEN 'En Circulación'
+                    -- Estado por defecto
+                    ELSE COALESCE(iv.Estado, 'Sin Estado')
+                END as Estado,
+                CASE 
+                    WHEN iv.Estado = 'Disponible' OR (iv.Estado NOT IN ('Ingresado', 'Asignado', 'Completado') AND ultima_asignacion.VehiculoID IS NULL) THEN 'circulacion'
+                    WHEN iv.Estado = 'Completado' OR ultima_asignacion.EstadoAsignacion = 'Completado' THEN 'listo'
+                    WHEN ultima_asignacion.VehiculoID IS NOT NULL THEN 'mecanico'
+                    WHEN iv.Estado IN ('Ingresado', 'Asignado') THEN 'taller'
+                    WHEN sa.ID IS NOT NULL THEN 'solicitud'
+                    ELSE 'disponible'
+                END as TipoEstado
+            FROM ingreso_vehiculos iv
+            LEFT JOIN (
+                SELECT sa1.*
+                FROM solicitudes_agendamiento sa1
+                INNER JOIN (
+                    SELECT Placa, MAX(FechaCreacion) as MaxFecha
+                    FROM solicitudes_agendamiento
+                    WHERE Estado IN ('Aprobada', 'Atrasado', 'No llegó', 'Pendiente')
+                    GROUP BY Placa
+                ) sa2 ON sa1.Placa = sa2.Placa AND sa1.FechaCreacion = sa2.MaxFecha
+                WHERE sa1.Estado IN ('Aprobada', 'Atrasado', 'No llegó', 'Pendiente')
+            ) sa ON sa.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
+            LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
             LEFT JOIN usuarios chofer ON sa.ChoferID = chofer.UsuarioID
             LEFT JOIN usuarios sup ON sa.SupervisorID = sup.UsuarioID
             LEFT JOIN (
@@ -58,59 +96,73 @@ function buscarVehiculos($filtros) {
                 INNER JOIN (
                     SELECT a3.VehiculoID, MAX(a3.FechaAsignacion) as MaxFecha
                     FROM asignaciones_mecanico a3
+                    WHERE a3.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'En Pausa', 'Completado')
                     GROUP BY a3.VehiculoID
                 ) a2 ON a1.VehiculoID = a2.VehiculoID AND a1.FechaAsignacion = a2.MaxFecha
-            ) ultima_asignacion ON (
-                (iv.ID IS NOT NULL AND iv.ID = ultima_asignacion.VehiculoID) OR
-                (iv.ID IS NULL AND sa.Placa COLLATE utf8mb4_unicode_ci = ultima_asignacion.VehiculoPlaca COLLATE utf8mb4_unicode_ci)
-            )
+                WHERE a1.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'En Pausa', 'Completado')
+            ) ultima_asignacion ON iv.ID = ultima_asignacion.VehiculoID
             LEFT JOIN usuarios u ON ultima_asignacion.MecanicoID = u.UsuarioID
-            WHERE sa.Estado IN ('Aprobada', 'Atrasado', 'No llegó')";
+            WHERE 1=1";
 
     $params = [];
 
     // Aplicar filtros
     if (!empty($filtros['placa'])) {
         $placa = mysqli_real_escape_string($conn, $filtros['placa']);
-        $query .= " AND (COALESCE(iv.Placa, sa.Placa) LIKE ? OR sa.Placa LIKE ?)";
-        $params[] = "%$placa%";
+        $query .= " AND iv.Placa LIKE ?";
         $params[] = "%$placa%";
     }
 
     if (!empty($filtros['conductor'])) {
         $conductor = mysqli_real_escape_string($conn, $filtros['conductor']);
-        $query .= " AND (COALESCE(iv.ConductorNombre, sa.ConductorNombre) LIKE ? OR sa.ConductorNombre LIKE ?)";
-        $params[] = "%$conductor%";
+        $query .= " AND iv.ConductorNombre LIKE ?";
         $params[] = "%$conductor%";
     }
 
     if (!empty($filtros['fecha'])) {
         $fecha = mysqli_real_escape_string($conn, $filtros['fecha']);
-        $query .= " AND (DATE(iv.FechaIngreso) = ? OR DATE(a.Fecha) = ?)";
+        $query .= " AND (DATE(iv.FechaIngreso) = ? OR DATE(iv.FechaRegistro) = ? OR DATE(a.Fecha) = ?)";
+        $params[] = $fecha;
         $params[] = $fecha;
         $params[] = $fecha;
     }
 
-    // Ordenar por fecha de agenda o fecha de ingreso descendente
-    $query .= " ORDER BY COALESCE(a.Fecha, iv.FechaIngreso, sa.FechaCreacion) DESC";
+    // Ordenar por fecha de registro o fecha de ingreso descendente
+    $query .= " ORDER BY COALESCE(iv.FechaIngreso, iv.FechaRegistro) DESC";
 
     // Preparar y ejecutar la consulta
-    $stmt = mysqli_prepare($conn, $query);
-    
-    if ($stmt && !empty($params)) {
-        $types = str_repeat('s', count($params));
-        mysqli_stmt_bind_param($stmt, $types, ...$params);
-    }
-
     $result = [];
-    if ($stmt && mysqli_stmt_execute($stmt)) {
-        $resultado = mysqli_stmt_get_result($stmt);
-        while ($row = mysqli_fetch_assoc($resultado)) {
-            $result[] = $row;
+    
+    if (!empty($params)) {
+        // Si hay parámetros, usar consulta preparada
+        $stmt = mysqli_prepare($conn, $query);
+        
+        if ($stmt) {
+            $types = str_repeat('s', count($params));
+            mysqli_stmt_bind_param($stmt, $types, ...$params);
+            
+            if (mysqli_stmt_execute($stmt)) {
+                $resultado = mysqli_stmt_get_result($stmt);
+                while ($row = mysqli_fetch_assoc($resultado)) {
+                    $result[] = $row;
+                }
+            } else {
+                error_log("Error ejecutando consulta buscarVehiculos: " . mysqli_stmt_error($stmt));
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            error_log("Error preparando consulta buscarVehiculos: " . mysqli_error($conn));
         }
-        mysqli_stmt_close($stmt);
     } else {
-        error_log("Error en consulta buscarVehiculos: " . mysqli_error($conn));
+        // Si no hay parámetros, ejecutar consulta directa
+        $resultado = mysqli_query($conn, $query);
+        if ($resultado) {
+            while ($row = mysqli_fetch_assoc($resultado)) {
+                $result[] = $row;
+            }
+        } else {
+            error_log("Error en consulta buscarVehiculos: " . mysqli_error($conn));
+        }
     }
 
     mysqli_close($conn);

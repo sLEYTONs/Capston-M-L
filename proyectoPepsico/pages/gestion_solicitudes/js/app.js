@@ -58,6 +58,8 @@ class GestionSolicitudes {
             btnGuardarAgenda.addEventListener('click', () => this.guardarAgenda());
         }
 
+
+
         // Limpiar selección al cerrar modal
         const gestionarModal = document.getElementById('gestionarSolicitudModal');
         if (gestionarModal) {
@@ -95,50 +97,50 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => {
-            // Verificar si la respuesta es JSON válido
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                // Si no es JSON, leer como texto para ver el error
-                return response.text().then(text => {
-                    console.error('Respuesta no JSON recibida:', text);
-                    throw new Error('El servidor devolvió una respuesta no válida. Ver consola para detalles.');
-                });
-            }
-            // Verificar si la respuesta fue exitosa
-            if (!response.ok) {
-                return response.text().then(text => {
-                    console.error('Error HTTP:', response.status);
-                    console.error('Respuesta completa:', text);
-                    // Intentar parsear como JSON para obtener el mensaje de error
-                    try {
-                        const errorData = JSON.parse(text);
-                        throw new Error(errorData.message || 'Error del servidor: ' + response.status);
-                    } catch (e) {
-                        // Si no es JSON, mostrar el texto completo
-                        throw new Error('Error del servidor: ' + response.status + '. Ver consola para detalles.');
-                    }
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarSolicitudes(data.data);
-            } else {
-                this.mostrarToast('Error', data.message || 'Error al cargar solicitudes', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error completo:', error);
-            console.error('URL base:', this.baseUrl);
-            // Mostrar mensaje más descriptivo
-            let mensaje = error.message || 'Error de conexión con el servidor';
-            if (error.message && error.message.includes('JSON')) {
-                mensaje = 'El servidor devolvió una respuesta inválida. Verifique que las tablas existan en la base de datos.';
-            }
-            this.mostrarToast('Error', mensaje, 'error');
-        });
+            .then(response => {
+                // Verificar si la respuesta es JSON válido
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Si no es JSON, leer como texto para ver el error
+                    return response.text().then(text => {
+                        console.error('Respuesta no JSON recibida:', text);
+                        throw new Error('El servidor devolvió una respuesta no válida. Ver consola para detalles.');
+                    });
+                }
+                // Verificar si la respuesta fue exitosa
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Error HTTP:', response.status);
+                        console.error('Respuesta completa:', text);
+                        // Intentar parsear como JSON para obtener el mensaje de error
+                        try {
+                            const errorData = JSON.parse(text);
+                            throw new Error(errorData.message || 'Error del servidor: ' + response.status);
+                        } catch (e) {
+                            // Si no es JSON, mostrar el texto completo
+                            throw new Error('Error del servidor: ' + response.status + '. Ver consola para detalles.');
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    this.mostrarSolicitudes(data.data);
+                } else {
+                    this.mostrarToast('Error', data.message || 'Error al cargar solicitudes', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error completo:', error);
+                console.error('URL base:', this.baseUrl);
+                // Mostrar mensaje más descriptivo
+                let mensaje = error.message || 'Error de conexión con el servidor';
+                if (error.message && error.message.includes('JSON')) {
+                    mensaje = 'El servidor devolvió una respuesta inválida. Verifique que las tablas existan en la base de datos.';
+                }
+                this.mostrarToast('Error', mensaje, 'error');
+            });
     }
 
     mostrarSolicitudes(solicitudes) {
@@ -264,7 +266,7 @@ class GestionSolicitudes {
             // Actualizar el badge de estado (columna 4, índice 4)
             const estadoClass = this.getEstadoClass(nuevoEstado);
             filaEncontrada.cells[4].innerHTML = `<span class="badge ${estadoClass}">${nuevoEstado}</span>`;
-            
+
             // Actualizar el botón de acciones (columna 6, índice 6)
             if (nuevoEstado === 'Pendiente') {
                 filaEncontrada.cells[6].innerHTML = `
@@ -279,7 +281,7 @@ class GestionSolicitudes {
                     </button>
                 `;
             }
-            
+
             // Redibujar el DataTable sin recargar datos
             this.dataTable.draw(false);
         } else {
@@ -297,31 +299,31 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data.length > 0) {
-                const solicitud = data.data[0];
-                this.solicitudActual = solicitud;
-                this.mostrarDetallesSolicitud(solicitud);
-                this.cargarMecanicosDisponibles();
-                
-                const modal = new bootstrap.Modal(document.getElementById('gestionarSolicitudModal'));
-                modal.show();
-                
-                // Inicializar calendario y cargar horas cuando el modal esté completamente visible
-                modal._element.addEventListener('shown.bs.modal', () => {
-                    // Pequeño delay para asegurar que el DOM esté completamente renderizado
-                    setTimeout(() => {
-                        this.inicializarCalendario();
-                        this.cargarHorasDisponiblesCalendario();
-                    }, 100);
-                }, { once: true });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            this.mostrarToast('Error', 'Error al cargar detalles de la solicitud', 'error');
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.data.length > 0) {
+                    const solicitud = data.data[0];
+                    this.solicitudActual = solicitud;
+                    this.mostrarDetallesSolicitud(solicitud);
+                    this.cargarMecanicosDisponibles();
+
+                    const modal = new bootstrap.Modal(document.getElementById('gestionarSolicitudModal'));
+                    modal.show();
+
+                    // Inicializar calendario y cargar horas cuando el modal esté completamente visible
+                    modal._element.addEventListener('shown.bs.modal', () => {
+                        // Pequeño delay para asegurar que el DOM esté completamente renderizado
+                        setTimeout(() => {
+                            this.inicializarCalendario();
+                            this.cargarHorasDisponiblesCalendario();
+                        }, 100);
+                    }, { once: true });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.mostrarToast('Error', 'Error al cargar detalles de la solicitud', 'error');
+            });
     }
 
     mostrarDetallesSolicitud(solicitud) {
@@ -419,48 +421,48 @@ class GestionSolicitudes {
                 method: 'POST',
                 body: formData
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`Respuesta para fecha ${fecha}:`, data);
-                if (data.status === 'success' && Array.isArray(data.data)) {
-                    const horasConFecha = data.data.map(hora => ({
-                        ...hora,
-                        fecha: fecha
-                    }));
-                    console.log(`Horas encontradas para ${fecha}:`, horasConFecha.length);
-                    return horasConFecha;
-                } else {
-                    console.warn(`No se encontraron horas para ${fecha} o respuesta inválida:`, data);
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`Respuesta para fecha ${fecha}:`, data);
+                    if (data.status === 'success' && Array.isArray(data.data)) {
+                        const horasConFecha = data.data.map(hora => ({
+                            ...hora,
+                            fecha: fecha
+                        }));
+                        console.log(`Horas encontradas para ${fecha}:`, horasConFecha.length);
+                        return horasConFecha;
+                    } else {
+                        console.warn(`No se encontraron horas para ${fecha} o respuesta inválida:`, data);
+                        return [];
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cargando horas para fecha', fecha, error);
                     return [];
-                }
-            })
-            .catch(error => {
-                console.error('Error cargando horas para fecha', fecha, error);
-                return [];
-            });
+                });
         });
 
-            Promise.all(promesas).then(todasLasHoras => {
+        Promise.all(promesas).then(todasLasHoras => {
             const todasLasHorasFlat = todasLasHoras.flat();
             console.log('Total de horas disponibles recibidas:', todasLasHorasFlat.length);
             console.log('Horas por fecha:', todasLasHorasFlat);
-            
+
             const eventos = [];
             todasLasHorasFlat.forEach(hora => {
                 if (!hora.ID || !hora.HoraInicio || !hora.HoraFin || !hora.fecha) {
                     console.warn('Hora con datos incompletos:', hora);
                     return;
                 }
-                
+
                 // Asegurar que la hora tenga el formato correcto (HH:MM:SS)
                 let horaInicio = hora.HoraInicio;
                 let horaFin = hora.HoraFin;
-                
+
                 // Si la hora no tiene segundos, agregarlos
                 if (horaInicio.split(':').length === 2) {
                     horaInicio += ':00';
@@ -468,17 +470,17 @@ class GestionSolicitudes {
                 if (horaFin.split(':').length === 2) {
                     horaFin += ':00';
                 }
-                
+
                 // Crear objetos Date usando la fecha y hora localmente (sin conversión UTC)
                 // Parsear la fecha (YYYY-MM-DD) y la hora (HH:MM:SS) por separado
                 const [año, mes, dia] = hora.fecha.split('-').map(Number);
                 const [hInicio, mInicio, sInicio] = horaInicio.split(':').map(Number);
                 const [hFin, mFin, sFin] = horaFin.split(':').map(Number);
-                
+
                 // Crear objetos Date en hora local (no UTC)
                 const fechaHoraInicio = new Date(año, mes - 1, dia, hInicio, mInicio, sInicio || 0);
                 const fechaHoraFin = new Date(año, mes - 1, dia, hFin, mFin, sFin || 0);
-                
+
                 const evento = {
                     id: hora.ID.toString(),
                     title: `${horaInicio.substring(0, 5)} - ${horaFin.substring(0, 5)}`,
@@ -495,18 +497,18 @@ class GestionSolicitudes {
                         observaciones: hora.Observaciones || ''
                     }
                 };
-                
+
                 eventos.push(evento);
                 console.log('Evento creado - Fecha BD:', hora.fecha, 'Fecha objeto Date:', fechaHoraInicio.toISOString().split('T')[0], 'Evento:', evento);
             });
 
             this.horasDisponibles = todasLasHorasFlat;
             console.log('Total de eventos creados:', eventos.length);
-            
+
             if (this.calendario) {
                 // Limpiar eventos anteriores
                 this.calendario.removeAllEvents();
-                
+
                 // Agregar eventos - en FullCalendar v6 usamos addEvent (singular) para cada evento
                 if (eventos.length > 0) {
                     eventos.forEach(evento => {
@@ -532,13 +534,13 @@ class GestionSolicitudes {
         const agendaId = evento.extendedProps.agendaId;
         const horaInicio = evento.extendedProps.horaInicio;
         const horaFin = evento.extendedProps.horaFin;
-        
+
         // Usar la fecha original guardada en extendedProps (viene directamente de la BD)
         // Esta es la fuente de verdad, no depender de evento.start que puede tener desajustes
         let fecha = evento.extendedProps.fechaOriginal;
-        
+
         console.log('Seleccionando hora - AgendaID:', agendaId, 'Fecha en extendedProps:', fecha);
-        
+
         if (!fecha) {
             // Fallback: buscar en horasDisponibles usando el agendaId
             const horaEncontrada = this.horasDisponibles.find(h => h.ID == agendaId);
@@ -555,7 +557,7 @@ class GestionSolicitudes {
                 console.log('Fecha obtenida de evento.start (fallback):', fecha);
             }
         }
-        
+
         console.log('Fecha final a usar:', fecha);
 
         // Formatear hora para mostrar
@@ -572,26 +574,26 @@ class GestionSolicitudes {
         if (agendaInput) {
             agendaInput.value = agendaId;
         }
-        
+
         // Mostrar información de selección - usar la fecha original directamente de la BD
         // Parsear la fecha YYYY-MM-DD y crear un objeto Date en hora local (sin conversión UTC)
         const [año, mes, dia] = fecha.split('-').map(Number);
         // Crear Date usando constructor local (año, mes-1, dia) para evitar problemas de zona horaria
         const fechaLocal = new Date(año, mes - 1, dia);
-        const fechaFormateada = fechaLocal.toLocaleDateString('es-ES', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        const fechaFormateada = fechaLocal.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
-        
+
         const horaTexto = document.getElementById('hora-seleccionada-texto');
         const infoSeleccion = document.getElementById('info-seleccion-hora');
-        
+
         if (horaTexto) {
             horaTexto.textContent = `${fechaFormateada} de ${formatearHora(horaInicio)} a ${formatearHora(horaFin)}`;
         }
-        
+
         if (infoSeleccion) {
             infoSeleccion.style.display = 'block';
         }
@@ -616,7 +618,7 @@ class GestionSolicitudes {
                     } else if (evt.classNames) {
                         currentClassNames = Array.isArray(evt.classNames) ? evt.classNames : [evt.classNames];
                     }
-                    
+
                     if (Array.isArray(currentClassNames) && currentClassNames.length > 0) {
                         const filteredClassNames = currentClassNames.filter(cn => cn !== 'fc-event-selected');
                         evt.setProp('classNames', filteredClassNames.length > 0 ? filteredClassNames : null);
@@ -629,7 +631,7 @@ class GestionSolicitudes {
                 }
             }
         });
-        
+
         // Scroll suave a la información de selección
         if (infoSeleccion) {
             infoSeleccion.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -650,23 +652,23 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarMecanicosDisponibles(data.data);
-            } else {
-                document.getElementById('mecanicos-disponibles-container').innerHTML = 
-                    '<p class="text-warning">No se pudieron cargar los mecánicos disponibles.</p>';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.mostrarMecanicosDisponibles(data.data);
+                } else {
+                    document.getElementById('mecanicos-disponibles-container').innerHTML =
+                        '<p class="text-warning">No se pudieron cargar los mecánicos disponibles.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
     }
 
     mostrarMecanicosDisponibles(mecanicos) {
         const container = document.getElementById('mecanicos-disponibles-container');
-        
+
         if (mecanicos.length === 0) {
             container.innerHTML = '<p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>No hay mecánicos disponibles en este momento.</p>';
             return;
@@ -716,32 +718,32 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarToast('Éxito', 'Solicitud aprobada correctamente' + (mecanicoId ? ' y mecánico asignado' : ''), 'success');
-                
-                // Actualizar la tabla inmediatamente
-                this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Aprobada');
-                
-                // Cerrar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
-                if (modal) {
-                    modal.hide();
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.mostrarToast('Éxito', 'Solicitud aprobada correctamente' + (mecanicoId ? ' y mecánico asignado' : ''), 'success');
+
+                    // Actualizar la tabla inmediatamente
+                    this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Aprobada');
+
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Recargar todas las solicitudes para asegurar datos actualizados
+                    setTimeout(() => {
+                        this.cargarSolicitudes();
+                    }, 300);
+                } else {
+                    this.mostrarToast('Error', data.message || 'Error al aprobar la solicitud', 'error');
                 }
-                
-                // Recargar todas las solicitudes para asegurar datos actualizados
-                setTimeout(() => {
-                    this.cargarSolicitudes();
-                }, 300);
-            } else {
-                this.mostrarToast('Error', data.message || 'Error al aprobar la solicitud', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
-        });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
+            });
     }
 
     rechazarSolicitud() {
@@ -762,32 +764,32 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarToast('Éxito', 'Solicitud rechazada correctamente', 'success');
-                
-                // Actualizar la tabla inmediatamente
-                this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Rechazada');
-                
-                // Cerrar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
-                if (modal) {
-                    modal.hide();
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.mostrarToast('Éxito', 'Solicitud rechazada correctamente', 'success');
+
+                    // Actualizar la tabla inmediatamente
+                    this.actualizarFilaSolicitud(this.solicitudActual.ID, 'Rechazada');
+
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('gestionarSolicitudModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Recargar todas las solicitudes para asegurar datos actualizados
+                    setTimeout(() => {
+                        this.cargarSolicitudes();
+                    }, 300);
+                } else {
+                    this.mostrarToast('Error', data.message || 'Error al rechazar la solicitud', 'error');
                 }
-                
-                // Recargar todas las solicitudes para asegurar datos actualizados
-                setTimeout(() => {
-                    this.cargarSolicitudes();
-                }, 300);
-            } else {
-                this.mostrarToast('Error', data.message || 'Error al rechazar la solicitud', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
-        });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
+            });
     }
 
     guardarAgenda() {
@@ -811,19 +813,19 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                this.mostrarToast('Éxito', 'Agenda guardada correctamente', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('agendaModal')).hide();
-            } else {
-                this.mostrarToast('Error', data.message || 'Error al guardar la agenda', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.mostrarToast('Éxito', 'Agenda guardada correctamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('agendaModal')).hide();
+                } else {
+                    this.mostrarToast('Error', data.message || 'Error al guardar la agenda', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.mostrarToast('Error', 'Error de conexión con el servidor', 'error');
+            });
     }
 
     verDetalles(solicitudId) {
@@ -835,24 +837,24 @@ class GestionSolicitudes {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data.length > 0) {
-                const solicitud = data.data[0];
-                this.mostrarModalDetalles(solicitud);
-            } else {
-                this.mostrarToast('Error', 'No se pudieron cargar los detalles de la solicitud', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            this.mostrarToast('Error', 'Error al cargar detalles de la solicitud', 'error');
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.data.length > 0) {
+                    const solicitud = data.data[0];
+                    this.mostrarModalDetalles(solicitud);
+                } else {
+                    this.mostrarToast('Error', 'No se pudieron cargar los detalles de la solicitud', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.mostrarToast('Error', 'Error al cargar detalles de la solicitud', 'error');
+            });
     }
 
     mostrarModalDetalles(solicitud) {
         // Formatear fechas
-        const fechaCreacion = solicitud.FechaCreacion 
+        const fechaCreacion = solicitud.FechaCreacion
             ? new Date(solicitud.FechaCreacion).toLocaleDateString('es-ES', {
                 weekday: 'long',
                 year: 'numeric',
@@ -1099,6 +1101,8 @@ class GestionSolicitudes {
             modalElement.remove();
         }, { once: true });
     }
+
+
 
     mostrarToast(titulo, mensaje, tipo = 'info') {
         if (typeof Swal !== 'undefined') {

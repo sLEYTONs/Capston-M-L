@@ -128,52 +128,115 @@ class ConsultaVehiculos {
                     },
                     { data: null,
                         render: (data) => {
+                            const anio = data.Anio ? ` (${data.Anio})` : '';
                             return `
                                 <div class="vehicle-info">
-                                    <span class="vehicle-type">${data.TipoVehiculo}</span>
-                                    <small class="vehicle-details">${data.Marca} ${data.Modelo}</small>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-car me-2 text-primary"></i>
+                                        <div>
+                                            <strong class="vehicle-type">${data.TipoVehiculo || 'N/A'}</strong>
+                                            <div class="vehicle-details text-muted small">${data.Marca || ''} ${data.Modelo || ''}${anio}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             `;
                         }
                     },
                     { data: null,
                         render: (data) => {
+                            const conductor = data.ConductorNombre || 'N/A';
                             return `
                                 <div class="driver-info">
-                                    <strong>${data.ConductorNombre}</strong>
+                                    <i class="fas fa-user me-1 text-info"></i>
+                                    <strong>${conductor}</strong>
                                 </div>
                             `;
                         }
                     },
                     { 
-                        data: 'FechaSolicitudFormateada',
+                        data: null,
                         className: 'fecha-column',
                         render: (data, type, row) => {
-                            return data || 'N/A';
-                        }
-                    },
-                    { 
-                        data: 'MecanicoNombre',
-                        render: (data, type, row) => {
-                            if (data && data.trim() !== '') {
+                            const fechaSolicitud = data.FechaSolicitudFormateada || '';
+                            const fechaAgenda = data.FechaAgendaFormateada || '';
+                            const tipoEstado = data.TipoEstado || '';
+                            
+                            if (fechaAgenda && tipoEstado === 'solicitud') {
                                 return `
-                                    <div class="mechanic-info">
-                                        <i class="fas fa-user-cog me-1"></i>
-                                        <strong>${data}</strong>
+                                    <div>
+                                        <div class="small text-muted">Agenda:</div>
+                                        <strong>${fechaAgenda}</strong>
+                                        ${data.HoraInicioFormateada ? `<br><small class="text-muted">${data.HoraInicioFormateada} - ${data.HoraFinFormateada}</small>` : ''}
+                                    </div>
+                                `;
+                            } else if (fechaSolicitud) {
+                                return `
+                                    <div>
+                                        <div class="small text-muted">Solicitud:</div>
+                                        <strong>${fechaSolicitud}</strong>
+                                    </div>
+                                `;
+                            } else if (data.FechaIngresoFormateada) {
+                                return `
+                                    <div>
+                                        <div class="small text-muted">Ingreso:</div>
+                                        <strong>${data.FechaIngresoFormateada}</strong>
                                     </div>
                                 `;
                             } else {
-                                return `<span class="text-muted">Sin asignar</span>`;
+                                return '<span class="text-muted">N/A</span>';
+                            }
+                        }
+                    },
+                    { 
+                        data: null,
+                        render: (data, type, row) => {
+                            const mecanico = data.MecanicoNombre || '';
+                            const tipoEstado = data.TipoEstado || '';
+                            
+                            if (mecanico && mecanico.trim() !== '') {
+                                const estadoAsignacion = data.EstadoAsignacion || '';
+                                let badgeEstado = '';
+                                
+                                if (estadoAsignacion) {
+                                    const estadoClass = {
+                                        'Asignado': 'bg-info',
+                                        'En Proceso': 'bg-primary',
+                                        'En Revisión': 'bg-warning',
+                                        'En Pausa': 'bg-secondary',
+                                        'Completado': 'bg-success'
+                                    }[estadoAsignacion] || 'bg-secondary';
+                                    
+                                    badgeEstado = `<span class="badge ${estadoClass} ms-2">${estadoAsignacion}</span>`;
+                                }
+                                
+                                return `
+                                    <div class="mechanic-info">
+                                        <i class="fas fa-user-cog me-1 text-primary"></i>
+                                        <strong>${mecanico}</strong>
+                                        ${badgeEstado}
+                                    </div>
+                                `;
+                            } else if (tipoEstado === 'solicitud') {
+                                return `<span class="text-info"><i class="fas fa-clock me-1"></i>Esperando asignación</span>`;
+                            } else {
+                                return `<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>Sin asignar</span>`;
                             }
                         },
                         className: 'mecanico-column'
                     },
                     { 
-                        data: 'Estado',
+                        data: null,
                         render: (data) => {
-                            const estadoClass = this.obtenerClaseEstado(data);
-                            const estadoText = this.obtenerTextoEstado(data);
-                            return `<span class="status-badge ${estadoClass}">${estadoText}</span>`;
+                            const estado = data.Estado || data.EstadoVehiculo || 'Sin Estado';
+                            const tipoEstado = data.TipoEstado || 'disponible';
+                            const estadoInfo = this.obtenerInfoEstado(estado, tipoEstado);
+                            return `
+                                <div class="d-flex align-items-center">
+                                    <i class="${estadoInfo.icono} me-2 ${estadoInfo.colorIcono}"></i>
+                                    <span class="status-badge ${estadoInfo.clase}">${estadoInfo.texto}</span>
+                                </div>
+                            `;
                         }
                     },
                     { 
@@ -187,8 +250,12 @@ class ConsultaVehiculos {
                                     </button>
                             `;
 
-                            // Mostrar botón de seguimiento si tiene mecánico asignado
-                            if (data.MecanicoNombre && data.MecanicoNombre.trim() !== '') {
+                            // Mostrar botón de seguimiento si está en mecánico o tiene asignación
+                            const tipoEstado = data.TipoEstado || '';
+                            const tieneMecanico = data.MecanicoNombre && data.MecanicoNombre.trim() !== '';
+                            const enMecanico = tipoEstado === 'mecanico' || tieneMecanico;
+                            
+                            if (enMecanico) {
                                 acciones += `
                                     <button class="btn-action btn-tracking" data-id="${data.ID}" title="Ver Seguimiento">
                                         <i class="fas fa-clipboard-list"></i>
@@ -201,7 +268,7 @@ class ConsultaVehiculos {
                         }
                     }
                 ],
-                order: [[3, 'desc']],
+                order: [[3, 'desc']], // Ordenar por fecha (columna 3)
                 responsive: true,
                 initComplete: () => {
                     $('.dataTables_length select').addClass('form-select form-select-sm');
@@ -1088,32 +1155,134 @@ class ConsultaVehiculos {
         }
     }
 
-    obtenerClaseEstado(estado) {
-        const clases = {
-            'Ingresado': 'status-Ingresado',
-            'En espera': 'status-Enespera',
-            'Asignado': 'status-Asignado',
-            'En progreso': 'status-Enprogreso',
-            'Completado': 'status-Completado',
-            'Atrasado': 'status-Atrasado',
-            'No llegó': 'status-NoLlego',
-            'No llego': 'status-NoLlego'
+    obtenerInfoEstado(estado, tipoEstado) {
+        // Mapeo de estados con iconos, colores y clases CSS
+        const estados = {
+            'En Circulación': {
+                icono: 'fas fa-road',
+                colorIcono: 'text-success',
+                clase: 'badge bg-success',
+                texto: 'En Circulación'
+            },
+            'Listo para Salir': {
+                icono: 'fas fa-check-circle',
+                colorIcono: 'text-info',
+                clase: 'badge bg-info',
+                texto: 'Listo para Salir'
+            },
+            'Asignado a Mecánico': {
+                icono: 'fas fa-user-cog',
+                colorIcono: 'text-primary',
+                clase: 'badge bg-primary',
+                texto: 'Asignado a Mecánico'
+            },
+            'En Reparación': {
+                icono: 'fas fa-tools',
+                colorIcono: 'text-warning',
+                clase: 'badge bg-warning',
+                texto: 'En Reparación'
+            },
+            'En Revisión': {
+                icono: 'fas fa-search',
+                colorIcono: 'text-info',
+                clase: 'badge bg-info',
+                texto: 'En Revisión'
+            },
+            'En Pausa': {
+                icono: 'fas fa-pause-circle',
+                colorIcono: 'text-secondary',
+                clase: 'badge bg-secondary',
+                texto: 'En Pausa'
+            },
+            'En Taller - Espera': {
+                icono: 'fas fa-clock',
+                colorIcono: 'text-warning',
+                clase: 'badge bg-warning',
+                texto: 'En Taller - Espera'
+            },
+            'En Taller - Asignado': {
+                icono: 'fas fa-wrench',
+                colorIcono: 'text-primary',
+                clase: 'badge bg-primary',
+                texto: 'En Taller'
+            },
+            'Solicitud Pendiente': {
+                icono: 'fas fa-hourglass-half',
+                colorIcono: 'text-warning',
+                clase: 'badge bg-warning',
+                texto: 'Solicitud Pendiente'
+            },
+            'Solicitud Aprobada': {
+                icono: 'fas fa-check',
+                colorIcono: 'text-success',
+                clase: 'badge bg-success',
+                texto: 'Solicitud Aprobada'
+            },
+            'Solicitud Atrasada': {
+                icono: 'fas fa-exclamation-triangle',
+                colorIcono: 'text-danger',
+                clase: 'badge bg-danger',
+                texto: 'Solicitud Atrasada'
+            },
+            'No Llegó': {
+                icono: 'fas fa-times-circle',
+                colorIcono: 'text-danger',
+                clase: 'badge bg-danger',
+                texto: 'No Llegó'
+            },
+            'Disponible': {
+                icono: 'fas fa-check-circle',
+                colorIcono: 'text-success',
+                clase: 'badge bg-success',
+                texto: 'Disponible'
+            }
         };
-        return clases[estado] || 'status-unknown';
-    }
-
-    obtenerTextoEstado(estado) {
-        const textos = {
-            'Ingresado': 'Ingresado',
-            'En espera': 'En espera',
-            'Asignado': 'Asignado',
-            'En progreso': 'En progreso',
-            'Completado': 'Completado',
-            'Atrasado': 'Atrasado',
-            'No llegó': 'No llegó',
-            'No llego': 'No llegó'
+        
+        // Buscar estado exacto
+        if (estados[estado]) {
+            return estados[estado];
+        }
+        
+        // Si no se encuentra, usar tipoEstado como fallback
+        const fallbackEstados = {
+            'circulacion': {
+                icono: 'fas fa-road',
+                colorIcono: 'text-success',
+                clase: 'badge bg-success',
+                texto: 'En Circulación'
+            },
+            'mecanico': {
+                icono: 'fas fa-tools',
+                colorIcono: 'text-warning',
+                clase: 'badge bg-warning',
+                texto: 'En Taller'
+            },
+            'taller': {
+                icono: 'fas fa-warehouse',
+                colorIcono: 'text-info',
+                clase: 'badge bg-info',
+                texto: 'En Taller'
+            },
+            'solicitud': {
+                icono: 'fas fa-file-alt',
+                colorIcono: 'text-primary',
+                clase: 'badge bg-primary',
+                texto: 'Con Solicitud'
+            },
+            'listo': {
+                icono: 'fas fa-check-circle',
+                colorIcono: 'text-info',
+                clase: 'badge bg-info',
+                texto: 'Listo para Salir'
+            }
         };
-        return textos[estado] || 'Desconocido';
+        
+        return fallbackEstados[tipoEstado] || {
+            icono: 'fas fa-question-circle',
+            colorIcono: 'text-secondary',
+            clase: 'badge bg-secondary',
+            texto: estado || 'Sin Estado'
+        };
     }
 
     mostrarLoading() {
