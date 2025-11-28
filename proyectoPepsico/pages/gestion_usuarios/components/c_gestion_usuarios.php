@@ -2,7 +2,14 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5>Registrar Nuevo Usuario</h5>
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">Registrar Nuevo Usuario</h5>
+                    <button type="button" id="btn-autofill-usuario"
+                        onclick="(function(){var n=['Juan','Carlos','Pedro','Luis','Miguel','José','Francisco','Antonio','Manuel','Diego'],a=['Pérez','González','Rodríguez','Martínez','López','García','Fernández','Sánchez','Ramírez','Torres'],nm=n[Math.floor(Math.random()*n.length)],ap=a[Math.floor(Math.random()*a.length)],u=nm.toLowerCase()+'.'+ap.toLowerCase(),e=u+'@pepsico.cl',c='Chofer123!';document.getElementById('nombre_usuario').value=nm+' '+ap;document.getElementById('correo').value=e;document.getElementById('clave').value=c;document.getElementById('rol').value='Chofer';document.getElementById('estado').value='1';})()"
+                        style="cursor: pointer; border: none; background: red; color: white; width: 60px; height: 35px; border-radius: 4px; font-weight: bold;">
+                        AUTO
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <form id="form-nuevo-usuario">
@@ -10,7 +17,8 @@
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="nombre_usuario">Nombre de Usuario *</label>
-                                <input type="text" class="form-control" id="nombre_usuario" name="nombre_usuario" required>
+                                <input type="text" class="form-control" id="nombre_usuario" name="nombre_usuario"
+                                    required>
                                 <div class="invalid-feedback" id="error-nombre"></div>
                             </div>
                         </div>
@@ -29,7 +37,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -38,6 +46,7 @@
                                     <option value="">Seleccionar rol...</option>
                                     <option value="Administrador">Administrador</option>
                                     <option value="Jefe de Taller">Jefe de Taller</option>
+                                    <option value="Chofer">Chofer</option>
                                     <option value="Mecánico">Mecánico</option>
                                     <option value="Recepcionista">Recepcionista</option>
                                     <option value="Guardia">Guardia</option>
@@ -55,7 +64,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary" id="btn-guardar">
                         <i class="fas fa-user-plus"></i> Ingresar Nuevo Usuario
                     </button>
@@ -100,7 +109,8 @@
 </div>
 
 <!-- Modal para editar usuario -->
-<div class="modal fade" id="modal-editar-usuario" tabindex="-1" role="dialog" aria-labelledby="modal-editar-label" aria-hidden="true">
+<div class="modal fade" id="modal-editar-usuario" tabindex="-1" role="dialog" aria-labelledby="modal-editar-label"
+    aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -112,12 +122,13 @@
             <div class="modal-body">
                 <form id="form-editar-usuario">
                     <input type="hidden" id="edit-usuario-id" name="usuario_id">
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="edit-nombre-usuario">Nombre de Usuario *</label>
-                                <input type="text" class="form-control" id="edit-nombre-usuario" name="nombre_usuario" required>
+                                <input type="text" class="form-control" id="edit-nombre-usuario" name="nombre_usuario"
+                                    required>
                                 <div class="invalid-feedback" id="edit-error-nombre"></div>
                             </div>
                         </div>
@@ -129,7 +140,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -155,7 +166,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group">

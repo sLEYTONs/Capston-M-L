@@ -8,8 +8,10 @@ $usuario_actual = $_SESSION['usuario']['nombre'] ?? '';
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Coordinación con Taller - Comunicación de Flota</h5>
-                    <button class="btn btn-primary btn-sm" id="btn-nueva-comunicacion-taller" data-bs-toggle="modal" data-bs-target="#modalNuevaComunicacionTaller">
+                    <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Coordinación con Taller - Comunicación de Flota
+                    </h5>
+                    <button class="btn btn-primary btn-sm" id="btn-nueva-comunicacion-taller" data-bs-toggle="modal"
+                        data-bs-target="#modalNuevaComunicacionTaller">
                         <i class="fas fa-plus me-2"></i>Nueva Comunicación al Taller
                     </button>
                 </div>
@@ -19,7 +21,7 @@ $usuario_actual = $_SESSION['usuario']['nombre'] ?? '';
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label for="filtro-placa-taller" class="form-label">Buscar por Placa</label>
-                        <input type="text" class="form-control" id="filtro-placa-taller" placeholder="Ej: ABCD60">
+                        <input type="text" class="form-control" id="filtro-placa-taller" placeholder="Ej: BBDK60">
                     </div>
                     <div class="col-md-3">
                         <label for="filtro-tipo-taller" class="form-label">Tipo</label>
@@ -85,13 +87,15 @@ $usuario_actual = $_SESSION['usuario']['nombre'] ?? '';
             <form id="form-nueva-comunicacion-taller">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="placa-comunicacion-taller" class="form-label">Placa del Vehículo <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="placa-comunicacion-taller" 
-                               placeholder="Ej: ABCD60" required>
+                        <label for="placa-comunicacion-taller" class="form-label">Placa del Vehículo <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="placa-comunicacion-taller" placeholder="Ej: BBDK60"
+                            required>
                         <small class="form-text text-muted">Placa del vehículo con la falla</small>
                     </div>
                     <div class="mb-3">
-                        <label for="tipo-comunicacion-taller" class="form-label">Tipo <span class="text-danger">*</span></label>
+                        <label for="tipo-comunicacion-taller" class="form-label">Tipo <span
+                                class="text-danger">*</span></label>
                         <select class="form-select" id="tipo-comunicacion-taller" required>
                             <option value="">Seleccionar...</option>
                             <option value="Urgente">Urgente</option>
@@ -101,14 +105,16 @@ $usuario_actual = $_SESSION['usuario']['nombre'] ?? '';
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="asunto-comunicacion-taller" class="form-label">Asunto <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="asunto-comunicacion-taller" 
-                               placeholder="Ej: Falla en sistema de frenos" required>
+                        <label for="asunto-comunicacion-taller" class="form-label">Asunto <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="asunto-comunicacion-taller"
+                            placeholder="Ej: Falla en sistema de frenos" required>
                     </div>
                     <div class="mb-3">
-                        <label for="mensaje-comunicacion-taller" class="form-label">Mensaje/Descripción de la Falla <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="mensaje-comunicacion-taller" rows="5" 
-                                  placeholder="Describe la falla del vehículo..." required></textarea>
+                        <label for="mensaje-comunicacion-taller" class="form-label">Mensaje/Descripción de la Falla
+                            <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-comunicacion-taller" rows="5"
+                            placeholder="Describe la falla del vehículo..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -162,9 +168,10 @@ $usuario_actual = $_SESSION['usuario']['nombre'] ?? '';
                         <strong>Respondiendo a:</strong> <span id="asunto-comunicacion-respuesta-taller"></span>
                     </div>
                     <div class="mb-3">
-                        <label for="mensaje-respuesta-taller" class="form-label">Mensaje de Respuesta <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="mensaje-respuesta-taller" rows="6" 
-                                  placeholder="Escriba su respuesta..." required></textarea>
+                        <label for="mensaje-respuesta-taller" class="form-label">Mensaje de Respuesta <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-respuesta-taller" rows="6"
+                            placeholder="Escriba su respuesta..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

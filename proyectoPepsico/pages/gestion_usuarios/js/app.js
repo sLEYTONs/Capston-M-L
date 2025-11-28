@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Inicializar DataTable
     var tablaUsuarios = $('#tabla-usuarios').DataTable({
         "language": {
@@ -19,9 +19,9 @@ $(document).ready(function() {
             { "data": "NombreUsuario" },
             { "data": "Correo" },
             { "data": "Rol" },
-            { 
+            {
                 "data": "Estado",
-                "render": function(data, type, row) {
+                "render": function (data, type, row) {
                     if (data == 1) {
                         return '<span class="estado-activo"><i class="fas fa-check-circle"></i> Activo</span>';
                     } else {
@@ -29,15 +29,15 @@ $(document).ready(function() {
                     }
                 }
             },
-            { 
+            {
                 "data": "FechaCreacion",
-                "render": function(data) {
+                "render": function (data) {
                     return data ? new Date(data).toLocaleDateString('es-ES') : 'N/A';
                 }
             },
-            { 
+            {
                 "data": "UltimoAcceso",
-                "render": function(data) {
+                "render": function (data) {
                     if (data) {
                         return new Date(data).toLocaleString('es-ES');
                     } else {
@@ -47,9 +47,9 @@ $(document).ready(function() {
             },
             {
                 "data": null,
-                "render": function(data, type, row) {
+                "render": function (data, type, row) {
                     return '<button class="btn btn-warning btn-sm btn-editar" data-id="' + row.UsuarioID + '">' +
-                           '<i class="fas fa-edit"></i> Editar</button>';
+                        '<i class="fas fa-edit"></i> Editar</button>';
                 },
                 "orderable": false
             }
@@ -62,9 +62,9 @@ $(document).ready(function() {
     });
 
     // Enviar formulario de nuevo usuario
-    $('#form-nuevo-usuario').on('submit', function(e) {
+    $('#form-nuevo-usuario').on('submit', function (e) {
         e.preventDefault();
-        
+
         Swal.fire({
             title: '¿Crear nuevo usuario?',
             text: "¿Estás seguro de que deseas registrar este nuevo usuario?",
@@ -79,13 +79,13 @@ $(document).ready(function() {
             if (result.isConfirmed) {
                 var formData = $(this).serializeArray();
                 formData.push({ name: 'action', value: 'crear_usuario' });
-                
+
                 $.ajax({
                     url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
                     type: 'POST',
                     data: formData,
                     dataType: 'json',
-                    success: function(response) {
+                    success: function (response) {
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
@@ -94,11 +94,11 @@ $(document).ready(function() {
                                 timer: 2000,
                                 showConfirmButton: false
                             });
-                            
+
                             // Limpiar formulario
                             $('#form-nuevo-usuario')[0].reset();
                             $('#form-nuevo-usuario').removeClass('was-validated');
-                            
+
                             // Recargar tabla
                             tablaUsuarios.ajax.reload();
                         } else {
@@ -109,7 +109,7 @@ $(document).ready(function() {
                             });
                         }
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error del sistema',
@@ -123,9 +123,9 @@ $(document).ready(function() {
     });
 
     // Abrir modal para editar usuario
-    $('#tabla-usuarios tbody').on('click', '.btn-editar', function() {
+    $('#tabla-usuarios tbody').on('click', '.btn-editar', function () {
         var usuarioId = $(this).data('id');
-        
+
         $.ajax({
             url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
             type: 'POST',
@@ -134,7 +134,7 @@ $(document).ready(function() {
                 usuario_id: usuarioId
             },
             dataType: 'json',
-            success: function(response) {
+            success: function (response) {
                 if (response) {
                     $('#edit-usuario-id').val(response.UsuarioID);
                     $('#edit-nombre-usuario').val(response.NombreUsuario);
@@ -142,7 +142,7 @@ $(document).ready(function() {
                     $('#edit-rol').val(response.Rol);
                     $('#edit-estado').val(response.Estado.toString());
                     $('#edit-clave').val('');
-                    
+
                     $('#modal-editar-usuario').modal('show');
                 } else {
                     Swal.fire({
@@ -152,7 +152,7 @@ $(document).ready(function() {
                     });
                 }
             },
-            error: function() {
+            error: function () {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -163,7 +163,7 @@ $(document).ready(function() {
     });
 
     // Actualizar usuario
-    $('#btn-actualizar-usuario').on('click', function() {
+    $('#btn-actualizar-usuario').on('click', function () {
         Swal.fire({
             title: '¿Actualizar usuario?',
             text: "¿Estás seguro de que deseas guardar los cambios?",
@@ -178,13 +178,13 @@ $(document).ready(function() {
             if (result.isConfirmed) {
                 var formData = $('#form-editar-usuario').serializeArray();
                 formData.push({ name: 'action', value: 'editar_usuario' });
-                
+
                 $.ajax({
                     url: '../app/model/gestion_usuarios/scripts/s_gestionusuarios.php',
                     type: 'POST',
                     data: formData,
                     dataType: 'json',
-                    success: function(response) {
+                    success: function (response) {
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
@@ -193,7 +193,7 @@ $(document).ready(function() {
                                 timer: 2000,
                                 showConfirmButton: false
                             });
-                            
+
                             $('#modal-editar-usuario').modal('hide');
                             tablaUsuarios.ajax.reload();
                         } else {
@@ -204,56 +204,24 @@ $(document).ready(function() {
                             });
                         }
                     },
-                    error: function() {
+                    error: function () {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error del sistema',
                             text: 'Ocurrió un error al procesar la solicitud'
                         });
                     }
-                });
+            const tableBottom = tableWrapper.offset().top + tableWrapper.outerHeight();
+                    const footerTop = footer.offset().top;
+
+                    if(tableBottom > footerTop) {
+                    // Agregar espacio extra después de la tabla
+                    tableWrapper.css('margin-bottom', '50px');
+                }
             }
+        }
+
+    // También ajustar cuando cambie el page length
+    $(document).on('draw.dt', function () {
+            setTimeout(adjustDataTableFooter, 100);
         });
-    });
-
-    // Validación de formulario en tiempo real
-    $('#form-nuevo-usuario input').on('blur', function() {
-        if ($(this).is(':invalid')) {
-            $(this).addClass('is-invalid');
-        } else {
-            $(this).removeClass('is-invalid');
-        }
-    });
-
-    // Cerrar modal al hacer clic fuera
-    $('.modal').on('click', function(e) {
-        if ($(e.target).hasClass('modal')) {
-            $(this).modal('hide');
-        }
-    });
-
-    // Recargar tabla cada 30 segundos
-    setInterval(function() {
-        tablaUsuarios.ajax.reload(null, false);
-    }, 30000);
-});
-
-function adjustDataTableFooter() {
-    const tableWrapper = $('.dataTables_wrapper');
-    const footer = $('.pc-footer');
-    
-    if (tableWrapper.length && footer.length) {
-        const tableBottom = tableWrapper.offset().top + tableWrapper.outerHeight();
-        const footerTop = footer.offset().top;
-        
-        if (tableBottom > footerTop) {
-            // Agregar espacio extra después de la tabla
-            tableWrapper.css('margin-bottom', '50px');
-        }
-    }
-}
-
-// También ajustar cuando cambie el page length
-$(document).on('draw.dt', function() {
-    setTimeout(adjustDataTableFooter, 100);
-});

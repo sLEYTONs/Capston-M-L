@@ -8,7 +8,8 @@
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-12 text-end">
-                        <button class="btn btn-primary" id="btn-nueva-ot" data-bs-toggle="modal" data-bs-target="#modalNuevaOT">
+                        <button class="btn btn-primary" id="btn-nueva-ot" data-bs-toggle="modal"
+                            data-bs-target="#modalNuevaOT">
                             <i class="fas fa-plus me-2"></i>Nueva Orden de Trabajo
                         </button>
                     </div>
@@ -18,7 +19,7 @@
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label for="filtro-placa" class="form-label">Buscar por Placa</label>
-                        <input type="text" class="form-control" id="filtro-placa" placeholder="Ej: ABCD60">
+                        <input type="text" class="form-control" id="filtro-placa" placeholder="Ej: BBDK60">
                     </div>
                     <div class="col-md-3">
                         <label for="filtro-numero-ot" class="form-label">Buscar por Número OT</label>
@@ -81,8 +82,8 @@
                     <div class="mb-3">
                         <label class="form-label">Buscar Vehículo por Placa <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="text" class="form-control text-uppercase" id="buscador-placa-ot" 
-                                   placeholder="Ingrese la placa" maxlength="10">
+                            <input type="text" class="form-control text-uppercase" id="buscador-placa-ot"
+                                placeholder="Ingrese la placa" maxlength="10">
                             <button type="button" class="btn btn-primary" id="btn-buscar-placa-ot">
                                 <i class="fas fa-search"></i> Buscar
                             </button>
@@ -94,7 +95,8 @@
 
                     <!-- Información del Trabajo -->
                     <div class="mb-3">
-                        <label for="tipo-trabajo" class="form-label">Tipo de Trabajo <span class="text-danger">*</span></label>
+                        <label for="tipo-trabajo" class="form-label">Tipo de Trabajo <span
+                                class="text-danger">*</span></label>
                         <select class="form-select" id="tipo-trabajo" name="tipo_trabajo" required>
                             <option value="">Seleccione un tipo</option>
                             <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
@@ -107,17 +109,18 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="descripcion-trabajo" class="form-label">Descripción del Trabajo <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="descripcion-trabajo" name="descripcion_trabajo" rows="3" 
-                                  placeholder="Describa el trabajo a realizar..." required></textarea>
+                        <label for="descripcion-trabajo" class="form-label">Descripción del Trabajo <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" id="descripcion-trabajo" name="descripcion_trabajo" rows="3"
+                            placeholder="Describa el trabajo a realizar..." required></textarea>
                     </div>
 
                     <!-- Toma de Imágenes -->
                     <div class="mb-3">
                         <label class="form-label">Fotos del Vehículo</label>
                         <div class="border rounded p-3">
-                            <input type="file" class="form-control" id="fotos-vehiculo" name="fotos[]" 
-                                   accept="image/*" multiple>
+                            <input type="file" class="form-control" id="fotos-vehiculo" name="fotos[]" accept="image/*"
+                                multiple>
                             <small class="text-muted">Puede seleccionar múltiples imágenes</small>
                             <div id="preview-fotos" class="mt-3 row"></div>
                         </div>
@@ -128,8 +131,8 @@
                         <label class="form-label">Documentación Técnica</label>
                         <div class="border rounded p-3">
                             <div class="mb-2">
-                                <input type="file" class="form-control" id="documentos-tecnicos" name="documentos[]" 
-                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" multiple>
+                                <input type="file" class="form-control" id="documentos-tecnicos" name="documentos[]"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" multiple>
                                 <small class="text-muted">Subir documentos técnicos (PDF, Word, Excel, imágenes)</small>
                             </div>
                             <div id="preview-documentos" class="mt-3 row"></div>
@@ -138,12 +141,14 @@
 
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="documentos-validados" name="documentos_validados">
+                            <input class="form-check-input" type="checkbox" id="documentos-validados"
+                                name="documentos_validados">
                             <label class="form-check-label" for="documentos-validados">
                                 Documentación técnica validada
                             </label>
                         </div>
-                        <small class="text-muted">Marque esta casilla cuando haya revisado y validado toda la documentación técnica del vehículo</small>
+                        <small class="text-muted">Marque esta casilla cuando haya revisado y validado toda la
+                            documentación técnica del vehículo</small>
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -174,4 +179,3 @@
         </div>
     </div>
 </div>
-

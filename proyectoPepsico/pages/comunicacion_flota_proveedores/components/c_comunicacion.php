@@ -7,18 +7,18 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
     <div class="col-md-12 mb-4">
         <ul class="nav nav-tabs" id="tabsComunicacion" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="tab-flota" data-bs-toggle="tab" data-bs-target="#panel-flota" 
-                        type="button" role="tab" aria-controls="panel-flota" aria-selected="true">
+                <button class="nav-link active" id="tab-flota" data-bs-toggle="tab" data-bs-target="#panel-flota"
+                    type="button" role="tab" aria-controls="panel-flota" aria-selected="true">
                     <i class="fas fa-truck me-2"></i>Comunicación con Flota
                 </button>
             </li>
             <?php if ($usuario_rol !== 'Chofer'): ?>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tab-proveedores" data-bs-toggle="tab" data-bs-target="#panel-proveedores" 
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-proveedores" data-bs-toggle="tab" data-bs-target="#panel-proveedores"
                         type="button" role="tab" aria-controls="panel-proveedores" aria-selected="false">
-                    <i class="fas fa-boxes me-2"></i>Comunicación con Proveedores
-                </button>
-            </li>
+                        <i class="fas fa-boxes me-2"></i>Comunicación con Proveedores
+                    </button>
+                </li>
             <?php endif; ?>
         </ul>
 
@@ -30,9 +30,10 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Gestión de Comunicación con Flota</h5>
                             <?php if ($usuario_rol !== 'Chofer'): ?>
-                            <button class="btn btn-primary btn-sm" id="btn-nueva-comunicacion-flota" data-bs-toggle="modal" data-bs-target="#modalNuevaComunicacionFlota">
-                                <i class="fas fa-plus me-2"></i>Nueva Comunicación
-                            </button>
+                                <button class="btn btn-primary btn-sm" id="btn-nueva-comunicacion-flota"
+                                    data-bs-toggle="modal" data-bs-target="#modalNuevaComunicacionFlota">
+                                    <i class="fas fa-plus me-2"></i>Nueva Comunicación
+                                </button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -41,15 +42,18 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                         <div class="row mb-3">
                             <div class="col-md-2">
                                 <label for="filtro-placa-flota" class="form-label">Buscar por Placa</label>
-                                <input type="text" class="form-control" id="filtro-placa-flota" placeholder="Ej: ABCD60">
+                                <input type="text" class="form-control" id="filtro-placa-flota"
+                                    placeholder="Ej: BBDK60">
                             </div>
                             <?php if ($usuario_rol !== 'Chofer'): ?>
-                            <div class="col-md-2">
-                                <label for="filtro-conductor-flota" class="form-label">Buscar por Conductor</label>
-                                <input type="text" class="form-control" id="filtro-conductor-flota" placeholder="Nombre del conductor">
-                            </div>
+                                <div class="col-md-2">
+                                    <label for="filtro-conductor-flota" class="form-label">Buscar por Conductor</label>
+                                    <input type="text" class="form-control" id="filtro-conductor-flota"
+                                        placeholder="Nombre del conductor">
+                                </div>
                             <?php else: ?>
-                            <input type="hidden" id="filtro-conductor-flota" value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>">
+                                <input type="hidden" id="filtro-conductor-flota"
+                                    value="<?php echo htmlspecialchars($usuario_actual ?? ''); ?>">
                             <?php endif; ?>
                             <div class="col-md-<?php echo $usuario_rol === 'Chofer' ? '3' : '2'; ?>">
                                 <label for="filtro-tipo-flota" class="form-label">Tipo</label>
@@ -83,7 +87,8 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
 
                         <!-- Tabla de Comunicaciones Flota -->
                         <div class="table-responsive">
-                            <table id="tabla-comunicaciones-flota" class="table table-striped table-hover" style="width:100%">
+                            <table id="tabla-comunicaciones-flota" class="table table-striped table-hover"
+                                style="width:100%">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>Fecha</th>
@@ -163,7 +168,8 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                             <form id="form-comunicacion-proveedores">
                                 <input type="hidden" id="proveedor-id-comunicacion">
                                 <div class="mb-3">
-                                    <label for="tipo-comunicacion-proveedores" class="form-label">Tipo de Comunicación *</label>
+                                    <label for="tipo-comunicacion-proveedores" class="form-label">Tipo de Comunicación
+                                        *</label>
                                     <select class="form-select" id="tipo-comunicacion-proveedores" required>
                                         <option value="">Seleccionar...</option>
                                         <option value="solicitud">Solicitud de Cotización</option>
@@ -179,7 +185,8 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                                 </div>
                                 <div class="mb-3">
                                     <label for="mensaje-proveedores" class="form-label">Mensaje *</label>
-                                    <textarea class="form-control" id="mensaje-proveedores" rows="5" required></textarea>
+                                    <textarea class="form-control" id="mensaje-proveedores" rows="5"
+                                        required></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label for="archivos-proveedores" class="form-label">Archivos Adjuntos</label>
@@ -237,13 +244,15 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
             <div class="modal-body">
                 <form id="form-nueva-comunicacion-flota">
                     <div class="mb-3">
-                        <label for="placa-comunicacion-flota" class="form-label">Placa del Vehículo <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control text-uppercase" id="placa-comunicacion-flota" 
-                               placeholder="Ingrese la placa" maxlength="10" required>
+                        <label for="placa-comunicacion-flota" class="form-label">Placa del Vehículo <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control text-uppercase" id="placa-comunicacion-flota"
+                            placeholder="Ingrese la placa" maxlength="10" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="tipo-comunicacion-flota" class="form-label">Tipo de Comunicación <span class="text-danger">*</span></label>
+                        <label for="tipo-comunicacion-flota" class="form-label">Tipo de Comunicación <span
+                                class="text-danger">*</span></label>
                         <select class="form-select" id="tipo-comunicacion-flota" required>
                             <option value="">Seleccione un tipo</option>
                             <option value="Solicitud">Solicitud</option>
@@ -254,15 +263,17 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                     </div>
 
                     <div class="mb-3">
-                        <label for="asunto-comunicacion-flota" class="form-label">Asunto <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="asunto-comunicacion-flota" 
-                               placeholder="Ingrese el asunto" required>
+                        <label for="asunto-comunicacion-flota" class="form-label">Asunto <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="asunto-comunicacion-flota"
+                            placeholder="Ingrese el asunto" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="mensaje-comunicacion-flota" class="form-label">Mensaje <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="mensaje-comunicacion-flota" rows="5" 
-                                  placeholder="Escriba el mensaje..." required></textarea>
+                        <label for="mensaje-comunicacion-flota" class="form-label">Mensaje <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-comunicacion-flota" rows="5"
+                            placeholder="Escriba el mensaje..." required></textarea>
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -290,31 +301,31 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
             <div class="modal-body">
                 <form id="form-nueva-comunicacion-proveedor">
                     <div class="mb-3">
-                        <label for="proveedor-comunicacion" class="form-label">Proveedor <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="proveedor-comunicacion" 
-                               placeholder="Nombre del proveedor" required>
+                        <label for="proveedor-comunicacion" class="form-label">Proveedor <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="proveedor-comunicacion"
+                            placeholder="Nombre del proveedor" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="contacto-proveedor" class="form-label">Contacto</label>
-                        <input type="text" class="form-control" id="contacto-proveedor" 
-                               placeholder="Nombre del contacto">
+                        <input type="text" class="form-control" id="contacto-proveedor"
+                            placeholder="Nombre del contacto">
                     </div>
 
                     <div class="mb-3">
                         <label for="email-proveedor" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email-proveedor" 
-                               placeholder="email@proveedor.com">
+                        <input type="email" class="form-control" id="email-proveedor" placeholder="email@proveedor.com">
                     </div>
 
                     <div class="mb-3">
                         <label for="telefono-proveedor" class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="telefono-proveedor" 
-                               placeholder="+56 9 1234 5678">
+                        <input type="text" class="form-control" id="telefono-proveedor" placeholder="+56 9 1234 5678">
                     </div>
 
                     <div class="mb-3">
-                        <label for="tipo-comunicacion-proveedor" class="form-label">Tipo de Comunicación <span class="text-danger">*</span></label>
+                        <label for="tipo-comunicacion-proveedor" class="form-label">Tipo de Comunicación <span
+                                class="text-danger">*</span></label>
                         <select class="form-select" id="tipo-comunicacion-proveedor" required>
                             <option value="">Seleccione un tipo</option>
                             <option value="Pedido">Pedido</option>
@@ -325,15 +336,17 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                     </div>
 
                     <div class="mb-3">
-                        <label for="asunto-comunicacion-proveedor" class="form-label">Asunto <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="asunto-comunicacion-proveedor" 
-                               placeholder="Ingrese el asunto" required>
+                        <label for="asunto-comunicacion-proveedor" class="form-label">Asunto <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="asunto-comunicacion-proveedor"
+                            placeholder="Ingrese el asunto" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="mensaje-comunicacion-proveedor" class="form-label">Mensaje <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="mensaje-comunicacion-proveedor" rows="5" 
-                                  placeholder="Escriba el mensaje..." required></textarea>
+                        <label for="mensaje-comunicacion-proveedor" class="form-label">Mensaje <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-comunicacion-proveedor" rows="5"
+                            placeholder="Escriba el mensaje..." required></textarea>
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -382,16 +395,17 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                 <form id="form-responder-comunicacion">
                     <input type="hidden" id="comunicacion-padre-id">
                     <input type="hidden" id="placa-respuesta">
-                    
+
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>Respondiendo a:</strong> <span id="asunto-original-respuesta"></span>
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label for="mensaje-respuesta" class="form-label">Mensaje de Respuesta <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="mensaje-respuesta" rows="6" 
-                                  placeholder="Escriba su respuesta..." required></textarea>
+                        <label for="mensaje-respuesta" class="form-label">Mensaje de Respuesta <span
+                                class="text-danger">*</span></label>
+                        <textarea class="form-control" id="mensaje-respuesta" rows="6"
+                            placeholder="Escriba su respuesta..." required></textarea>
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -437,17 +451,18 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                     </div>
                     <div class="mb-3">
                         <label for="telefono-proveedor-modal" class="form-label">Teléfono *</label>
-                        <input type="tel" class="form-control" id="telefono-proveedor-modal" 
-                               placeholder="+56 9 1234 5678 o 912345678" 
-                               pattern="(\+?56\s?)?[2-9]\d{7,8}" required>
-                        <small class="form-text text-muted">Formato chileno: +56 9 1234 5678 (móvil) o +56 2 2123 4567 (fijo)</small>
+                        <input type="tel" class="form-control" id="telefono-proveedor-modal"
+                            placeholder="+56 9 1234 5678 o 912345678" pattern="(\+?56\s?)?[2-9]\d{7,8}" required>
+                        <small class="form-text text-muted">Formato chileno: +56 9 1234 5678 (móvil) o +56 2 2123 4567
+                            (fijo)</small>
                         <div class="invalid-feedback" id="error-telefono-modal"></div>
                     </div>
                     <div class="mb-3">
                         <label for="rut-proveedor-modal" class="form-label">RUT</label>
-                        <input type="text" class="form-control" id="rut-proveedor-modal" 
-                               placeholder="12.345.678-9 o 1.234.567-8">
-                        <small class="form-text text-muted">Formato: 12.345.678-9 (8 dígitos) o 1.234.567-8 (7 dígitos) - Opcional</small>
+                        <input type="text" class="form-control" id="rut-proveedor-modal"
+                            placeholder="12.345.678-9 o 1.234.567-8">
+                        <small class="form-text text-muted">Formato: 12.345.678-9 (8 dígitos) o 1.234.567-8 (7 dígitos)
+                            - Opcional</small>
                         <div class="invalid-feedback" id="error-rut-modal"></div>
                     </div>
                     <div class="mb-3">
@@ -465,4 +480,3 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
         </div>
     </div>
 </div>
-
