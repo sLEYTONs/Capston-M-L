@@ -1,54 +1,62 @@
 <div class="container-fluid py-4">
+    <!-- Header con acciones principales -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h2 class="mb-0">
                         <i class="fas fa-calendar-alt me-2 text-primary"></i>
                         Administrar Agendas del Taller
                     </h2>
-                    <p class="text-muted mb-0">Gestione las horas disponibles en la agenda del taller</p>
+                    <p class="text-muted mb-0">Gestión de horarios disponibles del taller</p>
                 </div>
-                <button class="btn btn-primary" id="btn-nueva-agenda">
-                    <i class="fas fa-plus me-2"></i>Nueva Agenda
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="btn-nueva-agenda">
+                        <i class="fas fa-plus me-2"></i>Nueva Agenda
+                    </button>
+                    <button class="btn btn-info" id="btn-refrescar">
+                        <i class="fas fa-sync-alt me-2"></i>Refrescar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Filtros -->
+    <!-- Vista de Calendario -->
     <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="filtro-fecha" class="form-label">Filtrar por Fecha</label>
-                    <input type="date" class="form-control" id="filtro-fecha">
-                </div>
-                <div class="col-md-4">
-                    <label for="filtro-disponible" class="form-label">Filtrar por Disponibilidad</label>
-                    <select class="form-select" id="filtro-disponible">
-                        <option value="">Todas</option>
-                        <option value="1">Disponibles</option>
-                        <option value="0">No Disponibles</option>
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button class="btn btn-secondary me-2" id="btn-aplicar-filtros">
-                        <i class="fas fa-filter me-2"></i>Aplicar Filtros
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>Vista de Calendario
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary active" id="btn-vista-mes">
+                        <i class="fas fa-calendar-alt me-1"></i>Mes
                     </button>
-                    <button class="btn btn-outline-secondary" id="btn-limpiar-filtros">
-                        <i class="fas fa-times me-2"></i>Limpiar
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-vista-semana">
+                        <i class="fas fa-calendar-week me-1"></i>Semana
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-vista-dia">
+                        <i class="fas fa-calendar-day me-1"></i>Día
                     </button>
                 </div>
             </div>
         </div>
+        <div class="card-body">
+            <div id="calendario-agendas" style="min-height: 600px;"></div>
+        </div>
     </div>
 
-    <!-- Tabla de Agendas -->
+    <!-- Tabla de agendas -->
     <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Lista de Agendas
+            </h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table id="tabla-agendas" class="table table-striped table-hover">
+                <table id="tabla-agendas" class="table table-striped table-hover" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -56,8 +64,6 @@
                             <th>Hora Inicio</th>
                             <th>Hora Fin</th>
                             <th>Disponible</th>
-                            <th>Solicitudes Aprobadas</th>
-                            <th>Solicitudes Pendientes</th>
                             <th>Observaciones</th>
                             <th>Acciones</th>
                         </tr>
@@ -125,30 +131,3 @@
         </div>
     </div>
 </div>
-
-<!-- Modal de Confirmación para Eliminar -->
-<div class="modal fade" id="modalConfirmarEliminar" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Está seguro de que desea eliminar esta agenda?</p>
-                <div class="alert alert-warning mb-0">
-                    <strong>Nota:</strong> Solo se pueden eliminar agendas que no estén asignadas a solicitudes aprobadas.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="btn-confirmar-eliminar">
-                    <i class="fas fa-trash me-2"></i>Eliminar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-

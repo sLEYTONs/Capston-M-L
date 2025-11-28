@@ -425,13 +425,61 @@ function registrarSalidaVehiculo($placa, $usuario_id) {
     $vehiculo = $resultCheck->fetch_assoc();
     $stmtCheck->close();
     
-    // Actualizar estado a "Finalizado" o mantener "Completado" y agregar fecha de salida
-    // Usamos un estado diferente para indicar que ya salió, o podemos usar un campo FechaSalida
-    $sql = "UPDATE ingreso_vehiculos SET FechaSalida = NOW() WHERE ID = ?";
+    // Verificar si existe la columna Estado en la tabla
+    $checkEstado = "SHOW COLUMNS FROM ingreso_vehiculos LIKE 'Estado'";
+    $resultEstado = $conn->query($checkEstado);
+    $tieneEstado = ($resultEstado && $resultEstado->num_rows > 0);
+    
+    // Verificar si existe la columna FechaSalida
+    $checkFechaSalida = "SHOW COLUMNS FROM ingreso_vehiculos LIKE 'FechaSalida'";
+    $resultFechaSalida = $conn->query($checkFechaSalida);
+    $tieneFechaSalida = ($resultFechaSalida && $resultFechaSalida->num_rows > 0);
+    
+    // Construir la consulta UPDATE dinámicamente
+    $camposUpdate = [];
+    
+    if ($tieneFechaSalida) {
+        $camposUpdate[] = "FechaSalida = NOW()";
+    }
+    
+    if ($tieneEstado) {
+        // Cambiar estado a "Finalizado" si existe, de lo contrario mantener "Completado"
+        $camposUpdate[] = "Estado = 'Finalizado'";
+    }
+    
+    if (empty($camposUpdate)) {
+        $conn->close();
+        return [
+            'success' => false,
+            'message' => 'No se encontraron columnas para actualizar la salida'
+        ];
+    }
+    
+    $sql = "UPDATE ingreso_vehiculos SET " . implode(", ", $camposUpdate) . " WHERE ID = ?";
     
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        error_log("Error preparando UPDATE en registrarSalidaVehiculo: " . mysqli_error($conn));
+        $conn->close();
+        return [
+            'success' => false,
+            'message' => 'Error al preparar la consulta de salida: ' . mysqli_error($conn)
+        ];
+    }
+    
     $stmt->bind_param("i", $vehiculo['ID']);
     $result = $stmt->execute();
+    
+    if (!$result) {
+        error_log("Error ejecutando UPDATE en registrarSalidaVehiculo: " . mysqli_stmt_error($stmt));
+        $errorMsg = mysqli_stmt_error($stmt);
+        $stmt->close();
+        $conn->close();
+        return [
+            'success' => false,
+            'message' => 'Error al registrar salida: ' . $errorMsg
+        ];
+    }
     
     $stmt->close();
     $conn->close();
@@ -552,16 +600,28 @@ function obtenerVehiculosAgendados($fecha = null) {
 function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
     $conn = conectar_Pepsico();
     
-    // Primero obtenemos las fotos actuales
-    $sqlSelect = "SELECT Fotos FROM ingreso_vehiculos WHERE Placa = ? AND Estado = 'Ingresado'";
+    // Buscar el vehículo por placa, incluyendo estados 'Ingresado', 'Completado' y 'Finalizado'
+    // Esto permite guardar fotos tanto al ingresar como al salir
+    $sqlSelect = "SELECT ID, Fotos, Estado FROM ingreso_vehiculos 
+                  WHERE Placa = ? AND Estado IN ('Ingresado', 'Completado', 'Finalizado')
+                  ORDER BY FechaIngreso DESC
+                  LIMIT 1";
     $stmtSelect = $conn->prepare($sqlSelect);
     $stmtSelect->bind_param("s", $placa);
     $stmtSelect->execute();
     $result = $stmtSelect->get_result();
     $row = $result->fetch_assoc();
     
+    if (!$row) {
+        $stmtSelect->close();
+        $conn->close();
+        error_log("No se encontró vehículo con placa $placa para guardar fotos");
+        return false;
+    }
+    
+    $vehiculo_id = $row['ID'];
     $fotosActuales = [];
-    if ($row && $row['Fotos']) {
+    if ($row['Fotos']) {
         $fotosActuales = json_decode($row['Fotos'], true) ?? [];
     }
     
@@ -571,19 +631,23 @@ function guardarFotosVehiculo($placa, $fotosData, $usuario_id) {
             'foto' => $foto['data'],
             'fecha' => date('Y-m-d H:i:s'),
             'usuario' => $usuario_id,
-            'tipo' => $foto['tipo'],
-            'angulo' => $foto['angulo']
+            'tipo' => $foto['tipo'] ?? 'foto_vehiculo',
+            'angulo' => $foto['angulo'] ?? 'general'
         ];
         $fotosActuales[] = $nuevaFoto;
     }
     
-    // Actualizar en base de datos
+    // Actualizar en base de datos usando el ID del vehículo
     $fotosJson = json_encode($fotosActuales);
     
-    $sqlUpdate = "UPDATE ingreso_vehiculos SET Fotos = ? WHERE Placa = ? AND Estado = 'Ingresado'";
+    $sqlUpdate = "UPDATE ingreso_vehiculos SET Fotos = ? WHERE ID = ?";
     $stmtUpdate = $conn->prepare($sqlUpdate);
-    $stmtUpdate->bind_param("ss", $fotosJson, $placa);
+    $stmtUpdate->bind_param("si", $fotosJson, $vehiculo_id);
     $result = $stmtUpdate->execute();
+    
+    if (!$result) {
+        error_log("Error al guardar fotos: " . mysqli_stmt_error($stmtUpdate));
+    }
     
     $stmtSelect->close();
     $stmtUpdate->close();

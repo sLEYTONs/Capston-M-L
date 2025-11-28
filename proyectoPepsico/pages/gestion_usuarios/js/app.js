@@ -211,17 +211,8 @@ $(document).ready(function () {
                             text: 'Ocurrió un error al procesar la solicitud'
                         });
                     }
-            const tableBottom = tableWrapper.offset().top + tableWrapper.outerHeight();
-                    const footerTop = footer.offset().top;
-
-                    if(tableBottom > footerTop) {
-                    // Agregar espacio extra después de la tabla
-                    tableWrapper.css('margin-bottom', '50px');
-                }
+                });
             }
-        }
-
-    // También ajustar cuando cambie el page length
-    $(document).on('draw.dt', function () {
-            setTimeout(adjustDataTableFooter, 100);
         });
+    });
+});

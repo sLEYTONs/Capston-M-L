@@ -8,7 +8,7 @@ function obtenerTodosUsuarios() {
     $conn = conectar_Pepsico();
     
     $sql = "SELECT UsuarioID, NombreUsuario, Correo, Rol, Estado, FechaCreacion, UltimoAcceso 
-            FROM USUARIOS 
+            FROM usuarios 
             ORDER BY FechaCreacion DESC";
     
     $result = $conn->query($sql);
@@ -29,7 +29,7 @@ function obtenerTodosUsuarios() {
 function crearNuevoUsuario($datos) {
     $conn = conectar_Pepsico();
     
-    $sql = "INSERT INTO USUARIOS (NombreUsuario, Correo, ClaveHash, Rol, Estado) 
+    $sql = "INSERT INTO usuarios (NombreUsuario, Correo, ClaveHash, Rol, Estado) 
             VALUES (?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
@@ -59,7 +59,7 @@ function obtenerUsuarioPorId($usuario_id) {
     $conn = conectar_Pepsico();
     
     $sql = "SELECT UsuarioID, NombreUsuario, Correo, Rol, Estado 
-            FROM USUARIOS 
+            FROM usuarios 
             WHERE UsuarioID = ?";
     
     $stmt = $conn->prepare($sql);
@@ -83,7 +83,7 @@ function actualizarUsuario($datos) {
     
     if (!empty($datos['clave'])) {
         // Si se proporciona nueva contraseña
-        $sql = "UPDATE USUARIOS 
+        $sql = "UPDATE usuarios 
                 SET NombreUsuario = ?, Correo = ?, ClaveHash = ?, Rol = ?, Estado = ? 
                 WHERE UsuarioID = ?";
         
@@ -99,7 +99,7 @@ function actualizarUsuario($datos) {
         );
     } else {
         // Sin cambiar contraseña
-        $sql = "UPDATE USUARIOS 
+        $sql = "UPDATE usuarios 
                 SET NombreUsuario = ?, Correo = ?, Rol = ?, Estado = ? 
                 WHERE UsuarioID = ?";
         
@@ -127,11 +127,11 @@ function existeNombreUsuario($nombre_usuario, $excluir_id = null) {
     $conn = conectar_Pepsico();
     
     if ($excluir_id) {
-        $sql = "SELECT COUNT(*) as total FROM USUARIOS WHERE NombreUsuario = ? AND UsuarioID != ?";
+        $sql = "SELECT COUNT(*) as total FROM usuarios WHERE NombreUsuario = ? AND UsuarioID != ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("si", $nombre_usuario, $excluir_id);
     } else {
-        $sql = "SELECT COUNT(*) as total FROM USUARIOS WHERE NombreUsuario = ?";
+        $sql = "SELECT COUNT(*) as total FROM usuarios WHERE NombreUsuario = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $nombre_usuario);
     }
@@ -153,11 +153,11 @@ function existeCorreo($correo, $excluir_id = null) {
     $conn = conectar_Pepsico();
     
     if ($excluir_id) {
-        $sql = "SELECT COUNT(*) as total FROM USUARIOS WHERE Correo = ? AND UsuarioID != ?";
+        $sql = "SELECT COUNT(*) as total FROM usuarios WHERE Correo = ? AND UsuarioID != ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("si", $correo, $excluir_id);
     } else {
-        $sql = "SELECT COUNT(*) as total FROM USUARIOS WHERE Correo = ?";
+        $sql = "SELECT COUNT(*) as total FROM usuarios WHERE Correo = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $correo);
     }

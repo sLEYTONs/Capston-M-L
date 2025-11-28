@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '../../../../config/conexion.php';
+require_once __DIR__ . '/../../../config/conexion.php';
 
 /**
  * Sube un archivo (foto o documento) al servidor
@@ -282,151 +282,122 @@ function crearSolicitudAgendamiento($datos) {
  * Obtiene las solicitudes de agendamiento según filtros
  */
 function obtenerSolicitudesAgendamiento($filtros = []) {
-    $conn = null;
-    try {
-        // Intentar conectar sin usar die() - conexión directa
-        $mysqli = @new mysqli("localhost", "root", "", "Pepsico");
-        
-        if ($mysqli->connect_errno) {
-            error_log("Error de conexión a la base de datos en obtenerSolicitudesAgendamiento: " . $mysqli->connect_error);
-            return [];
-        }
-        
-        // Forzar charset a UTF-8
-        if (!$mysqli->set_charset("utf8mb4")) {
-            error_log("Error cargando el conjunto de caracteres utf8mb4: " . $mysqli->error);
-            $mysqli->close();
-            return [];
-        }
-        
-        $conn = $mysqli;
-
-        // Verificar si la tabla existe
-        $checkTable = "SHOW TABLES LIKE 'solicitudes_agendamiento'";
-        $resultCheck = @mysqli_query($conn, $checkTable);
-        if (!$resultCheck || mysqli_num_rows($resultCheck) == 0) {
-            error_log("Error: La tabla solicitudes_agendamiento no existe. Ejecute el script create_solicitudes_agendamiento.sql");
-            if ($conn) {
-                mysqli_close($conn);
-            }
-            return [];
-        }
-    } catch (Exception $e) {
-        error_log("Excepción en obtenerSolicitudesAgendamiento: " . $e->getMessage());
-        if ($conn) {
-            mysqli_close($conn);
-        }
-        return [];
-    } catch (Error $e) {
-        error_log("Error fatal en obtenerSolicitudesAgendamiento: " . $e->getMessage());
-        if ($conn) {
-            mysqli_close($conn);
-        }
-        return [];
-    }
-
+    $conn = conectar_Pepsico();
     if (!$conn) {
         return [];
     }
 
-    $where = [];
-    
-    if (!empty($filtros['estado'])) {
-        $estado = mysqli_real_escape_string($conn, $filtros['estado']);
-        $where[] = "s.Estado = '$estado'";
-    }
-
-    if (!empty($filtros['chofer_id'])) {
-        $chofer_id = intval($filtros['chofer_id']);
-        $where[] = "s.ChoferID = $chofer_id";
-    }
-
-    if (!empty($filtros['supervisor_id'])) {
-        $supervisor_id = intval($filtros['supervisor_id']);
-        $where[] = "s.SupervisorID = $supervisor_id";
-    }
-
-    if (!empty($filtros['fecha_desde'])) {
-        $fecha_desde = mysqli_real_escape_string($conn, $filtros['fecha_desde']);
-        $where[] = "COALESCE(a.Fecha, s.FechaCreacion) >= '$fecha_desde'";
-    }
-
-    if (!empty($filtros['fecha_hasta'])) {
-        $fecha_hasta = mysqli_real_escape_string($conn, $filtros['fecha_hasta']);
-        $where[] = "COALESCE(a.Fecha, s.FechaCreacion) <= '$fecha_hasta'";
-    }
-
-    if (!empty($filtros['solicitud_id'])) {
-        $solicitud_id = intval($filtros['solicitud_id']);
-        $where[] = "s.ID = $solicitud_id";
-    }
-
-    $whereClause = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
-
-    $query = "SELECT 
-                s.*,
-                u.NombreUsuario as ChoferNombre,
-                u.Correo as ChoferCorreo,
-                sup.NombreUsuario as SupervisorNombre,
-                a.Fecha as FechaAgenda,
-                a.HoraInicio as HoraInicioAgenda,
-                a.HoraFin as HoraFinAgenda,
-                v.ID as VehiculoID,
-                asig.ID as AsignacionID,
-                asig.Estado as EstadoAsignacion,
-                mech.NombreUsuario as MecanicoNombre
-            FROM solicitudes_agendamiento s
-            LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
-            LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
-            LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
-            LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci AND v.Estado IN ('Ingresado', 'Asignado')
-            LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
-            LEFT JOIN usuarios mech ON asig.MecanicoID = mech.UsuarioID
-            $whereClause
-            ORDER BY s.FechaCreacion DESC";
-
     try {
-        // Ejecutar la consulta sin suprimir errores para poder capturarlos
-        $result = mysqli_query($conn, $query);
+        // Verificar si la tabla existe
+        $checkTable = "SHOW TABLES LIKE 'solicitudes_agendamiento'";
+        $resultCheck = $conn->query($checkTable);
+        if (!$resultCheck || $resultCheck->num_rows == 0) {
+            error_log("Error: La tabla solicitudes_agendamiento no existe.");
+            $conn->close();
+            return [];
+        }
+
+        $where = [];
+        
+        if (!empty($filtros['estado'])) {
+            $estado = $conn->real_escape_string($filtros['estado']);
+            $where[] = "s.Estado = '$estado'";
+        }
+
+        if (!empty($filtros['chofer_id'])) {
+            $chofer_id = intval($filtros['chofer_id']);
+            $where[] = "s.ChoferID = $chofer_id";
+        }
+
+        if (!empty($filtros['supervisor_id'])) {
+            $supervisor_id = intval($filtros['supervisor_id']);
+            $where[] = "s.SupervisorID = $supervisor_id";
+        }
+
+        if (!empty($filtros['fecha_desde'])) {
+            $fecha_desde = $conn->real_escape_string($filtros['fecha_desde']);
+            $where[] = "COALESCE(a.Fecha, s.FechaCreacion) >= '$fecha_desde'";
+        }
+
+        if (!empty($filtros['fecha_hasta'])) {
+            $fecha_hasta = $conn->real_escape_string($filtros['fecha_hasta']);
+            $where[] = "COALESCE(a.Fecha, s.FechaCreacion) <= '$fecha_hasta'";
+        }
+
+        if (!empty($filtros['solicitud_id'])) {
+            $solicitud_id = intval($filtros['solicitud_id']);
+            $where[] = "s.ID = $solicitud_id";
+        }
+
+        $whereClause = !empty($where) ? "WHERE " . implode(" AND ", $where) : "";
+
+        $query = "SELECT 
+                    s.*,
+                    u.NombreUsuario as ChoferNombre,
+                    u.Correo as ChoferCorreo,
+                    sup.NombreUsuario as SupervisorNombre,
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio as HoraInicioAgenda,
+                    a.HoraFin as HoraFinAgenda,
+                    v.ID as VehiculoID,
+                    asig.ID as AsignacionID,
+                    asig.Estado as EstadoAsignacion,
+                    mech.NombreUsuario as MecanicoNombre
+                FROM solicitudes_agendamiento s
+                LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
+                LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
+                LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
+                LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci AND v.Estado IN ('Ingresado', 'Asignado')
+                LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+                LEFT JOIN usuarios mech ON asig.MecanicoID = mech.UsuarioID
+                $whereClause
+                ORDER BY s.FechaCreacion DESC";
+
+        $result = $conn->query($query);
         $solicitudes = [];
 
         if (!$result) {
-            $error = mysqli_error($conn);
+            $error = $conn->error;
             error_log("Error en obtenerSolicitudesAgendamiento: " . $error);
             error_log("Query ejecutada: " . $query);
-            error_log("Código de error MySQL: " . mysqli_errno($conn));
-            if ($conn) {
-                mysqli_close($conn);
-            }
-            // Lanzar excepción para que el script principal la capture
+            $conn->close();
             throw new Exception("Error en la consulta SQL: " . $error);
         }
 
-        if ($result) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $solicitudes[] = $row;
-            }
+        while ($row = $result->fetch_assoc()) {
+            // Asegurar que todos los campos estén presentes
+            $solicitud = [
+                'ID' => $row['ID'] ?? 0,
+                'ChoferID' => $row['ChoferID'] ?? 0,
+                'Placa' => $row['Placa'] ?? '',
+                'TipoVehiculo' => $row['TipoVehiculo'] ?? '',
+                'Marca' => $row['Marca'] ?? '',
+                'Modelo' => $row['Modelo'] ?? '',
+                'ConductorNombre' => $row['ConductorNombre'] ?? ($row['ChoferNombre'] ?? ''),
+                'Proposito' => $row['Proposito'] ?? '',
+                'Estado' => $row['Estado'] ?? 'Pendiente',
+                'AgendaID' => $row['AgendaID'] ?? null,
+                'SupervisorID' => $row['SupervisorID'] ?? null,
+                'Observaciones' => $row['Observaciones'] ?? '',
+                'FechaCreacion' => $row['FechaCreacion'] ?? '',
+                'FechaActualizacion' => $row['FechaActualizacion'] ?? ''
+            ];
+            $solicitudes[] = $solicitud;
         }
 
-        if ($conn) {
-            mysqli_close($conn);
-        }
+        $conn->close();
         return $solicitudes;
     } catch (Exception $e) {
         error_log("Excepción en obtenerSolicitudesAgendamiento: " . $e->getMessage());
-        error_log("Stack trace: " . $e->getTraceAsString());
         if ($conn) {
-            mysqli_close($conn);
+            $conn->close();
         }
-        // Re-lanzar la excepción para que el script principal la capture
         throw $e;
     } catch (Error $e) {
         error_log("Error fatal en obtenerSolicitudesAgendamiento: " . $e->getMessage());
-        error_log("Stack trace: " . $e->getTraceAsString());
         if ($conn) {
-            mysqli_close($conn);
+            $conn->close();
         }
-        // Re-lanzar el error para que el script principal lo capture
         throw $e;
     }
 }
@@ -797,14 +768,14 @@ function gestionarAgendaTaller($datos) {
         return ['status' => 'error', 'message' => 'Error de conexión'];
     }
 
-    mysqli_begin_transaction($conn);
+    $conn->begin_transaction();
 
     try {
-        $fecha = mysqli_real_escape_string($conn, $datos['fecha']);
-        $hora_inicio = mysqli_real_escape_string($conn, $datos['hora_inicio']);
-        $hora_fin = mysqli_real_escape_string($conn, $datos['hora_fin']);
+        $fecha = $conn->real_escape_string($datos['fecha']);
+        $hora_inicio = $conn->real_escape_string($datos['hora_inicio']);
+        $hora_fin = $conn->real_escape_string($datos['hora_fin']);
         $disponible = isset($datos['disponible']) ? intval($datos['disponible']) : 1;
-        $observaciones = !empty($datos['observaciones']) ? mysqli_real_escape_string($conn, $datos['observaciones']) : NULL;
+        $observaciones = !empty($datos['observaciones']) ? $conn->real_escape_string($datos['observaciones']) : NULL;
 
         // Validar que hora_inicio sea menor que hora_fin
         if (strtotime($hora_inicio) >= strtotime($hora_fin)) {
@@ -818,8 +789,8 @@ function gestionarAgendaTaller($datos) {
                 WHERE Fecha = '$fecha' 
                 AND HoraInicio = '$hora_inicio' 
                 AND HoraFin = '$hora_fin'";
-            $resultCheckDuplicado = mysqli_query($conn, $queryCheckDuplicado);
-            $duplicado = mysqli_fetch_assoc($resultCheckDuplicado);
+            $resultCheckDuplicado = $conn->query($queryCheckDuplicado);
+            $duplicado = $resultCheckDuplicado->fetch_assoc();
             
             if ($duplicado['total'] > 0) {
                 throw new Exception("Ya existe una hora con la misma fecha y rango horario ($fecha de $hora_inicio a $hora_fin)");
@@ -833,8 +804,8 @@ function gestionarAgendaTaller($datos) {
                 AND (
                     (HoraInicio < '$hora_fin' AND HoraFin > '$hora_inicio')
                 )";
-            $resultCheckSolapamiento = mysqli_query($conn, $queryCheckSolapamiento);
-            $solapamiento = mysqli_fetch_assoc($resultCheckSolapamiento);
+            $resultCheckSolapamiento = $conn->query($queryCheckSolapamiento);
+            $solapamiento = $resultCheckSolapamiento->fetch_assoc();
             
             if ($solapamiento['total'] > 0) {
                 throw new Exception("La hora se solapa con otra hora existente en la misma fecha. Verifique que no haya conflictos de horario.");
@@ -854,8 +825,8 @@ function gestionarAgendaTaller($datos) {
                 AND HoraInicio = '$hora_inicio' 
                 AND HoraFin = '$hora_fin'
                 AND ID != $id";
-            $resultCheckDuplicado = mysqli_query($conn, $queryCheckDuplicado);
-            $duplicado = mysqli_fetch_assoc($resultCheckDuplicado);
+            $resultCheckDuplicado = $conn->query($queryCheckDuplicado);
+            $duplicado = $resultCheckDuplicado->fetch_assoc();
             
             if ($duplicado['total'] > 0) {
                 throw new Exception("Ya existe otra hora con la misma fecha y rango horario ($fecha de $hora_inicio a $hora_fin)");
@@ -870,8 +841,8 @@ function gestionarAgendaTaller($datos) {
                 AND (
                     (HoraInicio < '$hora_fin' AND HoraFin > '$hora_inicio')
                 )";
-            $resultCheckSolapamiento = mysqli_query($conn, $queryCheckSolapamiento);
-            $solapamiento = mysqli_fetch_assoc($resultCheckSolapamiento);
+            $resultCheckSolapamiento = $conn->query($queryCheckSolapamiento);
+            $solapamiento = $resultCheckSolapamiento->fetch_assoc();
             
             if ($solapamiento['total'] > 0) {
                 throw new Exception("La hora se solapa con otra hora existente en la misma fecha. Verifique que no haya conflictos de horario.");
@@ -882,8 +853,8 @@ function gestionarAgendaTaller($datos) {
                 FROM solicitudes_agendamiento 
                 WHERE AgendaID = $id 
                 AND Estado = 'Aprobada'";
-            $resultCheckAsignada = mysqli_query($conn, $queryCheckAsignada);
-            $asignada = mysqli_fetch_assoc($resultCheckAsignada);
+            $resultCheckAsignada = $conn->query($queryCheckAsignada);
+            $asignada = $resultCheckAsignada->fetch_assoc();
             
             if ($asignada['total'] > 0 && $disponible == 0) {
                 throw new Exception("No se puede marcar como no disponible una hora que está asignada a una solicitud aprobada");
@@ -899,21 +870,22 @@ function gestionarAgendaTaller($datos) {
                      WHERE ID = $id";
         }
 
-        if (!mysqli_query($conn, $query)) {
-            throw new Exception("Error al gestionar agenda: " . mysqli_error($conn));
+        if (!$conn->query($query)) {
+            throw new Exception("Error al gestionar agenda: " . $conn->error);
         }
 
-        $agenda_id = empty($datos['id']) ? mysqli_insert_id($conn) : $datos['id'];
-        mysqli_commit($conn);
+        $agenda_id = empty($datos['id']) ? $conn->insert_id : $datos['id'];
+        $conn->commit();
+        $conn->close();
 
         return [
             'status' => 'success',
-            'message' => 'Agenda actualizada correctamente',
+            'message' => empty($datos['id']) ? 'Agenda creada correctamente' : 'Agenda actualizada correctamente',
             'agenda_id' => $agenda_id
         ];
     } catch (Exception $e) {
-        mysqli_rollback($conn);
-        mysqli_close($conn);
+        $conn->rollback();
+        $conn->close();
         return [
             'status' => 'error',
             'message' => $e->getMessage()
@@ -930,66 +902,69 @@ function obtenerTodasLasAgendas($filtroFecha = null, $filtroDisponible = null) {
         return ['status' => 'error', 'message' => 'Error de conexión'];
     }
 
+    try {
     $where = [];
 
     if ($filtroFecha) {
-        $filtroFecha = mysqli_real_escape_string($conn, $filtroFecha);
-        $where[] = "a.Fecha = '$filtroFecha'";
+            $filtroFecha = $conn->real_escape_string($filtroFecha);
+            $where[] = "Fecha = '$filtroFecha'";
     }
 
     if ($filtroDisponible !== null) {
         $filtroDisponible = intval($filtroDisponible);
-        $where[] = "a.Disponible = $filtroDisponible";
+            $where[] = "Disponible = $filtroDisponible";
     }
 
     $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
+        // Consulta para obtener TODOS los datos de agenda_taller
     $query = "SELECT 
-                a.ID,
-                a.Fecha,
-                a.HoraInicio,
-                a.HoraFin,
-                a.Disponible,
-                a.Observaciones,
-                a.FechaCreacion,
-                a.FechaActualizacion,
-                COUNT(DISTINCT CASE WHEN s.Estado = 'Aprobada' THEN s.ID END) as SolicitudesAprobadas,
-                COUNT(DISTINCT CASE WHEN s.Estado = 'Pendiente' THEN s.ID END) as SolicitudesPendientes
-              FROM agenda_taller a
-              LEFT JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+                    ID,
+                    Fecha,
+                    HoraInicio,
+                    HoraFin,
+                    Disponible,
+                    Observaciones,
+                    FechaCreacion,
+                    FechaActualizacion
+                  FROM agenda_taller
               $whereClause
-              GROUP BY a.ID
-              ORDER BY a.Fecha DESC, a.HoraInicio DESC";
+                  ORDER BY Fecha DESC, HoraInicio DESC";
 
-    $result = mysqli_query($conn, $query);
+        $result = $conn->query($query);
     if (!$result) {
-        mysqli_close($conn);
-        return ['status' => 'error', 'message' => 'Error en consulta: ' . mysqli_error($conn)];
+            $error = $conn->error;
+            $conn->close();
+            return ['status' => 'error', 'message' => 'Error en consulta: ' . $error];
     }
 
     $agendas = [];
 
-    while ($row = mysqli_fetch_assoc($result)) {
+        while ($row = $result->fetch_assoc()) {
         $agendas[] = [
-            'ID' => $row['ID'],
+                'ID' => (int)$row['ID'],
             'Fecha' => $row['Fecha'],
             'HoraInicio' => $row['HoraInicio'],
             'HoraFin' => $row['HoraFin'],
-            'Disponible' => (bool)$row['Disponible'],
-            'Observaciones' => $row['Observaciones'],
+                'Disponible' => (int)$row['Disponible'],
+                'Observaciones' => $row['Observaciones'] ? $row['Observaciones'] : '',
             'FechaCreacion' => $row['FechaCreacion'],
-            'FechaActualizacion' => $row['FechaActualizacion'],
-            'SolicitudesAprobadas' => (int)$row['SolicitudesAprobadas'],
-            'SolicitudesPendientes' => (int)$row['SolicitudesPendientes']
+                'FechaActualizacion' => $row['FechaActualizacion']
         ];
     }
 
-    mysqli_close($conn);
+        $conn->close();
 
     return [
         'status' => 'success',
         'data' => $agendas
     ];
+    } catch (Exception $e) {
+        if ($conn) {
+            $conn->close();
+        }
+        return ['status' => 'error', 'message' => 'Error: ' . $e->getMessage()];
+    }
 }
 
 /**
@@ -1002,7 +977,7 @@ function eliminarAgenda($agenda_id) {
         return ['status' => 'error', 'message' => 'Error de conexión'];
     }
 
-    mysqli_begin_transaction($conn);
+    $conn->begin_transaction();
 
     try {
         $agenda_id = intval($agenda_id);
@@ -1012,8 +987,8 @@ function eliminarAgenda($agenda_id) {
                       FROM solicitudes_agendamiento 
                       WHERE AgendaID = $agenda_id 
                       AND Estado = 'Aprobada'";
-        $resultCheck = mysqli_query($conn, $queryCheck);
-        $check = mysqli_fetch_assoc($resultCheck);
+        $resultCheck = $conn->query($queryCheck);
+        $check = $resultCheck->fetch_assoc();
 
         if ($check['total'] > 0) {
             throw new Exception("No se puede eliminar una agenda que está asignada a una solicitud aprobada");
@@ -1025,27 +1000,27 @@ function eliminarAgenda($agenda_id) {
                                   WHERE AgendaID = $agenda_id 
                                   AND Estado = 'Pendiente'";
 
-        if (!mysqli_query($conn, $queryUpdateSolicitudes)) {
-            throw new Exception("Error al actualizar solicitudes: " . mysqli_error($conn));
+        if (!$conn->query($queryUpdateSolicitudes)) {
+            throw new Exception("Error al actualizar solicitudes: " . $conn->error);
         }
 
         // Eliminar la agenda
         $query = "DELETE FROM agenda_taller WHERE ID = $agenda_id";
 
-        if (!mysqli_query($conn, $query)) {
-            throw new Exception("Error al eliminar agenda: " . mysqli_error($conn));
+        if (!$conn->query($query)) {
+            throw new Exception("Error al eliminar agenda: " . $conn->error);
         }
 
-        mysqli_commit($conn);
-        mysqli_close($conn);
+        $conn->commit();
+        $conn->close();
 
         return [
             'status' => 'success',
             'message' => 'Agenda eliminada correctamente'
         ];
     } catch (Exception $e) {
-        mysqli_rollback($conn);
-        mysqli_close($conn);
+        $conn->rollback();
+        $conn->close();
         return [
             'status' => 'error',
             'message' => $e->getMessage()
@@ -1238,186 +1213,711 @@ function marcarVehiculosComoSalidos($placaExcluir = 'WLVY22') {
     try {
         $placaExcluir = mysqli_real_escape_string($conn, $placaExcluir);
         
-        // Verificar si la columna FechaSalida existe
-        $checkColumn = "SELECT COUNT(*) as existe 
-                       FROM INFORMATION_SCHEMA.COLUMNS 
-                       WHERE TABLE_SCHEMA = DATABASE() 
-                       AND TABLE_NAME = 'ingreso_vehiculos' 
-                       AND COLUMN_NAME = 'FechaSalida'";
-        $resultCheck = mysqli_query($conn, $checkColumn);
-        $columnExists = false;
-        if ($resultCheck) {
-            $row = mysqli_fetch_assoc($resultCheck);
-            $columnExists = ($row['existe'] > 0);
-        }
-        
-        if (!$columnExists) {
-            mysqli_close($conn);
-            throw new Exception("La columna FechaSalida no existe en la tabla ingreso_vehiculos. Ejecute el script add_fecha_salida_ingreso_vehiculos.sql primero.");
-        }
-        
-        // Iniciar transacción después de verificar la columna
-        mysqli_begin_transaction($conn);
-        
-        // Normalizar la placa a excluir (mayúsculas, sin espacios)
-        $placaExcluirUpper = strtoupper(trim($placaExcluir));
-        
-        // Primero, verificar qué vehículos hay
-        $queryListar = "SELECT ID, Placa, Estado, FechaSalida 
-                       FROM ingreso_vehiculos 
-                       ORDER BY ID";
-        $resultListar = mysqli_query($conn, $queryListar);
-        $vehiculosLista = [];
-        while ($row = mysqli_fetch_assoc($resultListar)) {
-            $vehiculosLista[] = $row;
-        }
-        error_log("marcarVehiculosComoSalidos - Total vehículos en BD: " . count($vehiculosLista));
-        
-        // Contar cuántos vehículos se van a actualizar (excluyendo la placa especificada)
-        $queryCount = "SELECT COUNT(*) as total 
-                      FROM ingreso_vehiculos 
-                      WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
-                      AND (FechaSalida IS NULL OR FechaSalida = '')";
-        $resultCount = mysqli_query($conn, $queryCount);
-        $countRow = mysqli_fetch_assoc($resultCount);
-        $totalVehiculos = $countRow['total'];
-        
-        error_log("marcarVehiculosComoSalidos - Vehículos a actualizar: $totalVehiculos (excluyendo placa: $placaExcluirUpper)");
-        
-        if ($totalVehiculos == 0) {
-            mysqli_rollback($conn);
-            mysqli_close($conn);
-            return [
-                'status' => 'info',
-                'message' => "No hay vehículos para actualizar. Todos los vehículos (excepto $placaExcluirUpper) ya tienen fecha de salida o no existen.",
-                'vehiculos_actualizados' => 0,
-                'debug' => [
-                    'total_vehiculos_bd' => count($vehiculosLista),
-                    'placa_excluir' => $placaExcluirUpper
-                ]
-            ];
-        }
-        
-        // Desactivar autocommit para asegurar que la transacción funcione
-        mysqli_autocommit($conn, false);
-        
-        // Actualizar todos los vehículos excepto el especificado
-        // Usar UPPER y TRIM para comparación case-insensitive
-        // Actualizar TODOS los vehículos que no sean la placa excluida, sin importar si ya tienen FechaSalida
-        $placaExcluirEscaped = mysqli_real_escape_string($conn, $placaExcluirUpper);
+        // Marcar todos los vehículos completados como salidos, excepto la placa especificada
         $query = "UPDATE ingreso_vehiculos 
-                  SET FechaSalida = NOW(),
-                      Estado = 'Disponible'
-                  WHERE UPPER(TRIM(Placa)) != '$placaExcluirEscaped'";
-        
-        error_log("marcarVehiculosComoSalidos - Query: $query");
-        error_log("marcarVehiculosComoSalidos - Placa a excluir (original): $placaExcluir");
-        error_log("marcarVehiculosComoSalidos - Placa a excluir (upper): $placaExcluirUpper");
+                  SET Estado = 'Finalizado', 
+                      FechaSalida = NOW() 
+                  WHERE Estado = 'Completado' 
+                  AND Placa != '$placaExcluir'";
         
         if (!mysqli_query($conn, $query)) {
-            $error = mysqli_error($conn);
-            error_log("marcarVehiculosComoSalidos - Error SQL: $error");
-            mysqli_rollback($conn);
-            mysqli_close($conn);
-            throw new Exception("Error al actualizar vehículos: $error");
+            throw new Exception("Error al marcar vehículos: " . mysqli_error($conn));
         }
         
-        $vehiculosActualizados = mysqli_affected_rows($conn);
-        error_log("marcarVehiculosComoSalidos - Vehículos actualizados (affected_rows): $vehiculosActualizados");
+        $afectados = mysqli_affected_rows($conn);
+            mysqli_close($conn);
         
-        if ($vehiculosActualizados == 0) {
-            // Si no se actualizó ninguno, verificar por qué
-            $queryDebug = "SELECT ID, Placa, Estado, FechaSalida 
-                          FROM ingreso_vehiculos 
-                          LIMIT 10";
-            $resultDebug = mysqli_query($conn, $queryDebug);
-            $debugInfo = [];
-            while ($row = mysqli_fetch_assoc($resultDebug)) {
-                $debugInfo[] = $row;
-            }
-            error_log("marcarVehiculosComoSalidos - Debug - Primeros 10 vehículos: " . json_encode($debugInfo));
+        return [
+            'status' => 'success',
+            'message' => "Se marcaron $afectados vehículos como salidos",
+            'vehiculos_afectados' => $afectados
+        ];
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene o guarda la configuración de horarios del taller
+ */
+function gestionarConfiguracionHorarios($datos = null) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Verificar si existe la tabla de configuración
+        $checkTable = "SHOW TABLES LIKE 'configuracion_taller'";
+        $resultCheck = mysqli_query($conn, $checkTable);
+        
+        if (!$resultCheck || mysqli_num_rows($resultCheck) == 0) {
+            // Crear tabla si no existe
+            $createTable = "CREATE TABLE IF NOT EXISTS `configuracion_taller` (
+                `ID` INT(11) NOT NULL AUTO_INCREMENT,
+                `HoraApertura` TIME NOT NULL DEFAULT '08:00:00',
+                `HoraCierre` TIME NOT NULL DEFAULT '20:00:00',
+                `DuracionCitas` INT(11) NOT NULL DEFAULT 60,
+                `IntervaloCitas` INT(11) NOT NULL DEFAULT 0,
+                `DiasOperacion` VARCHAR(20) NOT NULL DEFAULT '1,2,3,4,5,6,0',
+                `Operacion247` TINYINT(1) NOT NULL DEFAULT 1,
+                `FechaActualizacion` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`ID`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
             
+            if (!mysqli_query($conn, $createTable)) {
+                throw new Exception("Error al crear tabla de configuración: " . mysqli_error($conn));
+            }
+            
+            // Insertar configuración por defecto
+            $insertDefault = "INSERT INTO configuracion_taller (HoraApertura, HoraCierre, DuracionCitas, IntervaloCitas, DiasOperacion, Operacion247) 
+                             VALUES ('08:00:00', '20:00:00', 60, 0, '1,2,3,4,5,6,0', 1)";
+            mysqli_query($conn, $insertDefault);
+        }
+
+        if ($datos === null) {
+            // Obtener configuración
+            $query = "SELECT * FROM configuracion_taller ORDER BY ID DESC LIMIT 1";
+            $result = mysqli_query($conn, $query);
+            
+            if (!$result || mysqli_num_rows($result) == 0) {
+                // Retornar configuración por defecto
+            return [
+                    'status' => 'success',
+                    'data' => [
+                        'HoraApertura' => '08:00:00',
+                        'HoraCierre' => '20:00:00',
+                        'DuracionCitas' => 60,
+                        'IntervaloCitas' => 0,
+                        'DiasOperacion' => '1,2,3,4,5,6,0',
+                        'Operacion247' => 1
+                    ]
+                ];
+            }
+            
+            $config = mysqli_fetch_assoc($result);
+            mysqli_close($conn);
+            
+            return [
+                'status' => 'success',
+                'data' => $config
+            ];
+        } else {
+            // Guardar configuración
+            $horaApertura = mysqli_real_escape_string($conn, $datos['hora_apertura'] ?? '08:00:00');
+            $horaCierre = mysqli_real_escape_string($conn, $datos['hora_cierre'] ?? '20:00:00');
+            $duracionCitas = intval($datos['duracion_citas'] ?? 60);
+            $intervaloCitas = intval($datos['intervalo_citas'] ?? 0);
+            $diasOperacion = mysqli_real_escape_string($conn, $datos['dias_operacion'] ?? '1,2,3,4,5,6,0');
+            $operacion247 = isset($datos['operacion_247']) ? intval($datos['operacion_247']) : 1;
+            
+            // Verificar si ya existe configuración
+            $checkConfig = "SELECT ID FROM configuracion_taller ORDER BY ID DESC LIMIT 1";
+            $resultCheck = mysqli_query($conn, $checkConfig);
+            
+            if ($resultCheck && mysqli_num_rows($resultCheck) > 0) {
+                // Actualizar
+                $query = "UPDATE configuracion_taller 
+                         SET HoraApertura = '$horaApertura',
+                             HoraCierre = '$horaCierre',
+                             DuracionCitas = $duracionCitas,
+                             IntervaloCitas = $intervaloCitas,
+                             DiasOperacion = '$diasOperacion',
+                             Operacion247 = $operacion247
+                         ORDER BY ID DESC LIMIT 1";
+            } else {
+                // Insertar
+                $query = "INSERT INTO configuracion_taller (HoraApertura, HoraCierre, DuracionCitas, IntervaloCitas, DiasOperacion, Operacion247) 
+                         VALUES ('$horaApertura', '$horaCierre', $duracionCitas, $intervaloCitas, '$diasOperacion', $operacion247)";
+            }
+        
+        if (!mysqli_query($conn, $query)) {
+                throw new Exception("Error al guardar configuración: " . mysqli_error($conn));
+            }
+            
+            mysqli_close($conn);
+            
+            return [
+                'status' => 'success',
+                'message' => 'Configuración guardada correctamente'
+            ];
+        }
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Genera horarios automáticamente según la configuración del taller
+ */
+function generarHorariosAutomaticos($fechaDesde, $fechaHasta) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Obtener configuración
+        $configResult = gestionarConfiguracionHorarios();
+        if ($configResult['status'] !== 'success') {
+            throw new Exception("Error al obtener configuración");
+        }
+        
+        $config = $configResult['data'];
+        $horaApertura = $config['HoraApertura'];
+        $horaCierre = $config['HoraCierre'];
+        $duracionCitas = intval($config['DuracionCitas']);
+        $intervaloCitas = intval($config['IntervaloCitas']);
+        $diasOperacion = explode(',', $config['DiasOperacion']);
+        $operacion247 = intval($config['Operacion247']);
+        
+        // Si es 24/7, usar horario completo
+        if ($operacion247) {
+            $horaApertura = '00:00:00';
+            $horaCierre = '23:59:59';
+        }
+        
+        mysqli_begin_transaction($conn);
+        
+        $fechaDesdeObj = new DateTime($fechaDesde);
+        $fechaHastaObj = new DateTime($fechaHasta);
+        $fechaHastaObj->modify('+1 day'); // Incluir el día final
+        
+        $horariosCreados = 0;
+        $horariosExistentes = 0;
+        
+        // Iterar por cada día en el rango
+        $fechaActual = clone $fechaDesdeObj;
+        while ($fechaActual < $fechaHastaObj) {
+            $fecha = $fechaActual->format('Y-m-d');
+            $diaSemana = intval($fechaActual->format('w')); // 0 = domingo, 1 = lunes, etc.
+            
+            // Verificar si el día está en los días de operación
+            if (in_array((string)$diaSemana, $diasOperacion) || $operacion247) {
+                // Generar horarios para este día
+                $horaInicioObj = new DateTime($fecha . ' ' . $horaApertura);
+                $horaCierreObj = new DateTime($fecha . ' ' . $horaCierre);
+                
+                $horaActual = clone $horaInicioObj;
+                
+                while ($horaActual < $horaCierreObj) {
+                    $horaInicio = $horaActual->format('H:i:s');
+                    $horaActual->modify("+$duracionCitas minutes");
+                    $horaFin = $horaActual->format('H:i:s');
+                    
+                    // Verificar si ya existe este horario
+                    $checkQuery = "SELECT ID FROM agenda_taller 
+                                  WHERE Fecha = '$fecha' 
+                                  AND HoraInicio = '$horaInicio' 
+                                  AND HoraFin = '$horaFin'";
+                    $checkResult = mysqli_query($conn, $checkQuery);
+                    
+                    if (!$checkResult || mysqli_num_rows($checkResult) == 0) {
+                        // Crear nuevo horario
+                        $insertQuery = "INSERT INTO agenda_taller (Fecha, HoraInicio, HoraFin, Disponible) 
+                                      VALUES ('$fecha', '$horaInicio', '$horaFin', 1)";
+                        
+                        if (mysqli_query($conn, $insertQuery)) {
+                            $horariosCreados++;
+                        }
+                    } else {
+                        $horariosExistentes++;
+                    }
+                    
+                    // Agregar intervalo entre citas
+                    if ($intervaloCitas > 0) {
+                        $horaActual->modify("+$intervaloCitas minutes");
+                    }
+                }
+            }
+            
+            $fechaActual->modify('+1 day');
+        }
+        
+        mysqli_commit($conn);
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'message' => "Se generaron $horariosCreados nuevos horarios. $horariosExistentes horarios ya existían.",
+            'horarios_creados' => $horariosCreados,
+            'horarios_existentes' => $horariosExistentes
+        ];
+    } catch (Exception $e) {
             mysqli_rollback($conn);
             mysqli_close($conn);
             return [
-                'status' => 'warning',
-                'message' => "No se actualizó ningún vehículo. Verifique que existan vehículos en la base de datos y que la placa a excluir sea correcta.",
-                'vehiculos_actualizados' => 0,
-                'debug' => [
-                    'query' => $query,
-                    'placa_excluir' => $placaExcluirUpper,
-                    'vehiculos_en_bd' => $debugInfo
-                ]
-            ];
-        }
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene estadísticas de la agenda
+ */
+function obtenerEstadisticasAgenda() {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Horas disponibles
+        $queryDisponibles = "SELECT COUNT(*) as total FROM agenda_taller WHERE Disponible = 1";
+        $resultDisponibles = mysqli_query($conn, $queryDisponibles);
+        $disponibles = mysqli_fetch_assoc($resultDisponibles)['total'];
         
-        // Verificar que se actualizaron correctamente
-        $queryVerify = "SELECT COUNT(*) as total 
-                       FROM ingreso_vehiculos 
-                       WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
-                       AND FechaSalida IS NOT NULL 
-                       AND FechaSalida != ''";
-        $resultVerify = mysqli_query($conn, $queryVerify);
-        $verifyRow = mysqli_fetch_assoc($resultVerify);
-        $vehiculosConFechaSalida = $verifyRow['total'];
+        // Horas ocupadas (asignadas a solicitudes aprobadas)
+        $queryOcupadas = "SELECT COUNT(DISTINCT a.ID) as total 
+                         FROM agenda_taller a
+                         INNER JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+                         WHERE s.Estado = 'Aprobada'";
+        $resultOcupadas = mysqli_query($conn, $queryOcupadas);
+        $ocupadas = mysqli_fetch_assoc($resultOcupadas)['total'];
         
-        error_log("marcarVehiculosComoSalidos - Vehículos con FechaSalida después de actualizar: $vehiculosConFechaSalida");
+        // Solicitudes pendientes
+        $queryPendientes = "SELECT COUNT(*) as total FROM solicitudes_agendamiento WHERE Estado = 'Pendiente'";
+        $resultPendientes = mysqli_query($conn, $queryPendientes);
+        $pendientes = mysqli_fetch_assoc($resultPendientes)['total'];
         
-        // Listar algunos vehículos actualizados para verificación
-        $queryEjemplos = "SELECT ID, Placa, Estado, FechaSalida 
-                         FROM ingreso_vehiculos 
-                         WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
-                         AND FechaSalida IS NOT NULL 
-                         LIMIT 5";
-        $resultEjemplos = mysqli_query($conn, $queryEjemplos);
-        $ejemplos = [];
-        while ($row = mysqli_fetch_assoc($resultEjemplos)) {
-            $ejemplos[] = $row;
-        }
-        error_log("marcarVehiculosComoSalidos - Ejemplos de vehículos actualizados: " . json_encode($ejemplos));
-        
-        // Hacer commit de la transacción
-        if (!mysqli_commit($conn)) {
-            $error = mysqli_error($conn);
-            error_log("marcarVehiculosComoSalidos - Error en commit: $error");
-            mysqli_rollback($conn);
-            mysqli_close($conn);
-            throw new Exception("Error al confirmar los cambios: $error");
-        }
-        
-        error_log("marcarVehiculosComoSalidos - Transacción confirmada exitosamente");
-        
-        // Verificar una vez más después del commit
-        $queryFinal = "SELECT COUNT(*) as total 
-                      FROM ingreso_vehiculos 
-                      WHERE UPPER(TRIM(Placa)) != '$placaExcluirUpper' 
-                      AND FechaSalida IS NOT NULL 
-                      AND FechaSalida != ''";
-        $resultFinal = mysqli_query($conn, $queryFinal);
-        $finalRow = mysqli_fetch_assoc($resultFinal);
-        $totalFinal = $finalRow['total'];
-        
-        error_log("marcarVehiculosComoSalidos - Verificación final: $totalFinal vehículos con FechaSalida");
+        // Próximos 7 días
+        $fechaHoy = date('Y-m-d');
+        $fecha7Dias = date('Y-m-d', strtotime('+7 days'));
+        $queryProximos = "SELECT COUNT(*) as total 
+                         FROM agenda_taller 
+                         WHERE Fecha >= '$fechaHoy' 
+                         AND Fecha <= '$fecha7Dias' 
+                         AND Disponible = 1";
+        $resultProximos = mysqli_query($conn, $queryProximos);
+        $proximos = mysqli_fetch_assoc($resultProximos)['total'];
         
         mysqli_close($conn);
         
         return [
             'status' => 'success',
-            'message' => "Se marcaron $vehiculosActualizados vehículo(s) como salidos del taller (excepto placa $placaExcluirUpper). Total con fecha de salida: $totalFinal",
-            'vehiculos_actualizados' => $vehiculosActualizados,
-            'vehiculos_con_fecha_salida' => $totalFinal,
-            'debug' => [
-                'query_ejecutada' => $query,
-                'affected_rows' => $vehiculosActualizados,
-                'verificacion_final' => $totalFinal,
-                'ejemplos' => $ejemplos
+            'data' => [
+                'disponibles' => intval($disponibles),
+                'ocupadas' => intval($ocupadas),
+                'pendientes' => intval($pendientes),
+                'proximos_7_dias' => intval($proximos)
             ]
         ];
-        
     } catch (Exception $e) {
-        mysqli_rollback($conn);
         mysqli_close($conn);
-        error_log("marcarVehiculosComoSalidos - Excepción: " . $e->getMessage());
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene horarios por rango de fechas para el calendario
+ */
+function obtenerHorariosPorRango($fechaDesde, $fechaHasta) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        $fechaDesde = mysqli_real_escape_string($conn, $fechaDesde);
+        $fechaHasta = mysqli_real_escape_string($conn, $fechaHasta);
+        
+        $query = "SELECT 
+                    a.ID,
+                    a.Fecha,
+                    a.HoraInicio,
+                    a.HoraFin,
+                    a.Disponible,
+                    a.Observaciones,
+                    COUNT(DISTINCT CASE WHEN s.Estado = 'Aprobada' THEN s.ID END) as SolicitudesAprobadas,
+                    COUNT(DISTINCT CASE WHEN s.Estado = 'Pendiente' THEN s.ID END) as SolicitudesPendientes
+                  FROM agenda_taller a
+                  LEFT JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+                  WHERE a.Fecha >= '$fechaDesde' AND a.Fecha <= '$fechaHasta'
+                  GROUP BY a.ID
+                  ORDER BY a.Fecha ASC, a.HoraInicio ASC";
+        
+        $result = mysqli_query($conn, $query);
+        
+        if (!$result) {
+            throw new Exception("Error en consulta: " . mysqli_error($conn));
+        }
+        
+        $horarios = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $horarios[] = [
+                'ID' => $row['ID'],
+                'Fecha' => $row['Fecha'],
+                'HoraInicio' => $row['HoraInicio'],
+                'HoraFin' => $row['HoraFin'],
+                'Disponible' => (bool)$row['Disponible'],
+                'Observaciones' => $row['Observaciones'],
+                'SolicitudesAprobadas' => intval($row['SolicitudesAprobadas']),
+                'SolicitudesPendientes' => intval($row['SolicitudesPendientes'])
+            ];
+        }
+        
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'data' => $horarios
+        ];
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene o guarda la configuración de horarios del taller
+ */
+function gestionarConfiguracionHorarios($datos = null) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Verificar si existe la tabla de configuración
+        $checkTable = "SHOW TABLES LIKE 'configuracion_taller'";
+        $resultCheck = mysqli_query($conn, $checkTable);
+        
+        if (!$resultCheck || mysqli_num_rows($resultCheck) == 0) {
+            // Crear tabla si no existe
+            $createTable = "CREATE TABLE IF NOT EXISTS `configuracion_taller` (
+                `ID` INT(11) NOT NULL AUTO_INCREMENT,
+                `HoraApertura` TIME NOT NULL DEFAULT '08:00:00',
+                `HoraCierre` TIME NOT NULL DEFAULT '20:00:00',
+                `DuracionCitas` INT(11) NOT NULL DEFAULT 60,
+                `IntervaloCitas` INT(11) NOT NULL DEFAULT 0,
+                `DiasOperacion` VARCHAR(20) NOT NULL DEFAULT '1,2,3,4,5,6,0',
+                `Operacion247` TINYINT(1) NOT NULL DEFAULT 1,
+                `FechaActualizacion` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`ID`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            
+            if (!mysqli_query($conn, $createTable)) {
+                throw new Exception("Error al crear tabla de configuración: " . mysqli_error($conn));
+            }
+            
+            // Insertar configuración por defecto
+            $insertDefault = "INSERT INTO configuracion_taller (HoraApertura, HoraCierre, DuracionCitas, IntervaloCitas, DiasOperacion, Operacion247) 
+                             VALUES ('08:00:00', '20:00:00', 60, 0, '1,2,3,4,5,6,0', 1)";
+            mysqli_query($conn, $insertDefault);
+        }
+
+        if ($datos === null) {
+            // Obtener configuración
+            $query = "SELECT * FROM configuracion_taller ORDER BY ID DESC LIMIT 1";
+            $result = mysqli_query($conn, $query);
+            
+            if (!$result || mysqli_num_rows($result) == 0) {
+                // Retornar configuración por defecto
+                return [
+                    'status' => 'success',
+                    'data' => [
+                        'HoraApertura' => '08:00:00',
+                        'HoraCierre' => '20:00:00',
+                        'DuracionCitas' => 60,
+                        'IntervaloCitas' => 0,
+                        'DiasOperacion' => '1,2,3,4,5,6,0',
+                        'Operacion247' => 1
+                    ]
+                ];
+            }
+            
+            $config = mysqli_fetch_assoc($result);
+            mysqli_close($conn);
+            
+            return [
+                'status' => 'success',
+                'data' => $config
+            ];
+        } else {
+            // Guardar configuración
+            $horaApertura = mysqli_real_escape_string($conn, $datos['hora_apertura'] ?? '08:00:00');
+            $horaCierre = mysqli_real_escape_string($conn, $datos['hora_cierre'] ?? '20:00:00');
+            $duracionCitas = intval($datos['duracion_citas'] ?? 60);
+            $intervaloCitas = intval($datos['intervalo_citas'] ?? 0);
+            $diasOperacion = mysqli_real_escape_string($conn, $datos['dias_operacion'] ?? '1,2,3,4,5,6,0');
+            $operacion247 = isset($datos['operacion_247']) ? intval($datos['operacion_247']) : 1;
+            
+            // Verificar si ya existe configuración
+            $checkConfig = "SELECT ID FROM configuracion_taller ORDER BY ID DESC LIMIT 1";
+            $resultCheck = mysqli_query($conn, $checkConfig);
+            
+            if ($resultCheck && mysqli_num_rows($resultCheck) > 0) {
+                // Actualizar
+                $query = "UPDATE configuracion_taller 
+                         SET HoraApertura = '$horaApertura',
+                             HoraCierre = '$horaCierre',
+                             DuracionCitas = $duracionCitas,
+                             IntervaloCitas = $intervaloCitas,
+                             DiasOperacion = '$diasOperacion',
+                             Operacion247 = $operacion247
+                         ORDER BY ID DESC LIMIT 1";
+            } else {
+                // Insertar
+                $query = "INSERT INTO configuracion_taller (HoraApertura, HoraCierre, DuracionCitas, IntervaloCitas, DiasOperacion, Operacion247) 
+                         VALUES ('$horaApertura', '$horaCierre', $duracionCitas, $intervaloCitas, '$diasOperacion', $operacion247)";
+            }
+            
+            if (!mysqli_query($conn, $query)) {
+                throw new Exception("Error al guardar configuración: " . mysqli_error($conn));
+            }
+            
+            mysqli_close($conn);
+            
+            return [
+                'status' => 'success',
+                'message' => 'Configuración guardada correctamente'
+            ];
+        }
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Genera horarios automáticamente según la configuración del taller
+ */
+function generarHorariosAutomaticos($fechaDesde, $fechaHasta) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Obtener configuración
+        $configResult = gestionarConfiguracionHorarios();
+        if ($configResult['status'] !== 'success') {
+            throw new Exception("Error al obtener configuración");
+        }
+        
+        $config = $configResult['data'];
+        $horaApertura = $config['HoraApertura'];
+        $horaCierre = $config['HoraCierre'];
+        $duracionCitas = intval($config['DuracionCitas']);
+        $intervaloCitas = intval($config['IntervaloCitas']);
+        $diasOperacion = explode(',', $config['DiasOperacion']);
+        $operacion247 = intval($config['Operacion247']);
+        
+        // Si es 24/7, usar horario completo
+        if ($operacion247) {
+            $horaApertura = '00:00:00';
+            $horaCierre = '23:59:59';
+        }
+        
+        mysqli_begin_transaction($conn);
+        
+        $fechaDesdeObj = new DateTime($fechaDesde);
+        $fechaHastaObj = new DateTime($fechaHasta);
+        $fechaHastaObj->modify('+1 day'); // Incluir el día final
+        
+        $horariosCreados = 0;
+        $horariosExistentes = 0;
+        
+        // Iterar por cada día en el rango
+        $fechaActual = clone $fechaDesdeObj;
+        while ($fechaActual < $fechaHastaObj) {
+            $fecha = $fechaActual->format('Y-m-d');
+            $diaSemana = intval($fechaActual->format('w')); // 0 = domingo, 1 = lunes, etc.
+            
+            // Verificar si el día está en los días de operación
+            if (in_array((string)$diaSemana, $diasOperacion) || $operacion247) {
+                // Generar horarios para este día
+                $horaInicioObj = new DateTime($fecha . ' ' . $horaApertura);
+                $horaCierreObj = new DateTime($fecha . ' ' . $horaCierre);
+                
+                $horaActual = clone $horaInicioObj;
+                
+                while ($horaActual < $horaCierreObj) {
+                    $horaInicio = $horaActual->format('H:i:s');
+                    $horaActual->modify("+$duracionCitas minutes");
+                    $horaFin = $horaActual->format('H:i:s');
+                    
+                    // Verificar si ya existe este horario
+                    $checkQuery = "SELECT ID FROM agenda_taller 
+                                  WHERE Fecha = '$fecha' 
+                                  AND HoraInicio = '$horaInicio' 
+                                  AND HoraFin = '$horaFin'";
+                    $checkResult = mysqli_query($conn, $checkQuery);
+                    
+                    if (!$checkResult || mysqli_num_rows($checkResult) == 0) {
+                        // Crear nuevo horario
+                        $insertQuery = "INSERT INTO agenda_taller (Fecha, HoraInicio, HoraFin, Disponible) 
+                                      VALUES ('$fecha', '$horaInicio', '$horaFin', 1)";
+                        
+                        if (mysqli_query($conn, $insertQuery)) {
+                            $horariosCreados++;
+                        }
+                    } else {
+                        $horariosExistentes++;
+                    }
+                    
+                    // Agregar intervalo entre citas
+                    if ($intervaloCitas > 0) {
+                        $horaActual->modify("+$intervaloCitas minutes");
+                    }
+                }
+            }
+            
+            $fechaActual->modify('+1 day');
+        }
+        
+        mysqli_commit($conn);
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'message' => "Se generaron $horariosCreados nuevos horarios. $horariosExistentes horarios ya existían.",
+            'horarios_creados' => $horariosCreados,
+            'horarios_existentes' => $horariosExistentes
+        ];
+    } catch (Exception $e) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene estadísticas de la agenda
+ */
+function obtenerEstadisticasAgenda() {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        // Horas disponibles
+        $queryDisponibles = "SELECT COUNT(*) as total FROM agenda_taller WHERE Disponible = 1";
+        $resultDisponibles = mysqli_query($conn, $queryDisponibles);
+        $disponibles = mysqli_fetch_assoc($resultDisponibles)['total'];
+        
+        // Horas ocupadas (asignadas a solicitudes aprobadas)
+        $queryOcupadas = "SELECT COUNT(DISTINCT a.ID) as total 
+                         FROM agenda_taller a
+                         INNER JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+                         WHERE s.Estado = 'Aprobada'";
+        $resultOcupadas = mysqli_query($conn, $queryOcupadas);
+        $ocupadas = mysqli_fetch_assoc($resultOcupadas)['total'];
+        
+        // Solicitudes pendientes
+        $queryPendientes = "SELECT COUNT(*) as total FROM solicitudes_agendamiento WHERE Estado = 'Pendiente'";
+        $resultPendientes = mysqli_query($conn, $queryPendientes);
+        $pendientes = mysqli_fetch_assoc($resultPendientes)['total'];
+        
+        // Próximos 7 días
+        $fechaHoy = date('Y-m-d');
+        $fecha7Dias = date('Y-m-d', strtotime('+7 days'));
+        $queryProximos = "SELECT COUNT(*) as total 
+                         FROM agenda_taller 
+                         WHERE Fecha >= '$fechaHoy' 
+                         AND Fecha <= '$fecha7Dias' 
+                         AND Disponible = 1";
+        $resultProximos = mysqli_query($conn, $queryProximos);
+        $proximos = mysqli_fetch_assoc($resultProximos)['total'];
+        
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'data' => [
+                'disponibles' => intval($disponibles),
+                'ocupadas' => intval($ocupadas),
+                'pendientes' => intval($pendientes),
+                'proximos_7_dias' => intval($proximos)
+            ]
+        ];
+    } catch (Exception $e) {
+        mysqli_close($conn);
+        return [
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene horarios por rango de fechas para el calendario
+ */
+function obtenerHorariosPorRango($fechaDesde, $fechaHasta) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['status' => 'error', 'message' => 'Error de conexión'];
+    }
+
+    try {
+        $fechaDesde = mysqli_real_escape_string($conn, $fechaDesde);
+        $fechaHasta = mysqli_real_escape_string($conn, $fechaHasta);
+        
+        $query = "SELECT 
+                    a.ID,
+                    a.Fecha,
+                    a.HoraInicio,
+                    a.HoraFin,
+                    a.Disponible,
+                    a.Observaciones,
+                    COUNT(DISTINCT CASE WHEN s.Estado = 'Aprobada' THEN s.ID END) as SolicitudesAprobadas,
+                    COUNT(DISTINCT CASE WHEN s.Estado = 'Pendiente' THEN s.ID END) as SolicitudesPendientes
+                  FROM agenda_taller a
+                  LEFT JOIN solicitudes_agendamiento s ON a.ID = s.AgendaID
+                  WHERE a.Fecha >= '$fechaDesde' AND a.Fecha <= '$fechaHasta'
+                  GROUP BY a.ID
+                  ORDER BY a.Fecha ASC, a.HoraInicio ASC";
+        
+        $result = mysqli_query($conn, $query);
+        
+        if (!$result) {
+            throw new Exception("Error en consulta: " . mysqli_error($conn));
+        }
+        
+        $horarios = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $horarios[] = [
+                'ID' => $row['ID'],
+                'Fecha' => $row['Fecha'],
+                'HoraInicio' => $row['HoraInicio'],
+                'HoraFin' => $row['HoraFin'],
+                'Disponible' => (bool)$row['Disponible'],
+                'Observaciones' => $row['Observaciones'],
+                'SolicitudesAprobadas' => intval($row['SolicitudesAprobadas']),
+                'SolicitudesPendientes' => intval($row['SolicitudesPendientes'])
+            ];
+        }
+        
+        mysqli_close($conn);
+        
+        return [
+            'status' => 'success',
+            'data' => $horarios
+        ];
+    } catch (Exception $e) {
+        mysqli_close($conn);
         return [
             'status' => 'error',
             'message' => $e->getMessage()

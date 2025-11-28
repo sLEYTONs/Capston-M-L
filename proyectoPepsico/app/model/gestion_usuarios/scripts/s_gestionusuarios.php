@@ -160,11 +160,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn = conectar_Pepsico();
 
             $sql = "SELECT u.UsuarioID, u.NombreUsuario, u.Correo 
-                    FROM USUARIOS u 
+                    FROM usuarios u 
                     WHERE u.Rol = 'Chofer' 
                     AND u.Estado = 1
                     AND NOT EXISTS (
-                        SELECT 1 FROM VEHICULOS v 
+                        SELECT 1 FROM vehiculos v 
                         WHERE v.ConductorNombre = u.NombreUsuario
                     )
                     ORDER BY u.NombreUsuario";

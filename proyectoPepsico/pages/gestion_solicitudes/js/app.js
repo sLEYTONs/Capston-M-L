@@ -98,80 +98,78 @@ class GestionSolicitudes {
             body: formData
         })
             .then(response => {
-                // Verificar si la respuesta es JSON válido
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    // Si no es JSON, leer como texto para ver el error
-                    return response.text().then(text => {
-                        console.error('Respuesta no JSON recibida:', text);
-                        throw new Error('El servidor devolvió una respuesta no válida. Ver consola para detalles.');
-                    });
-                }
-                // Verificar si la respuesta fue exitosa
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        console.error('Error HTTP:', response.status);
-                        console.error('Respuesta completa:', text);
-                        // Intentar parsear como JSON para obtener el mensaje de error
-                        try {
-                            const errorData = JSON.parse(text);
-                            throw new Error(errorData.message || 'Error del servidor: ' + response.status);
-                        } catch (e) {
-                            // Si no es JSON, mostrar el texto completo
-                            throw new Error('Error del servidor: ' + response.status + '. Ver consola para detalles.');
+                return response.text().then(text => {
+                    // Intentar parsear como JSON
+                    try {
+                        const data = JSON.parse(text);
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Error del servidor: ' + response.status);
                         }
-                    });
-                }
-                return response.json();
+                        return data;
+                    } catch (e) {
+                        // Si no es JSON, es un error del servidor
+                        console.error('Respuesta no JSON:', text);
+                        throw new Error('Error del servidor. Ver consola para detalles.');
+                    }
+                });
             })
             .then(data => {
                 if (data.status === 'success') {
-                    this.mostrarSolicitudes(data.data);
+                    this.mostrarSolicitudes(Array.isArray(data.data) ? data.data : []);
                 } else {
                     this.mostrarToast('Error', data.message || 'Error al cargar solicitudes', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error completo:', error);
-                console.error('URL base:', this.baseUrl);
-                // Mostrar mensaje más descriptivo
-                let mensaje = error.message || 'Error de conexión con el servidor';
-                if (error.message && error.message.includes('JSON')) {
-                    mensaje = 'El servidor devolvió una respuesta inválida. Verifique que las tablas existan en la base de datos.';
-                }
-                this.mostrarToast('Error', mensaje, 'error');
+                console.error('Error al cargar solicitudes:', error);
+                this.mostrarToast('Error', error.message || 'Error de conexión con el servidor', 'error');
             });
     }
 
     mostrarSolicitudes(solicitudes) {
         const tbody = document.querySelector('#solicitudes-table tbody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.error('No se encontró el tbody de la tabla');
+            return;
+        }
 
         tbody.innerHTML = '';
 
-        if (solicitudes.length === 0) {
+        if (!Array.isArray(solicitudes) || solicitudes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay solicitudes disponibles</td></tr>';
+            // Destruir DataTable si existe
+            if (this.dataTable) {
+                this.dataTable.destroy();
+                this.dataTable = null;
+            }
             return;
         }
 
         solicitudes.forEach(solicitud => {
             const row = document.createElement('tr');
-            const estadoClass = this.getEstadoClass(solicitud.Estado);
+            const estadoClass = this.getEstadoClass(solicitud.Estado || 'Pendiente');
+            const estado = solicitud.Estado || 'Pendiente';
+            const id = solicitud.ID || 0;
+            const placa = solicitud.Placa || 'N/A';
+            const marca = solicitud.Marca || '';
+            const modelo = solicitud.Modelo || '';
+            const proposito = solicitud.Proposito || '';
+            const choferNombre = solicitud.ChoferNombre || solicitud.ChoferNombre || 'N/A';
 
             row.innerHTML = `
-                <td>${solicitud.ID}</td>
-                <td>${solicitud.Placa}</td>
-                <td>${solicitud.Marca} ${solicitud.Modelo}</td>
-                <td>${solicitud.Proposito}</td>
-                <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
-                <td>${solicitud.ChoferNombre || 'N/A'}</td>
+                <td>${id}</td>
+                <td>${placa}</td>
+                <td>${marca} ${modelo}</td>
+                <td>${proposito}</td>
+                <td><span class="badge ${estadoClass}">${estado}</span></td>
+                <td>${choferNombre}</td>
                 <td>
-                    ${solicitud.Estado === 'Pendiente' ? `
-                        <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${solicitud.ID})">
+                    ${estado === 'Pendiente' ? `
+                        <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${id})">
                             <i class="fas fa-edit"></i> Gestionar
                         </button>
                     ` : `
-                        <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${solicitud.ID})">
+                        <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${id})">
                             <i class="fas fa-eye"></i> Ver
                         </button>
                     `}

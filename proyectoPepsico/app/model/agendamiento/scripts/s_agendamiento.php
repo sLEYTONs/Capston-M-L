@@ -170,32 +170,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     $solicitudes = obtenerSolicitudesAgendamiento($filtros);
                     
+                    // Asegurar que siempre devolvamos un array
+                    if (!is_array($solicitudes)) {
+                        $solicitudes = [];
+                    }
+                    
                     echo json_encode([
                         'status' => 'success',
                         'data' => $solicitudes
-                    ]);
+                    ], JSON_UNESCAPED_UNICODE);
                 } catch (Exception $e) {
                     ob_clean();
                     http_response_code(500);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => 'Error al obtener solicitudes: ' . $e->getMessage(),
-                        'debug' => [
-                            'file' => $e->getFile(),
-                            'line' => $e->getLine()
-                        ]
-                    ]);
+                        'message' => 'Error al obtener solicitudes: ' . $e->getMessage()
+                    ], JSON_UNESCAPED_UNICODE);
                 } catch (Error $e) {
                     ob_clean();
                     http_response_code(500);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => 'Error fatal al obtener solicitudes: ' . $e->getMessage(),
-                        'debug' => [
-                            'file' => $e->getFile(),
-                            'line' => $e->getLine()
-                        ]
-                    ]);
+                        'message' => 'Error fatal al obtener solicitudes: ' . $e->getMessage()
+                    ], JSON_UNESCAPED_UNICODE);
                 }
                 break;
 
@@ -310,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 $resultado = gestionarAgendaTaller($datos);
-                echo json_encode($resultado);
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
                 break;
 
             case 'obtener_mecanicos_disponibles':
@@ -365,13 +362,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
 
-            default:
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Acción no válida'
-                ]);
-                break;
-
             case 'obtener_todas_agendas':
                 // Verificar que el usuario sea supervisor o administrador
                 if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
@@ -386,7 +376,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $filtroDisponible = isset($_POST['filtro_disponible']) && $_POST['filtro_disponible'] !== '' ? intval($_POST['filtro_disponible']) : null;
 
                 $resultado = obtenerTodasLasAgendas($filtroFecha, $filtroDisponible);
-                echo json_encode($resultado);
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+                break;
+
+            case 'obtener_agenda':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $id = !empty($_POST['id']) ? intval($_POST['id']) : 0;
+                if ($id <= 0) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'ID de agenda inválido'
+                    ]);
+                    exit;
+                }
+
+                $conn = conectar_Pepsico();
+                if (!$conn) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Error de conexión'
+                    ]);
+                    exit;
+                }
+
+                $id = $conn->real_escape_string($id);
+                $query = "SELECT ID, Fecha, HoraInicio, HoraFin, Disponible, Observaciones, FechaCreacion, FechaActualizacion 
+                          FROM agenda_taller WHERE ID = $id LIMIT 1";
+                $result = $conn->query($query);
+                
+                if ($result && $result->num_rows > 0) {
+                    $agenda = $result->fetch_assoc();
+                    echo json_encode([
+                        'status' => 'success',
+                        'data' => $agenda
+                    ], JSON_UNESCAPED_UNICODE);
+                } else {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Agenda no encontrada'
+                    ], JSON_UNESCAPED_UNICODE);
+                }
+                $conn->close();
                 break;
 
             case 'eliminar_agenda':
@@ -399,7 +437,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                if (empty($_POST['agenda_id'])) {
+                $id = !empty($_POST['id']) ? intval($_POST['id']) : (!empty($_POST['agenda_id']) ? intval($_POST['agenda_id']) : 0);
+                if ($id <= 0) {
                     echo json_encode([
                         'status' => 'error',
                         'message' => 'ID de agenda no proporcionado'
@@ -407,8 +446,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                $resultado = eliminarAgenda(intval($_POST['agenda_id']));
-                echo json_encode($resultado);
+                $resultado = eliminarAgenda($id);
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
                 break;
 
             case 'marcar_vehiculos_salidos':
@@ -426,6 +465,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $resultado = marcarVehiculosComoSalidos($placaExcluir);
                 echo json_encode($resultado);
+                break;
+
+            case 'obtener_configuracion_horarios':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $resultado = gestionarConfiguracionHorarios();
+                echo json_encode($resultado);
+                break;
+
+            case 'guardar_configuracion_horarios':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $datos = [
+                    'hora_apertura' => $_POST['hora_apertura'] ?? '08:00:00',
+                    'hora_cierre' => $_POST['hora_cierre'] ?? '20:00:00',
+                    'duracion_citas' => $_POST['duracion_citas'] ?? 60,
+                    'intervalo_citas' => $_POST['intervalo_citas'] ?? 0,
+                    'dias_operacion' => $_POST['dias_operacion'] ?? '1,2,3,4,5,6,0',
+                    'operacion_247' => isset($_POST['operacion_247']) ? intval($_POST['operacion_247']) : 1
+                ];
+
+                $resultado = gestionarConfiguracionHorarios($datos);
+                echo json_encode($resultado);
+                break;
+
+            case 'generar_horarios_automaticos':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $fechaDesde = $_POST['fecha_desde'] ?? '';
+                $fechaHasta = $_POST['fecha_hasta'] ?? '';
+
+                if (empty($fechaDesde) || empty($fechaHasta)) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Fechas requeridas'
+                    ]);
+                    exit;
+                }
+
+                $resultado = generarHorariosAutomaticos($fechaDesde, $fechaHasta);
+                echo json_encode($resultado);
+                break;
+
+            case 'obtener_estadisticas_agenda':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $resultado = obtenerEstadisticasAgenda();
+                echo json_encode($resultado);
+                break;
+
+            case 'obtener_horarios_por_rango':
+                // Verificar que el usuario sea supervisor o administrador
+                if (!isset($_SESSION['usuario']) || !in_array($_SESSION['usuario']['rol'], ['Supervisor', 'Administrador'])) {
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'No tiene permisos para realizar esta acción'
+                    ]);
+                    exit;
+                }
+
+                $fechaDesde = $_POST['fecha_desde'] ?? date('Y-m-d');
+                $fechaHasta = $_POST['fecha_hasta'] ?? date('Y-m-d', strtotime('+1 month'));
+
+                $resultado = obtenerHorariosPorRango($fechaDesde, $fechaHasta);
+                echo json_encode($resultado);
+                break;
+
+            default:
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Acción no válida'
+                ]);
                 break;
         }
     } catch (Exception $e) {

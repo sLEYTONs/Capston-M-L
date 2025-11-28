@@ -16,6 +16,9 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     <?php include 'general/head.php'; ?>
     <link rel="stylesheet" href="administrar_agendas/css/style.css">
     
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css' rel='stylesheet' />
+    
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 </head>
@@ -50,6 +53,10 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
+    
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/es.js'></script>
     
     <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>

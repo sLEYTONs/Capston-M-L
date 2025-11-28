@@ -111,7 +111,8 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     <?php include 'general/script.php'; ?>
     
     <!-- FullCalendar JS -->
-    <script src='../assets/js/plugins/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales/es.js'></script>
     
     <script src="gestion_solicitudes/js/app.js"></script>
 </body>
