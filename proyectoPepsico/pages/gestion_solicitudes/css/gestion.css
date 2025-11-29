@@ -193,3 +193,87 @@
     }
 }
 
+/* Estilos para el modal de gestión de solicitud */
+#gestionarSolicitudModal .modal-dialog {
+    max-width: 1200px;
+    margin: 1.75rem auto;
+}
+
+#gestionarSolicitudModal .modal-body {
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+#gestionarSolicitudModal .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+#gestionarSolicitudModal h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* Calendario dentro del modal */
+#calendario-horas-disponibles {
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+#calendario-horas-disponibles:empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+#calendario-horas-disponibles:empty::before {
+    content: "Cargando calendario...";
+    color: #999;
+    font-size: 14px;
+}
+
+#calendario-horas-disponibles .fc {
+    font-size: 0.875rem;
+}
+
+#calendario-horas-disponibles .fc-toolbar {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+#calendario-horas-disponibles .fc-toolbar-title {
+    font-size: 1rem;
+}
+
+#calendario-horas-disponibles .fc-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+#calendario-horas-disponibles .fc-event {
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 2px 4px;
+}
+
+/* Asegurar que el modal no sea demasiado grande */
+#gestionarSolicitudModal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#gestionarSolicitudModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+}
+

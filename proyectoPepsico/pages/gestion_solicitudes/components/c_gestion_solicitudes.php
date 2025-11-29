@@ -63,10 +63,10 @@
 
 <!-- Modal para Aprobar/Rechazar Solicitud -->
 <div class="modal fade" id="gestionarSolicitudModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
+                <h5 class="modal-title" style="font-size: 1.1rem; font-weight: 600;">
                     <i class="fas fa-clipboard-check me-2"></i>
                     Gestionar Solicitud de Agendamiento
                 </h5>
@@ -89,9 +89,36 @@
                         calendario para seleccionarlo.
                     </div>
 
-                    <!-- Calendario con horas disponibles -->
+                    <!-- Listado de horas disponibles -->
                     <div class="mb-3">
-                        <div id="calendario-horas-disponibles" style="min-height: 400px;"></div>
+                        <div id="calendario-loading" style="display: flex; align-items: center; justify-content: center; min-height: 100px; color: #999; padding: 20px;">
+                            <div class="spinner-border text-primary me-2" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <span>Cargando horas disponibles...</span>
+                        </div>
+                        <div id="sin-horas-disponibles" class="alert alert-warning" style="display: none; text-align: center;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay horas disponibles para asignar. Por favor, crea agendas disponibles en "Administrar Agendas".
+                        </div>
+                        <div id="listado-horas-disponibles" style="display: none;">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-hover table-striped">
+                                    <thead class="table-light" style="position: sticky; top: 0; z-index: 10;">
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Hora Inicio</th>
+                                            <th>Hora Fin</th>
+                                            <th>Observaciones</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-horas-disponibles">
+                                        <!-- Se llenará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Información de selección -->

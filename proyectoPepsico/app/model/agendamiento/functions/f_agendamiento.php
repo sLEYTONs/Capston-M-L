@@ -336,9 +336,48 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                     u.NombreUsuario as ChoferNombre,
                     u.Correo as ChoferCorreo,
                     sup.NombreUsuario as SupervisorNombre,
-                    a.Fecha as FechaAgenda,
-                    a.HoraInicio as HoraInicioAgenda,
-                    a.HoraFin as HoraFinAgenda,
+                    COALESCE(a.Fecha, 
+                        (SELECT a2.Fecha 
+                         FROM asignaciones_mecanico asig2
+                         INNER JOIN ingreso_vehiculos v2 ON asig2.VehiculoID = v2.ID
+                         INNER JOIN solicitudes_agendamiento s2 ON v2.Placa COLLATE utf8mb4_unicode_ci = s2.Placa COLLATE utf8mb4_unicode_ci
+                         INNER JOIN agenda_taller a2 ON s2.AgendaID = a2.ID
+                         WHERE v2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                           AND asig2.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                           AND s2.Estado = 'Aprobada'
+                           AND s2.AgendaID IS NOT NULL
+                           AND (s2.ID = s.ID OR s2.FechaCreacion >= s.FechaCreacion)
+                         ORDER BY s2.FechaCreacion DESC
+                         LIMIT 1)
+                    ) as FechaAgenda,
+                    COALESCE(a.HoraInicio,
+                        (SELECT a2.HoraInicio 
+                         FROM asignaciones_mecanico asig2
+                         INNER JOIN ingreso_vehiculos v2 ON asig2.VehiculoID = v2.ID
+                         INNER JOIN solicitudes_agendamiento s2 ON v2.Placa COLLATE utf8mb4_unicode_ci = s2.Placa COLLATE utf8mb4_unicode_ci
+                         INNER JOIN agenda_taller a2 ON s2.AgendaID = a2.ID
+                         WHERE v2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                           AND asig2.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                           AND s2.Estado = 'Aprobada'
+                           AND s2.AgendaID IS NOT NULL
+                           AND (s2.ID = s.ID OR s2.FechaCreacion >= s.FechaCreacion)
+                         ORDER BY s2.FechaCreacion DESC
+                         LIMIT 1)
+                    ) as HoraInicioAgenda,
+                    COALESCE(a.HoraFin,
+                        (SELECT a2.HoraFin 
+                         FROM asignaciones_mecanico asig2
+                         INNER JOIN ingreso_vehiculos v2 ON asig2.VehiculoID = v2.ID
+                         INNER JOIN solicitudes_agendamiento s2 ON v2.Placa COLLATE utf8mb4_unicode_ci = s2.Placa COLLATE utf8mb4_unicode_ci
+                         INNER JOIN agenda_taller a2 ON s2.AgendaID = a2.ID
+                         WHERE v2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                           AND asig2.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                           AND s2.Estado = 'Aprobada'
+                           AND s2.AgendaID IS NOT NULL
+                           AND (s2.ID = s.ID OR s2.FechaCreacion >= s.FechaCreacion)
+                         ORDER BY s2.FechaCreacion DESC
+                         LIMIT 1)
+                    ) as HoraFinAgenda,
                     v.ID as VehiculoID,
                     asig.ID as AsignacionID,
                     asig.Estado as EstadoAsignacion,
@@ -365,6 +404,38 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
         }
 
         while ($row = $result->fetch_assoc()) {
+            // Si no hay FechaAgenda, intentar obtenerla desde la asignación
+            $fechaAgenda = $row['FechaAgenda'] ?? null;
+            $horaInicioAgenda = $row['HoraInicioAgenda'] ?? null;
+            $horaFinAgenda = $row['HoraFinAgenda'] ?? null;
+            
+            // Si no hay agenda directa, buscar desde asignación
+            if (!$fechaAgenda && !empty($row['Placa'])) {
+                $placa = $row['Placa'];
+                $queryAgendaAsignacion = "SELECT 
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio as HoraInicioAgenda,
+                    a.HoraFin as HoraFinAgenda
+                FROM asignaciones_mecanico asig
+                INNER JOIN ingreso_vehiculos v ON asig.VehiculoID = v.ID
+                INNER JOIN solicitudes_agendamiento s2 ON v.Placa COLLATE utf8mb4_unicode_ci = s2.Placa COLLATE utf8mb4_unicode_ci
+                INNER JOIN agenda_taller a ON s2.AgendaID = a.ID
+                WHERE v.Placa COLLATE utf8mb4_unicode_ci = '$placa'
+                  AND s2.Estado = 'Aprobada'
+                  AND s2.AgendaID IS NOT NULL
+                  AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                ORDER BY s2.FechaCreacion DESC
+                LIMIT 1";
+                
+                $resultAgendaAsignacion = $conn->query($queryAgendaAsignacion);
+                if ($resultAgendaAsignacion && $resultAgendaAsignacion->num_rows > 0) {
+                    $agendaRow = $resultAgendaAsignacion->fetch_assoc();
+                    $fechaAgenda = $agendaRow['FechaAgenda'] ?? null;
+                    $horaInicioAgenda = $agendaRow['HoraInicioAgenda'] ?? null;
+                    $horaFinAgenda = $agendaRow['HoraFinAgenda'] ?? null;
+                }
+            }
+            
             // Asegurar que todos los campos estén presentes
             $solicitud = [
                 'ID' => $row['ID'] ?? 0,
@@ -380,7 +451,16 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 'SupervisorID' => $row['SupervisorID'] ?? null,
                 'Observaciones' => $row['Observaciones'] ?? '',
                 'FechaCreacion' => $row['FechaCreacion'] ?? '',
-                'FechaActualizacion' => $row['FechaActualizacion'] ?? ''
+                'FechaActualizacion' => $row['FechaActualizacion'] ?? '',
+                'FechaAgenda' => $fechaAgenda,
+                'HoraInicioAgenda' => $horaInicioAgenda,
+                'HoraFinAgenda' => $horaFinAgenda,
+                'ChoferNombre' => $row['ChoferNombre'] ?? '',
+                'SupervisorNombre' => $row['SupervisorNombre'] ?? '',
+                'MecanicoNombre' => $row['MecanicoNombre'] ?? '',
+                'VehiculoID' => $row['VehiculoID'] ?? null,
+                'AsignacionID' => $row['AsignacionID'] ?? null,
+                'EstadoAsignacion' => $row['EstadoAsignacion'] ?? null
             ];
             $solicitudes[] = $solicitud;
         }
@@ -427,15 +507,16 @@ function obtenerHorasDisponibles($fecha, $mecanico_id = null) {
     $fecha = mysqli_real_escape_string($conn, $fecha);
     $mecanico_id = $mecanico_id ? intval($mecanico_id) : null;
 
-    // Obtener todas las horas disponibles para la fecha en el rango de 9:00 a 23:00 (para pruebas)
+    // Obtener todas las horas disponibles para la fecha en el rango de 9:00 AM a 11:00 PM
+    // Mostrar horas que empiezan entre 9:00 AM y 11:00 PM (23:00:00)
     $query = "SELECT 
-                ID, HoraInicio, HoraFin, Disponible, Observaciones
+                ID, HoraInicio, HoraFin, Disponible, Observaciones, Fecha
             FROM agenda_taller
             WHERE Fecha = '$fecha' 
             AND Disponible = 1
             AND HoraInicio >= '09:00:00'
-            AND HoraFin <= '23:00:00'
-            ORDER BY HoraInicio";
+            AND HoraInicio <= '23:00:00'
+            ORDER BY HoraInicio ASC";
 
     $result = mysqli_query($conn, $query);
     $horas = [];
@@ -481,6 +562,8 @@ function obtenerHorasDisponibles($fecha, $mecanico_id = null) {
                 }
             }
             
+            // Asegurar que la fecha esté incluida en el resultado
+            $row['Fecha'] = $fecha;
             $horas[] = $row;
         }
     }

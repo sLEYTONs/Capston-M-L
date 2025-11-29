@@ -308,11 +308,14 @@ class GestionSolicitudes {
                     const modal = new bootstrap.Modal(document.getElementById('gestionarSolicitudModal'));
                     modal.show();
 
-                    // Inicializar calendario y cargar horas cuando el modal esté completamente visible
+                    // Inicializar y cargar horas cuando el modal esté completamente visible
                     modal._element.addEventListener('shown.bs.modal', () => {
-                        // Pequeño delay para asegurar que el DOM esté completamente renderizado
+                        // Delay para asegurar que el DOM esté completamente renderizado
                         setTimeout(() => {
+                            console.log('Inicializando listado...');
                             this.inicializarCalendario();
+                            // Cargar horas disponibles
+                            console.log('Cargando horas disponibles...');
                             this.cargarHorasDisponiblesCalendario();
                         }, 100);
                     }, { once: true });
@@ -350,213 +353,212 @@ class GestionSolicitudes {
     }
 
     inicializarCalendario() {
-        const calendarEl = document.getElementById('calendario-horas-disponibles');
-        if (!calendarEl) return;
-
-        // Destruir calendario existente si existe
-        if (this.calendario) {
-            this.calendario.destroy();
+        // Ya no usamos FullCalendar, solo inicializamos el listado
+        console.log('Inicializando listado de horas disponibles...');
+        const loadingEl = document.getElementById('calendario-loading');
+        const listadoEl = document.getElementById('listado-horas-disponibles');
+        
+        if (loadingEl) {
+            loadingEl.style.display = 'flex';
         }
-
-        this.calendario = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,timeGridDay'
-            },
-            slotMinTime: '09:00:00',
-            slotMaxTime: '23:00:00',
-            slotDuration: '01:00:00',
-            scrollTime: '09:00:00',
-            allDaySlot: false,
-            height: 'auto',
-            contentHeight: 'auto',
-            aspectRatio: 1.8,
-            locale: 'es',
-            firstDay: 1, // Lunes
-            weekends: true,
-            selectable: false,
-            editable: false,
-            timeZone: 'local', // Usar zona horaria local explícitamente
-            eventClick: (info) => {
-                info.jsEvent.preventDefault();
-                this.seleccionarHora(info.event);
-            },
-            eventDisplay: 'block',
-            eventColor: '#28a745',
-            eventTextColor: '#fff',
-            eventCursor: 'pointer',
-            eventInteractive: true,
-            eventDidMount: (info) => {
-                // Agregar estilo de cursor pointer y hover
-                info.el.style.cursor = 'pointer';
-                info.el.title = 'Click para seleccionar esta hora';
-            }
-        });
-
-        this.calendario.render();
+        if (listadoEl) {
+            listadoEl.style.display = 'none';
+        }
     }
 
     cargarHorasDisponiblesCalendario() {
-        // Cargar horas disponibles para los próximos 14 días
-        const hoy = new Date();
-        const fechaFin = new Date();
-        fechaFin.setDate(hoy.getDate() + 14);
-
-        const fechas = [];
-        for (let d = new Date(hoy); d <= fechaFin; d.setDate(d.getDate() + 1)) {
-            fechas.push(new Date(d).toISOString().split('T')[0]);
+        console.log('Iniciando carga de horas disponibles...');
+        const loadingEl = document.getElementById('calendario-loading');
+        if (loadingEl) {
+            loadingEl.style.display = 'flex';
         }
 
-        // Cargar horas para todas las fechas
-        const promesas = fechas.map(fecha => {
-            const formData = new FormData();
-            formData.append('accion', 'obtener_horas_disponibles');
-            formData.append('fecha', fecha);
+        // Usar la misma función que "Administrar Agendas" - obtener todas las agendas
+        const formData = new FormData();
+        formData.append('accion', 'obtener_todas_agendas');
 
-            return fetch(this.baseUrl, {
-                method: 'POST',
-                body: formData
+        fetch(this.baseUrl, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log(`Respuesta para fecha ${fecha}:`, data);
-                    if (data.status === 'success' && Array.isArray(data.data)) {
-                        const horasConFecha = data.data.map(hora => ({
-                            ...hora,
-                            fecha: fecha
-                        }));
-                        console.log(`Horas encontradas para ${fecha}:`, horasConFecha.length);
-                        return horasConFecha;
-                    } else {
-                        console.warn(`No se encontraron horas para ${fecha} o respuesta inválida:`, data);
-                        return [];
-                    }
-                })
-                .catch(error => {
-                    console.error('Error cargando horas para fecha', fecha, error);
-                    return [];
-                });
-        });
-
-        Promise.all(promesas).then(todasLasHoras => {
-            const todasLasHorasFlat = todasLasHoras.flat();
-            console.log('Total de horas disponibles recibidas:', todasLasHorasFlat.length);
-            console.log('Horas por fecha:', todasLasHorasFlat);
-
-            const eventos = [];
-            todasLasHorasFlat.forEach(hora => {
-                if (!hora.ID || !hora.HoraInicio || !hora.HoraFin || !hora.fecha) {
-                    console.warn('Hora con datos incompletos:', hora);
-                    return;
-                }
-
-                // Asegurar que la hora tenga el formato correcto (HH:MM:SS)
-                let horaInicio = hora.HoraInicio;
-                let horaFin = hora.HoraFin;
-
-                // Si la hora no tiene segundos, agregarlos
-                if (horaInicio.split(':').length === 2) {
-                    horaInicio += ':00';
-                }
-                if (horaFin.split(':').length === 2) {
-                    horaFin += ':00';
-                }
-
-                // Crear objetos Date usando la fecha y hora localmente (sin conversión UTC)
-                // Parsear la fecha (YYYY-MM-DD) y la hora (HH:MM:SS) por separado
-                const [año, mes, dia] = hora.fecha.split('-').map(Number);
-                const [hInicio, mInicio, sInicio] = horaInicio.split(':').map(Number);
-                const [hFin, mFin, sFin] = horaFin.split(':').map(Number);
-
-                // Crear objetos Date en hora local (no UTC)
-                const fechaHoraInicio = new Date(año, mes - 1, dia, hInicio, mInicio, sInicio || 0);
-                const fechaHoraFin = new Date(año, mes - 1, dia, hFin, mFin, sFin || 0);
-
-                const evento = {
-                    id: hora.ID.toString(),
-                    title: `${horaInicio.substring(0, 5)} - ${horaFin.substring(0, 5)}`,
-                    start: fechaHoraInicio,
-                    end: fechaHoraFin,
-                    backgroundColor: '#28a745',
-                    borderColor: '#1e7e34',
-                    textColor: '#fff',
-                    extendedProps: {
-                        agendaId: hora.ID,
-                        horaInicio: horaInicio,
-                        horaFin: horaFin,
-                        fechaOriginal: hora.fecha, // Guardar la fecha original de la BD (YYYY-MM-DD)
-                        observaciones: hora.Observaciones || ''
-                    }
-                };
-
-                eventos.push(evento);
-                console.log('Evento creado - Fecha BD:', hora.fecha, 'Fecha objeto Date:', fechaHoraInicio.toISOString().split('T')[0], 'Evento:', evento);
-            });
-
-            this.horasDisponibles = todasLasHorasFlat;
-            console.log('Total de eventos creados:', eventos.length);
-
-            if (this.calendario) {
-                // Limpiar eventos anteriores
-                this.calendario.removeAllEvents();
-
-                // Agregar eventos - en FullCalendar v6 usamos addEvent (singular) para cada evento
-                if (eventos.length > 0) {
-                    eventos.forEach(evento => {
-                        try {
-                            this.calendario.addEvent(evento);
-                        } catch (error) {
-                            console.error('Error al agregar evento:', evento, error);
+            .then(data => {
+                console.log('Respuesta obtener_todas_agendas:', data);
+                if (data.status === 'success' && Array.isArray(data.data)) {
+                    console.log('Total de agendas recibidas:', data.data.length);
+                    
+                    // Filtrar solo las disponibles (Disponible = 1) y que estén en el rango de 9 AM - 11 PM
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    
+                    let horasFiltradas = data.data.filter(agenda => {
+                        // Solo disponibles
+                        if (agenda.Disponible != 1 && agenda.Disponible !== true && agenda.Disponible !== '1') {
+                            return false;
                         }
+                        
+                        // Verificar que la fecha sea hoy o futura
+                        if (!agenda.Fecha) {
+                            return false;
+                        }
+                        const fechaAgenda = new Date(agenda.Fecha + 'T00:00:00');
+                        if (fechaAgenda < hoy) {
+                            return false;
+                        }
+                        
+                        // Verificar que la hora de inicio esté entre 9 AM y 11 PM (permitir hasta 23:59)
+                        const horaInicio = agenda.HoraInicio || '';
+                        if (!horaInicio) {
+                            return false;
+                        }
+                        // Convertir a formato comparable (HH:MM:SS)
+                        const horaParts = horaInicio.split(':');
+                        const horaNum = parseInt(horaParts[0]) || 0;
+                        // Permitir horas desde 9 AM (09:00) hasta 11 PM (23:00)
+                        // Nota: El rango es 9 AM - 11 PM según el requerimiento original
+                        if (horaNum < 9 || horaNum > 23) {
+                            return false;
+                        }
+                        
+                        return true;
                     });
-                    console.log('Eventos agregados al calendario:', eventos.length);
+
+                    console.log('Horas filtradas (disponibles y rango):', horasFiltradas.length);
+
+                    // Si no hay horas filtradas, mostrar mensaje
+                    if (horasFiltradas.length === 0) {
+                        console.warn('No hay horas disponibles después del filtrado');
+                        this.horasDisponibles = [];
+                        this.mostrarHorasEnListado([]);
+                        return;
+                    }
+
+                    console.log('Horas filtradas (disponibles y rango 9 AM - 11 PM):', horasFiltradas.length);
+                    console.log('Ejemplos de horas filtradas:', horasFiltradas.slice(0, 5));
+
+                    // Mostrar directamente las horas filtradas
+                    // La verificación de asignaciones se hará al momento de aprobar la solicitud
+                    this.horasDisponibles = horasFiltradas;
+                    this.mostrarHorasEnListado(horasFiltradas);
                 } else {
-                    console.warn('No hay eventos para mostrar. Verifica que haya horas disponibles en la base de datos.');
+                    console.warn('No se encontraron agendas o respuesta inválida:', data);
+                    this.mostrarHorasEnListado([]);
                 }
-            } else {
-                console.error('Calendario no está inicializado');
-            }
-        }).catch(error => {
-            console.error('Error al cargar horas disponibles:', error);
-        });
+            })
+            .catch(error => {
+                console.error('Error al cargar horas disponibles:', error);
+                this.mostrarHorasEnListado([]);
+            });
     }
 
-    seleccionarHora(evento) {
-        const agendaId = evento.extendedProps.agendaId;
-        const horaInicio = evento.extendedProps.horaInicio;
-        const horaFin = evento.extendedProps.horaFin;
+    mostrarHorasEnListado(horas) {
+        const loadingEl = document.getElementById('calendario-loading');
+        const listadoEl = document.getElementById('listado-horas-disponibles');
+        const tbodyEl = document.getElementById('tbody-horas-disponibles');
+        const sinHorasEl = document.getElementById('sin-horas-disponibles');
 
-        // Usar la fecha original guardada en extendedProps (viene directamente de la BD)
-        // Esta es la fuente de verdad, no depender de evento.start que puede tener desajustes
-        let fecha = evento.extendedProps.fechaOriginal;
+        if (loadingEl) {
+            loadingEl.style.display = 'none';
+        }
 
-        console.log('Seleccionando hora - AgendaID:', agendaId, 'Fecha en extendedProps:', fecha);
+        if (!horas || horas.length === 0) {
+            if (listadoEl) listadoEl.style.display = 'none';
+            if (sinHorasEl) sinHorasEl.style.display = 'block';
+            return;
+        }
+
+        if (sinHorasEl) sinHorasEl.style.display = 'none';
+        if (listadoEl) listadoEl.style.display = 'block';
+        if (!tbodyEl) return;
+
+        // Limpiar tbody
+        tbodyEl.innerHTML = '';
+
+        // Agrupar por fecha
+        const horasPorFecha = {};
+        horas.forEach(hora => {
+            const fecha = hora.fecha || hora.Fecha;
+            if (!horasPorFecha[fecha]) {
+                horasPorFecha[fecha] = [];
+            }
+            horasPorFecha[fecha].push(hora);
+        });
+
+        // Ordenar fechas
+        const fechasOrdenadas = Object.keys(horasPorFecha).sort();
+
+        // Crear filas
+        fechasOrdenadas.forEach(fecha => {
+            horasPorFecha[fecha].forEach(hora => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.onclick = () => this.seleccionarHoraDesdeListado(hora);
+                tr.onmouseenter = () => tr.style.backgroundColor = '#f0f0f0';
+                tr.onmouseleave = () => tr.style.backgroundColor = '';
+
+                // Formatear fecha
+                const fechaObj = new Date(fecha + 'T00:00:00');
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+
+                // Formatear horas
+                const horaInicio = hora.HoraInicio.substring(0, 5);
+                const horaFin = hora.HoraFin.substring(0, 5);
+
+                const horaData = JSON.stringify(hora).replace(/"/g, '&quot;');
+                tr.innerHTML = `
+                    <td><strong>${fechaFormateada}</strong></td>
+                    <td>${horaInicio}</td>
+                    <td>${horaFin}</td>
+                    <td>${hora.Observaciones || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" data-agenda-id="${hora.ID}">
+                            <i class="fas fa-check me-1"></i>Seleccionar
+                        </button>
+                    </td>
+                `;
+                
+                // Agregar evento al botón
+                const btn = tr.querySelector('button');
+                if (btn) {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.seleccionarHoraDesdeListado(hora);
+                    });
+                }
+
+                tbodyEl.appendChild(tr);
+            });
+        });
+
+        console.log('Listado de horas mostrado:', horas.length);
+    }
+
+    seleccionarHoraDesdeListado(hora) {
+        const agendaId = hora.ID;
+        const horaInicio = hora.HoraInicio;
+        const horaFin = hora.HoraFin;
+        let fecha = hora.fecha || hora.Fecha;
+
+        console.log('Seleccionando hora desde listado - AgendaID:', agendaId, 'Fecha:', fecha);
 
         if (!fecha) {
             // Fallback: buscar en horasDisponibles usando el agendaId
             const horaEncontrada = this.horasDisponibles.find(h => h.ID == agendaId);
-            if (horaEncontrada && horaEncontrada.fecha) {
-                fecha = horaEncontrada.fecha;
+            if (horaEncontrada && (horaEncontrada.fecha || horaEncontrada.Fecha)) {
+                fecha = horaEncontrada.fecha || horaEncontrada.Fecha;
                 console.log('Fecha encontrada en horasDisponibles:', fecha);
-            } else {
-                // Último fallback: obtener del evento start usando métodos locales
-                const fechaObj = evento.start;
-                const año = fechaObj.getFullYear();
-                const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
-                const dia = String(fechaObj.getDate()).padStart(2, '0');
-                fecha = `${año}-${mes}-${dia}`;
-                console.log('Fecha obtenida de evento.start (fallback):', fecha);
             }
         }
-
-        console.log('Fecha final a usar:', fecha);
 
         // Formatear hora para mostrar
         function formatearHora(hora) {
@@ -567,16 +569,8 @@ class GestionSolicitudes {
             return `${hora12}:${minutos} ${ampm}`;
         }
 
-        // Guardar selección
-        const agendaInput = document.getElementById('agenda-id-seleccionada');
-        if (agendaInput) {
-            agendaInput.value = agendaId;
-        }
-
-        // Mostrar información de selección - usar la fecha original directamente de la BD
-        // Parsear la fecha YYYY-MM-DD y crear un objeto Date en hora local (sin conversión UTC)
+        // Formatear fecha para mostrar
         const [año, mes, dia] = fecha.split('-').map(Number);
-        // Crear Date usando constructor local (año, mes-1, dia) para evitar problemas de zona horaria
         const fechaLocal = new Date(año, mes - 1, dia);
         const fechaFormateada = fechaLocal.toLocaleDateString('es-ES', {
             weekday: 'long',
@@ -585,6 +579,13 @@ class GestionSolicitudes {
             day: 'numeric'
         });
 
+        // Guardar selección
+        const agendaInput = document.getElementById('agenda-id-seleccionada');
+        if (agendaInput) {
+            agendaInput.value = agendaId;
+        }
+
+        // Mostrar información de selección
         const horaTexto = document.getElementById('hora-seleccionada-texto');
         const infoSeleccion = document.getElementById('info-seleccion-hora');
 
@@ -596,39 +597,23 @@ class GestionSolicitudes {
             infoSeleccion.style.display = 'block';
         }
 
-        // Resaltar evento seleccionado - remover selección anterior
-        this.calendario.getEvents().forEach(evt => {
-            if (evt.id === agendaId.toString()) {
-                // Evento seleccionado - cambiar a azul
-                evt.setProp('backgroundColor', '#007bff');
-                evt.setProp('borderColor', '#0056b3');
-                evt.setProp('classNames', ['fc-event-selected']);
-            } else {
-                // Otros eventos - volver a verde
-                evt.setProp('backgroundColor', '#28a745');
-                evt.setProp('borderColor', '#1e7e34');
-                // Remover classNames de selección si existe
-                try {
-                    // Intentar obtener classNames de diferentes formas según la versión de FullCalendar
-                    let currentClassNames = [];
-                    if (evt.extendedProps && evt.extendedProps.classNames) {
-                        currentClassNames = evt.extendedProps.classNames;
-                    } else if (evt.classNames) {
-                        currentClassNames = Array.isArray(evt.classNames) ? evt.classNames : [evt.classNames];
+        // Resaltar la fila seleccionada en el listado
+        const tbodyEl = document.getElementById('tbody-horas-disponibles');
+        if (tbodyEl) {
+            const filas = tbodyEl.querySelectorAll('tr');
+            filas.forEach(fila => {
+                fila.classList.remove('table-success');
+                const btn = fila.querySelector('button');
+                if (btn) {
+                    const btnOnClick = btn.getAttribute('onclick') || '';
+                    if (btnOnClick.includes(agendaId.toString())) {
+                        fila.classList.add('table-success');
                     }
-
-                    if (Array.isArray(currentClassNames) && currentClassNames.length > 0) {
-                        const filteredClassNames = currentClassNames.filter(cn => cn !== 'fc-event-selected');
-                        evt.setProp('classNames', filteredClassNames.length > 0 ? filteredClassNames : null);
-                    } else {
-                        evt.setProp('classNames', null);
-                    }
-                } catch (e) {
-                    // Si no se puede obtener classNames, simplemente establecer null
-                    evt.setProp('classNames', null);
                 }
-            }
-        });
+            });
+        }
+
+        console.log('Hora seleccionada:', { agendaId, fecha, horaInicio, horaFin });
 
         // Scroll suave a la información de selección
         if (infoSeleccion) {
