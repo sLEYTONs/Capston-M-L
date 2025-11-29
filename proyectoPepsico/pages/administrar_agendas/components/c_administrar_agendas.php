@@ -1,3 +1,44 @@
+<?php
+// Cargar funciones de agendamiento
+require_once __DIR__ . '/../../../app/model/agendamiento/functions/f_agendamiento.php';
+require_once __DIR__ . '/../../../app/config/conexion.php';
+
+// Obtener todas las agendas para renderizar en la tabla
+$agendas_data = obtenerTodasLasAgendas();
+$agendas = ($agendas_data['status'] === 'success') ? $agendas_data['data'] : [];
+
+// Preparar datos para el calendario (formato JSON)
+$eventos_calendario = [];
+foreach ($agendas as $agenda) {
+    if (!empty($agenda['Fecha']) && !empty($agenda['HoraInicio']) && !empty($agenda['HoraFin'])) {
+        // Asegurar formato completo de hora (HH:MM:SS)
+        $horaInicio = $agenda['HoraInicio'];
+        $horaFin = $agenda['HoraFin'];
+        
+        // Si la hora no tiene segundos, agregarlos
+        if (substr_count($horaInicio, ':') === 1) {
+            $horaInicio .= ':00';
+        }
+        if (substr_count($horaFin, ':') === 1) {
+            $horaFin .= ':00';
+        }
+        
+        // Concatenar fecha + hora para formato ISO (YYYY-MM-DDTHH:MM:SS)
+        $start = $agenda['Fecha'] . 'T' . $horaInicio;
+        $end = $agenda['Fecha'] . 'T' . $horaFin;
+        
+        $eventos_calendario[] = [
+            'id' => $agenda['ID'],
+            'title' => substr($agenda['HoraInicio'], 0, 5) . ' - ' . substr($agenda['HoraFin'], 0, 5),
+            'start' => $start,
+            'end' => $end,
+            'disponible' => (int)$agenda['Disponible'],
+            'observaciones' => $agenda['Observaciones'] ?? ''
+        ];
+    }
+}
+$eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>
 <div class="container-fluid py-4">
     <!-- Header con acciones principales -->
     <div class="row mb-4">
@@ -25,25 +66,23 @@
     <!-- Vista de Calendario -->
     <div class="card mb-4">
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-calendar me-2"></i>Vista de Calendario
-                </h5>
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-primary active" id="btn-vista-mes">
-                        <i class="fas fa-calendar-alt me-1"></i>Mes
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-vista-semana">
-                        <i class="fas fa-calendar-week me-1"></i>Semana
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-vista-dia">
-                        <i class="fas fa-calendar-day me-1"></i>Día
-                    </button>
-                </div>
-            </div>
+            <h5 class="mb-0">
+                <i class="fas fa-calendar me-2"></i>Vista de Calendario
+            </h5>
         </div>
-        <div class="card-body">
-            <div id="calendario-agendas" style="min-height: 600px;"></div>
+        <div class="card-body" style="padding: 0;">
+            <div id="calendario-agendas"></div>
+            <div id="calendario-loading" style="display: none; text-align: center; padding: 40px;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando calendario...</span>
+                </div>
+                <p class="mt-3 text-muted">Cargando calendario...</p>
+            </div>
+            <div id="calendario-error" style="display: none; text-align: center; padding: 40px; color: #dc3545;">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>Error al cargar el calendario. Por favor, recarga la página.</p>
+                <button class="btn btn-primary" onclick="location.reload()">Recargar Página</button>
+            </div>
         </div>
     </div>
 
@@ -69,13 +108,55 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Se llenará dinámicamente -->
+                        <?php if (!empty($agendas)): ?>
+                            <?php foreach ($agendas as $agenda): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($agenda['ID']); ?></td>
+                                    <td>
+                                        <?php 
+                                        if (!empty($agenda['Fecha'])) {
+                                            $fecha = new DateTime($agenda['Fecha']);
+                                            echo htmlspecialchars($fecha->format('d/m/Y'));
+                                        } else {
+                                            echo '-';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td><?php echo !empty($agenda['HoraInicio']) ? htmlspecialchars(substr($agenda['HoraInicio'], 0, 5)) : '-'; ?></td>
+                                    <td><?php echo !empty($agenda['HoraFin']) ? htmlspecialchars(substr($agenda['HoraFin'], 0, 5)) : '-'; ?></td>
+                                    <td>
+                                        <?php if ($agenda['Disponible'] == 1 || $agenda['Disponible'] === true || $agenda['Disponible'] === '1'): ?>
+                                            <span class="badge bg-success">Disponible</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Ocupado</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo !empty($agenda['Observaciones']) ? htmlspecialchars($agenda['Observaciones']) : '-'; ?></td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-warning btn-editar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btn-eliminar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
+
+<script type="text/javascript">
+    // Pasar eventos del calendario al JavaScript
+    window.eventosCalendarioIniciales = <?php echo $eventos_json; ?>;
+    console.log('Eventos del calendario cargados:', window.eventosCalendarioIniciales);
+</script>
 
 <!-- Modal para Crear/Editar Agenda -->
 <div class="modal fade" id="modalAgenda" tabindex="-1">

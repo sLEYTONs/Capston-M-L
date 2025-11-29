@@ -17,15 +17,112 @@ $(document).ready(function() {
 
     // Inicializar calendario
     function inicializarCalendario() {
+        console.log('🔧 Iniciando inicialización del calendario...');
+        
+        // Ocultar mensajes de error/loading
+        const loadingEl = document.getElementById('calendario-loading');
+        const errorEl = document.getElementById('calendario-error');
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'none';
+        
         const calendarEl = document.getElementById('calendario-agendas');
-        if (!calendarEl) return;
+        if (!calendarEl) {
+            console.error('❌ Elemento calendario-agendas no encontrado');
+            if (errorEl) {
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>Elemento del calendario no encontrado en el DOM.</p>';
+            }
+            return;
+        }
+        
+        console.log('✅ Elemento calendario-agendas encontrado');
+
+        // Verificar que FullCalendar esté disponible
+        // El archivo index.global.min.js expone FullCalendar como objeto global
+        let FullCalendarLib = null;
+        
+        // Intentar diferentes formas de acceso
+        if (typeof window.FullCalendar !== 'undefined') {
+            FullCalendarLib = window.FullCalendar;
+        } else if (typeof FullCalendar !== 'undefined') {
+            FullCalendarLib = FullCalendar;
+        } else if (typeof window.fullCalendar !== 'undefined') {
+            FullCalendarLib = window.fullCalendar;
+        }
+        
+        if (!FullCalendarLib) {
+            console.error('❌ FullCalendar no está disponible');
+            console.log('Variables disponibles:', {
+                'window.FullCalendar': typeof window.FullCalendar,
+                'FullCalendar': typeof FullCalendar,
+                'window.fullCalendar': typeof window.fullCalendar
+            });
+            if (errorEl) {
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>FullCalendar no se ha cargado correctamente. Verifica que el archivo main.min.js esté en assets/js/fullcalendar/</p><button class="btn btn-primary mt-2" onclick="location.reload()">Recargar Página</button>';
+            }
+            calendarEl.style.display = 'none';
+            return;
+        }
+        
+        console.log('✅ FullCalendar está disponible:', FullCalendarLib);
+        
+        // Mostrar el calendario
+        calendarEl.style.display = 'block';
 
         // Destruir calendario existente si existe
         if (calendario) {
+            console.log('🗑️ Destruyendo calendario existente...');
             calendario.destroy();
+            calendario = null;
         }
 
-        calendario = new FullCalendar.Calendar(calendarEl, {
+        // Obtener eventos iniciales desde PHP si están disponibles
+        let eventosIniciales = [];
+        if (typeof window.eventosCalendarioIniciales !== 'undefined' && Array.isArray(window.eventosCalendarioIniciales)) {
+            eventosIniciales = window.eventosCalendarioIniciales.map(evento => {
+                // Asegurar formato correcto de fecha/hora
+                let start = evento.start;
+                let end = evento.end;
+                
+                // Si no tiene formato ISO completo, formatearlo
+                if (start && !start.includes('T')) {
+                    start = start.replace(' ', 'T');
+                }
+                if (end && !end.includes('T')) {
+                    end = end.replace(' ', 'T');
+                }
+                
+                return {
+                    id: evento.id.toString(),
+                    title: evento.title || 'Agenda',
+                    start: start,
+                    end: end,
+                    extendedProps: {
+                        agendaId: parseInt(evento.id),
+                        disponible: evento.disponible !== undefined ? evento.disponible : 1,
+                        observaciones: evento.observaciones || ''
+                    }
+                };
+            });
+        }
+
+        try {
+            // Obtener referencia a FullCalendar
+            let FullCalendarLib = null;
+            if (typeof window.FullCalendar !== 'undefined') {
+                FullCalendarLib = window.FullCalendar;
+            } else if (typeof FullCalendar !== 'undefined') {
+                FullCalendarLib = FullCalendar;
+            } else if (typeof window.fullCalendar !== 'undefined') {
+                FullCalendarLib = window.fullCalendar;
+            }
+            
+            if (!FullCalendarLib) {
+                throw new Error('FullCalendar no está disponible');
+            }
+            
+            calendario = new FullCalendarLib.Calendar(calendarEl, {
             initialView: vistaActual,
             headerToolbar: {
                 left: 'prev,next today',
@@ -34,86 +131,201 @@ $(document).ready(function() {
             },
             locale: 'es',
             firstDay: 1, // Lunes
-            slotMinTime: '08:00:00',
-            slotMaxTime: '23:00:00',
-            slotDuration: '00:30:00',
+                slotMinTime: '09:00:00', // Inicio a las 9:00 AM
+                slotMaxTime: '24:00:00', // Fin a las 24:00 (12 PM medianoche)
+                slotDuration: '00:30:00', // Intervalos de 30 minutos (como Google Calendar)
+                slotLabelInterval: '01:00:00', // Mostrar etiqueta cada hora
             allDaySlot: false,
-            height: 'auto',
+                height: 'auto',
+                contentHeight: 700,
+                aspectRatio: null,
+                scrollTime: '09:00:00', // Hora inicial al cargar (9 AM)
+                scrollTimeReset: false, // No resetear el scroll al cambiar de vista
+                slotLabelFormat: {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    omitZeroMinute: false,
+                    meridiem: 'short'
+                },
+                slotLabelContent: function(arg) {
+                    // Formatear manualmente para asegurar AM/PM
+                    const date = arg.date;
+                    const hours = date.getHours();
+                    const minutes = date.getMinutes();
+                    
+                    // Solo mostrar etiquetas en las horas completas (cuando minutes === 0)
+                    if (minutes === 0) {
+                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                        const displayHours = hours % 12 || 12;
+                        return displayHours + ' ' + ampm;
+                    }
+                    // Para slots menores, retornar string vacío
+                    return '';
+                },
+                slotLaneClassNames: function() {
+                    return ['fc-timegrid-slot'];
+                },
             editable: false,
-            selectable: false,
+                selectable: true, // Permitir selección para crear nuevas agendas
+                selectMirror: true,
+                selectMinDistance: 0, // Permitir selección con un solo clic
+                dayMaxEvents: true,
+                weekends: true,
+                events: eventosIniciales, // Cargar eventos iniciales
+                // Permitir crear agenda haciendo clic en una fecha/hora
+                select: function(selectInfo) {
+                    // Abrir modal para crear nueva agenda con la fecha/hora seleccionada
+                    limpiarFormulario();
+                    const start = new Date(selectInfo.start);
+                    
+                    // Calcular hora de fin: inicio + 1 hora exacta
+                    const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 hora
+                    
+                    // Formatear fecha (YYYY-MM-DD)
+                    const fecha = start.toISOString().split('T')[0];
+                    
+                    // Formatear hora inicio (HH:MM)
+                    const horaInicio = String(start.getHours()).padStart(2, '0') + ':' + 
+                                      String(start.getMinutes()).padStart(2, '0');
+                    
+                    // Formatear hora fin (HH:MM)
+                    const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
+                                   String(end.getMinutes()).padStart(2, '0');
+                    
+                    // Rellenar formulario
+                    $('#agenda-fecha').val(fecha);
+                    $('#agenda-hora-inicio').val(horaInicio);
+                    $('#agenda-hora-fin').val(horaFin);
+                    
+                    // Abrir modal
+                    const modalElement = document.getElementById('modalAgenda');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
+                    
+                    calendario.unselect();
+                },
             eventClick: function(info) {
                 // Al hacer clic en un evento, abrir modal de edición
+                    info.jsEvent.preventDefault();
                 editarAgendaDesdeCalendario(info.event);
             },
             eventDisplay: 'block',
             eventDidMount: function(info) {
-                // Personalizar colores según disponibilidad
-                if (info.event.extendedProps.disponible === 0) {
-                    info.event.setProp('backgroundColor', '#dc3545');
-                    info.event.setProp('borderColor', '#bb2d3b');
-                } else if (info.event.extendedProps.asignada) {
-                    info.event.setProp('backgroundColor', '#ffc107');
-                    info.event.setProp('borderColor', '#ffb300');
-                } else {
-                    info.event.setProp('backgroundColor', '#28a745');
-                    info.event.setProp('borderColor', '#1e7e34');
-                }
+                    // Agregar atributo data-disponible para estilos CSS
+                    const disponible = info.event.extendedProps.disponible !== undefined ? info.event.extendedProps.disponible : 1;
+                    $(info.el).attr('data-disponible', disponible);
+                    
+                    // Personalizar título del evento
+                    const title = disponible === 1 ? 'Disponible' : 'Ocupado';
+                    if (info.event.title === 'Agenda' || !info.event.title) {
+                        info.event.setProp('title', title);
+                    }
+                    
+                    // Agregar tooltip con información
+                    let tooltip = `Estado: ${title}`;
+                    if (info.event.extendedProps.observaciones) {
+                        tooltip += `\nObservaciones: ${info.event.extendedProps.observaciones}`;
+                    }
+                    $(info.el).attr('title', tooltip);
             },
             datesSet: function() {
                 // Cargar eventos cuando cambia la vista
+                    setTimeout(function() {
+                        cargarEventosCalendario();
+                    }, 100);
+                },
+                loading: function(isLoading) {
+                    if (isLoading) {
+                        console.log('Calendario cargando...');
+                    } else {
+                        console.log('Calendario cargado');
+                    }
+                }
+            });
+
+            calendario.render();
+            console.log('✅ Calendario renderizado correctamente');
+            console.log('📅 Vista inicial:', vistaActual);
+            
+            // Cargar eventos después de un breve delay para asegurar que el calendario esté completamente renderizado
+            setTimeout(function() {
+                console.log('📥 Cargando eventos del calendario...');
+                // Siempre cargar desde el servidor para tener datos actualizados
                 cargarEventosCalendario();
+            }, 500);
+            
+        } catch (error) {
+            console.error('❌ Error al inicializar el calendario:', error);
+            console.error('Stack trace:', error.stack);
+            
+            const errorEl = document.getElementById('calendario-error');
+            const calendarEl = document.getElementById('calendario-agendas');
+            if (errorEl) {
+                errorEl.style.display = 'block';
+                errorEl.innerHTML = `<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>Error al inicializar el calendario: ${error.message}</p><button class="btn btn-primary mt-2" onclick="location.reload()">Recargar Página</button>`;
             }
-        });
-
-        calendario.render();
-        cargarEventosCalendario();
+            if (calendarEl) {
+                calendarEl.style.display = 'none';
+            }
+        }
     }
+    
 
-    // Cargar eventos en el calendario
+    // Cargar eventos en el calendario desde la misma fuente que la tabla
     function cargarEventosCalendario() {
-        if (!calendario) return;
+        if (!calendario) {
+            console.warn('Calendario no inicializado');
+            return;
+        }
 
-        const view = calendario.view;
-        const start = view.activeStart;
-        const end = view.activeEnd;
-
-        const fechaDesde = start.toISOString().split('T')[0];
-        const fechaHasta = end.toISOString().split('T')[0];
-
-        const formData = new FormData();
-        formData.append('accion', 'obtener_horarios_por_rango');
-        formData.append('fecha_desde', fechaDesde);
-        formData.append('fecha_hasta', fechaHasta);
-
-        fetch(baseUrl, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            // Usar la misma acción que la tabla para obtener todos los datos
+            $.ajax({
+                url: baseUrl,
+                type: 'POST',
+                data: {
+                    accion: 'obtener_todas_agendas'
+                },
+                dataType: 'json',
+                success: function(data) {
             if (data.status === 'success' && Array.isArray(data.data)) {
                 const eventos = [];
                 
                 data.data.forEach(agenda => {
                     if (!agenda.Fecha || !agenda.HoraInicio || !agenda.HoraFin) return;
 
-                    // Crear fecha y hora local
-                    const [año, mes, dia] = agenda.Fecha.split('-').map(Number);
-                    const [hInicio, mInicio] = agenda.HoraInicio.split(':').map(Number);
-                    const [hFin, mFin] = agenda.HoraFin.split(':').map(Number);
+                            // Formato ISO: concatenar fecha + hora (YYYY-MM-DDTHH:MM:SS)
+                            let horaInicio = agenda.HoraInicio;
+                            let horaFin = agenda.HoraFin;
+                            
+                            // Asegurar formato completo (HH:MM:SS)
+                            if (horaInicio.split(':').length === 2) {
+                                horaInicio += ':00';
+                            }
+                            if (horaFin.split(':').length === 2) {
+                                horaFin += ':00';
+                            }
 
-                    const fechaHoraInicio = new Date(año, mes - 1, dia, hInicio, mInicio || 0);
-                    const fechaHoraFin = new Date(año, mes - 1, dia, hFin, mFin || 0);
+                            // Crear string ISO directamente
+                            const startISO = agenda.Fecha + 'T' + horaInicio;
+                            const endISO = agenda.Fecha + 'T' + horaFin;
+
+                            // Determinar título y color según disponibilidad
+                            let titulo = `${agenda.HoraInicio.substring(0, 5)} - ${agenda.HoraFin.substring(0, 5)}`;
+                            if (agenda.Observaciones) {
+                                titulo += ` (${agenda.Observaciones.substring(0, 20)}...)`;
+                            }
 
                     const evento = {
                         id: agenda.ID.toString(),
-                        title: `${agenda.HoraInicio.substring(0, 5)} - ${agenda.HoraFin.substring(0, 5)}`,
-                        start: fechaHoraInicio,
-                        end: fechaHoraFin,
+                                title: titulo,
+                                start: startISO,
+                                end: endISO,
                         extendedProps: {
                             agendaId: agenda.ID,
                             disponible: agenda.Disponible ? 1 : 0,
-                            asignada: agenda.SolicitudesAprobadas > 0,
                             observaciones: agenda.Observaciones || ''
                         }
                     };
@@ -121,15 +333,28 @@ $(document).ready(function() {
                     eventos.push(evento);
                 });
 
+                        // Remover eventos existentes y agregar nuevos
                 calendario.removeAllEvents();
                 eventos.forEach(evento => {
+                            try {
                     calendario.addEvent(evento);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar eventos:', error);
-        });
+                            } catch (e) {
+                                console.error('Error al agregar evento:', e, evento);
+                            }
+                        });
+                        
+                        console.log(`✅ Eventos cargados en calendario: ${eventos.length}`);
+                    } else if (data.status === 'error') {
+                        console.error('Error al cargar eventos:', data.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error al cargar eventos del calendario:', error);
+                }
+            });
+        } catch (error) {
+            console.error('Error en cargarEventosCalendario:', error);
+        }
     }
 
     // Editar agenda desde el calendario
@@ -178,30 +403,8 @@ $(document).ready(function() {
         });
     }
 
-    // Cambiar vista del calendario
-    $('#btn-vista-mes').on('click', function() {
-        if (calendario) {
-            calendario.changeView('dayGridMonth');
-            vistaActual = 'dayGridMonth';
-            $(this).addClass('active').siblings().removeClass('active');
-        }
-    });
-
-    $('#btn-vista-semana').on('click', function() {
-        if (calendario) {
-            calendario.changeView('timeGridWeek');
-            vistaActual = 'timeGridWeek';
-            $(this).addClass('active').siblings().removeClass('active');
-        }
-    });
-
-    $('#btn-vista-dia').on('click', function() {
-        if (calendario) {
-            calendario.changeView('timeGridDay');
-            vistaActual = 'timeGridDay';
-            $(this).addClass('active').siblings().removeClass('active');
-        }
-    });
+    // Los botones de vista están integrados en el header del calendario de FullCalendar
+    // No se necesitan botones adicionales
 
     // Inicializar DataTable
     function inicializarTabla() {
@@ -209,12 +412,18 @@ $(document).ready(function() {
             tablaAgendas.destroy();
         }
 
+        // Limpiar el tbody para evitar problemas de conteo de columnas
+        // Siempre usar AJAX para garantizar estructura consistente
+        $('#tabla-agendas tbody').empty();
+
+        // Inicializar DataTables siempre con AJAX para evitar problemas de conteo
         tablaAgendas = $('#tabla-agendas').DataTable({
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
             },
             order: [[1, 'desc'], [2, 'asc']],
             pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
             processing: true,
             serverSide: false,
             ajax: {
@@ -278,7 +487,7 @@ $(document).ready(function() {
                         if (data == 1 || data === true || data === '1') {
                             return '<span class="badge bg-success">Disponible</span>';
                         } else {
-                            return '<span class="badge bg-danger">No Disponible</span>';
+                            return '<span class="badge bg-danger">Ocupado</span>';
                         }
                     }
                 },
@@ -291,6 +500,7 @@ $(document).ready(function() {
                 {
                     data: null,
                     orderable: false,
+                    searchable: false,
                     render: function(data, type, row) {
                         return `
                             <div class="btn-group" role="group">
@@ -310,11 +520,21 @@ $(document).ready(function() {
 
     // Cargar agendas
     function cargarAgendas() {
+        // Recargar tabla
         if (tablaAgendas) {
+            // Si la tabla usa AJAX, recargar
+            if (tablaAgendas.ajax) {
             tablaAgendas.ajax.reload(null, false);
+            } else {
+                // Si no usa AJAX, destruir y reinicializar
+                tablaAgendas.destroy();
+                inicializarTabla();
+            }
         } else {
             inicializarTabla();
         }
+        
+        // Recargar calendario
         if (calendario) {
             cargarEventosCalendario();
         }
@@ -400,6 +620,7 @@ $(document).ready(function() {
                             modal.hide();
                         }
                     }
+                    // Actualizar tabla y calendario sin recargar página
                     cargarAgendas();
                 } else {
                     mostrarAlerta(response.message || 'Error al guardar la agenda', 'error');
@@ -504,6 +725,7 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     mostrarAlerta(response.message || 'Agenda eliminada correctamente', 'success');
+                    // Actualizar tabla y calendario sin recargar página
                     cargarAgendas();
                 } else {
                     mostrarAlerta(response.message || 'Error al eliminar la agenda', 'error');
@@ -527,10 +749,101 @@ $(document).ready(function() {
     // Refrescar
     $(document).on('click', '#btn-refrescar', function(e) {
         e.preventDefault();
-        cargarAgendas();
+        // Recargar la página para obtener datos frescos desde PHP
+        window.location.reload();
     });
 
+    // Verificar que todo esté listo antes de inicializar
+    let intentosInicializacion = 0;
+    const maxIntentos = 50; // 5 segundos máximo
+    
+    function verificarYInicializar() {
+        intentosInicializacion++;
+        
+        // Verificar que jQuery esté cargado
+        if (typeof jQuery === 'undefined') {
+            if (intentosInicializacion < maxIntentos) {
+                setTimeout(verificarYInicializar, 100);
+            } else {
+                console.error('❌ jQuery no se cargó después de varios intentos');
+                mostrarErrorCalendario('jQuery no se ha cargado correctamente.');
+            }
+            return;
+        }
+        
+        // Verificar que FullCalendar esté cargado
+        let FullCalendarLib = null;
+        if (typeof window.FullCalendar !== 'undefined') {
+            FullCalendarLib = window.FullCalendar;
+        } else if (typeof FullCalendar !== 'undefined') {
+            FullCalendarLib = FullCalendar;
+        } else if (typeof window.fullCalendar !== 'undefined') {
+            FullCalendarLib = window.fullCalendar;
+        }
+        
+        if (!FullCalendarLib) {
+            if (intentosInicializacion < maxIntentos) {
+                console.log(`⏳ Esperando FullCalendar... (intento ${intentosInicializacion}/${maxIntentos})`);
+                setTimeout(verificarYInicializar, 100);
+            } else {
+                console.error('❌ FullCalendar no se cargó después de varios intentos');
+                console.log('Debug - Variables disponibles:', {
+                    'window.FullCalendar': typeof window.FullCalendar,
+                    'FullCalendar': typeof FullCalendar,
+                    'window.fullCalendar': typeof window.fullCalendar
+                });
+                mostrarErrorCalendario('FullCalendar no se ha cargado correctamente. Verifica que el archivo main.min.js esté en assets/js/fullcalendar/ y que se esté cargando correctamente.');
+            }
+            return;
+        }
+        
+        // Verificar que el elemento del calendario exista
+        const calendarEl = document.getElementById('calendario-agendas');
+        if (!calendarEl) {
+            if (intentosInicializacion < maxIntentos) {
+                setTimeout(verificarYInicializar, 100);
+            } else {
+                console.error('❌ Elemento calendario-agendas no encontrado en el DOM');
+                mostrarErrorCalendario('El elemento del calendario no se encontró en la página.');
+            }
+            return;
+        }
+        
+        console.log('✅ Todo listo, inicializando calendario y tabla...');
+        
+        // Ocultar loading
+        const loadingEl = document.getElementById('calendario-loading');
+        if (loadingEl) loadingEl.style.display = 'none';
+
     // Inicializar
+        try {
     inicializarCalendario();
     inicializarTabla();
+        } catch (error) {
+            console.error('❌ Error al inicializar:', error);
+            mostrarErrorCalendario('Error al inicializar: ' + error.message);
+        }
+    }
+    
+    function mostrarErrorCalendario(mensaje) {
+        const errorEl = document.getElementById('calendario-error');
+        const calendarEl = document.getElementById('calendario-agendas');
+        const loadingEl = document.getElementById('calendario-loading');
+        
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = `<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>${mensaje}</p><button class="btn btn-primary mt-2" onclick="location.reload()">Recargar Página</button>`;
+        }
+        if (calendarEl) {
+            calendarEl.style.display = 'none';
+        }
+    }
+    
+    // Mostrar loading inicialmente
+    const loadingEl = document.getElementById('calendario-loading');
+    if (loadingEl) loadingEl.style.display = 'block';
+    
+    // Iniciar verificación
+    verificarYInicializar();
 });
