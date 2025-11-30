@@ -136,7 +136,7 @@ class GestionSolicitudes {
         tbody.innerHTML = '';
 
         if (!Array.isArray(solicitudes) || solicitudes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay solicitudes disponibles</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay solicitudes disponibles</td></tr>';
             // Destruir DataTable si existe
             if (this.dataTable) {
                 this.dataTable.destroy();
@@ -155,6 +155,22 @@ class GestionSolicitudes {
             const modelo = solicitud.Modelo || '';
             const proposito = solicitud.Proposito || '';
             const choferNombre = solicitud.ChoferNombre || solicitud.ChoferNombre || 'N/A';
+            
+            // Formatear hora de creación de la solicitud
+            let horaSolicitud = 'N/A';
+            if (solicitud.FechaCreacion) {
+                try {
+                    const fechaCreacion = new Date(solicitud.FechaCreacion);
+                    if (!isNaN(fechaCreacion.getTime())) {
+                        horaSolicitud = fechaCreacion.toLocaleTimeString('es-ES', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error al formatear fecha de creación:', e);
+                }
+            }
 
             row.innerHTML = `
                 <td>${id}</td>
@@ -163,6 +179,7 @@ class GestionSolicitudes {
                 <td>${proposito}</td>
                 <td><span class="badge ${estadoClass}">${estado}</span></td>
                 <td>${choferNombre}</td>
+                <td>${horaSolicitud}</td>
                 <td>
                     ${estado === 'Pendiente' ? `
                         <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${id})">
@@ -222,7 +239,8 @@ class GestionSolicitudes {
                     { width: "120px", targets: 3 }, // Propósito
                     { width: "100px", targets: 4 }, // Estado
                     { width: "120px", targets: 5 }, // Chofer
-                    { width: "120px", targets: 6 }  // Acciones
+                    { width: "120px", targets: 6 }, // Hora Solicitud
+                    { width: "120px", targets: 7 }  // Acciones
                 ]
             });
         }
@@ -396,6 +414,12 @@ class GestionSolicitudes {
                     const hoy = new Date();
                     hoy.setHours(0, 0, 0, 0);
                     
+                    // Obtener la hora actual
+                    const ahora = new Date();
+                    const horaActual = ahora.getHours();
+                    const minutoActual = ahora.getMinutes();
+                    const fechaActual = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+                    
                     let horasFiltradas = data.data.filter(agenda => {
                         // Solo disponibles
                         if (agenda.Disponible != 1 && agenda.Disponible !== true && agenda.Disponible !== '1') {
@@ -407,7 +431,7 @@ class GestionSolicitudes {
                             return false;
                         }
                         const fechaAgenda = new Date(agenda.Fecha + 'T00:00:00');
-                        if (fechaAgenda < hoy) {
+                        if (fechaAgenda < fechaActual) {
                             return false;
                         }
                         
@@ -419,10 +443,35 @@ class GestionSolicitudes {
                         // Convertir a formato comparable (HH:MM:SS)
                         const horaParts = horaInicio.split(':');
                         const horaNum = parseInt(horaParts[0]) || 0;
-                        // Permitir horas desde 9 AM (09:00) hasta 11 PM (23:00)
-                        // Nota: El rango es 9 AM - 11 PM según el requerimiento original
-                        if (horaNum < 9 || horaNum > 23) {
-                            return false;
+                        const minutoNum = parseInt(horaParts[1]) || 0;
+                        
+                        // Si la fecha es hoy, verificar que la hora no haya pasado
+                        const esHoy = fechaAgenda.getTime() === fechaActual.getTime();
+                        if (esHoy) {
+                            // Si ya son las 21:00 o más tarde, solo mostrar horas desde las 21:00
+                            if (horaActual >= 21) {
+                                if (horaNum < 21) {
+                                    return false;
+                                }
+                                // Si es exactamente las 21:00, verificar que el minuto no haya pasado
+                                if (horaNum === 21 && minutoNum < minutoActual) {
+                                    return false;
+                                }
+                            } else {
+                                // Si es antes de las 21:00, aplicar el filtro normal (9 AM - 11 PM)
+                                if (horaNum < 9 || horaNum > 23) {
+                                    return false;
+                                }
+                                // Si es hoy y la hora ya pasó, no mostrarla
+                                if (horaNum < horaActual || (horaNum === horaActual && minutoNum < minutoActual)) {
+                                    return false;
+                                }
+                            }
+                        } else {
+                            // Para fechas futuras, aplicar el filtro normal (9 AM - 11 PM)
+                            if (horaNum < 9 || horaNum > 23) {
+                                return false;
+                            }
                         }
                         
                         return true;
@@ -491,6 +540,15 @@ class GestionSolicitudes {
 
         // Ordenar fechas
         const fechasOrdenadas = Object.keys(horasPorFecha).sort();
+
+        // Ordenar horas dentro de cada fecha por HoraInicio (de más temprana a más tarde)
+        fechasOrdenadas.forEach(fecha => {
+            horasPorFecha[fecha].sort((a, b) => {
+                const horaA = a.HoraInicio || a.horaInicio || '';
+                const horaB = b.HoraInicio || b.horaInicio || '';
+                return horaA.localeCompare(horaB);
+            });
+        });
 
         // Crear filas
         fechasOrdenadas.forEach(fecha => {

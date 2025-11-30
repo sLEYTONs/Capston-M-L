@@ -39,6 +39,16 @@ try {
             echo json_encode(['success' => true, 'data' => $novedades]);
             break;
             
+        case 'obtenerMovimientosDelDia':
+            try {
+                $movimientos = obtenerMovimientosDelDia();
+                echo json_encode(['success' => true, 'data' => $movimientos]);
+            } catch (Exception $e) {
+                error_log("Error en obtenerMovimientosDelDia: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error al obtener movimientos', 'data' => []]);
+            }
+            break;
+            
         case 'reportarNovedad':
             $placa = $_POST['placa'] ?? '';
             $tipo = $_POST['tipo'] ?? '';
@@ -58,6 +68,7 @@ try {
         case 'registrarIngresoBasico':
             $placa = $_POST['placa'] ?? '';
             $usuario_id = $_SESSION['usuario']['id'];
+            $motivo_retraso = $_POST['motivo_retraso'] ?? null;
             
             if (empty($placa)) {
                 echo json_encode(['success' => false, 'message' => 'Placa requerida']);
@@ -65,7 +76,7 @@ try {
             }
             
             try {
-                $resultado = registrarIngresoBasico($placa, $usuario_id);
+                $resultado = registrarIngresoBasico($placa, $usuario_id, $motivo_retraso);
                 echo json_encode($resultado);
             } catch (Exception $e) {
                 error_log("Error en registrarIngresoBasico: " . $e->getMessage());
@@ -125,7 +136,16 @@ try {
             
         case 'obtenerVehiculosAgendados':
             $fecha = $_POST['fecha'] ?? date('Y-m-d');
-            $vehiculos = obtenerVehiculosAgendados($fecha);
+            $rol = $_SESSION['usuario']['rol'] ?? null;
+            $soloPendientes = isset($_POST['soloPendientes']) && $_POST['soloPendientes'] === 'true';
+            $vehiculos = obtenerVehiculosAgendados($fecha, $rol, $soloPendientes);
+            echo json_encode(['success' => true, 'data' => $vehiculos]);
+            break;
+            
+        case 'obtenerHistorialVehiculosAgendados':
+            $fecha = $_POST['fecha'] ?? date('Y-m-d');
+            $rol = $_SESSION['usuario']['rol'] ?? null;
+            $vehiculos = obtenerHistorialVehiculosAgendados($fecha, $rol);
             echo json_encode(['success' => true, 'data' => $vehiculos]);
             break;
             

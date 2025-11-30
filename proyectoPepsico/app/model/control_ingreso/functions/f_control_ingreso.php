@@ -110,10 +110,130 @@ function obtenerNovedadesRecientes() {
 }
 
 /**
+ * Obtiene los movimientos del día (ingresos y salidas)
+ */
+function obtenerMovimientosDelDia() {
+    try {
+        $conn = conectar_Pepsico();
+        
+        if (!$conn) {
+            error_log("Error: No se pudo conectar a la base de datos");
+            return [];
+        }
+        
+        // Verificar nombres de columnas reales
+        $columnas = [];
+        $resultColumnas = $conn->query("SHOW COLUMNS FROM ingreso_vehiculos");
+        if ($resultColumnas) {
+            while ($col = $resultColumnas->fetch_assoc()) {
+                $columnas[strtolower($col['Field'])] = $col['Field'];
+            }
+        }
+        
+        // Determinar nombres de columnas a usar
+        $placaCol = $columnas['placa'] ?? 'Placa';
+        $fechaIngresoCol = $columnas['fechaingreso'] ?? 'FechaIngreso';
+        $fechaSalidaCol = $columnas['fechasalida'] ?? 'FechaSalida';
+        $estadoCol = $columnas['estado'] ?? 'Estado';
+        $marcaCol = $columnas['marca'] ?? 'Marca';
+        $modeloCol = $columnas['modelo'] ?? 'Modelo';
+        $tipoVehiculoCol = $columnas['tipovehiculo'] ?? 'TipoVehiculo';
+        $conductorCol = $columnas['conductornombre'] ?? ($columnas['conductor_nombre'] ?? 'ConductorNombre');
+    
+        // Obtener ingresos del día
+        $sqlIngresos = "SELECT 
+                        iv.{$placaCol} as Placa,
+                        iv.{$tipoVehiculoCol} as TipoVehiculo,
+                        iv.{$marcaCol} as Marca,
+                        iv.{$modeloCol} as Modelo,
+                        iv.{$conductorCol} as ConductorNombre,
+                        iv.{$fechaIngresoCol} as FechaIngreso,
+                        iv.{$estadoCol} as Estado
+                    FROM ingreso_vehiculos iv
+                    WHERE DATE(iv.{$fechaIngresoCol}) = CURDATE()
+                    ORDER BY iv.{$fechaIngresoCol} DESC";
+    
+        $resultIngresos = $conn->query($sqlIngresos);
+        $ingresos = [];
+        
+        if ($resultIngresos) {
+            while ($row = $resultIngresos->fetch_assoc()) {
+                $ingresos[] = [
+                    'placa' => $row['Placa'] ?? '',
+                    'tipo_vehiculo' => $row['TipoVehiculo'] ?? '',
+                    'marca' => $row['Marca'] ?? '',
+                    'modelo' => $row['Modelo'] ?? '',
+                    'conductor' => $row['ConductorNombre'] ?? 'N/A',
+                    'fecha' => $row['FechaIngreso'] ?? '',
+                    'estado' => $row['Estado'] ?? '',
+                    'tipo_movimiento' => 'Ingreso'
+                ];
+            }
+        } else {
+            error_log("Error en consulta de ingresos: " . $conn->error);
+        }
+    
+        // Obtener salidas del día (solo si existe la columna FechaSalida)
+        $salidas = [];
+        if ($fechaSalidaCol) {
+            $sqlSalidas = "SELECT 
+                            iv.{$placaCol} as Placa,
+                            iv.{$tipoVehiculoCol} as TipoVehiculo,
+                            iv.{$marcaCol} as Marca,
+                            iv.{$modeloCol} as Modelo,
+                            iv.{$conductorCol} as ConductorNombre,
+                            iv.{$fechaSalidaCol} as FechaSalida,
+                            iv.{$estadoCol} as Estado
+                        FROM ingreso_vehiculos iv
+                        WHERE iv.{$fechaSalidaCol} IS NOT NULL
+                            AND DATE(iv.{$fechaSalidaCol}) = CURDATE()
+                        ORDER BY iv.{$fechaSalidaCol} DESC";
+            
+            $resultSalidas = $conn->query($sqlSalidas);
+            
+            if ($resultSalidas) {
+                while ($row = $resultSalidas->fetch_assoc()) {
+                    $salidas[] = [
+                        'placa' => $row['Placa'] ?? '',
+                        'tipo_vehiculo' => $row['TipoVehiculo'] ?? '',
+                        'marca' => $row['Marca'] ?? '',
+                        'modelo' => $row['Modelo'] ?? '',
+                        'conductor' => $row['ConductorNombre'] ?? 'N/A',
+                        'fecha' => $row['FechaSalida'] ?? '',
+                        'estado' => $row['Estado'] ?? '',
+                        'tipo_movimiento' => 'Salida'
+                    ];
+                }
+            } else {
+                error_log("Error en consulta de salidas: " . $conn->error);
+            }
+        }
+    
+        // Combinar y ordenar por fecha (más reciente primero)
+        $movimientos = array_merge($ingresos, $salidas);
+        usort($movimientos, function($a, $b) {
+            $timeA = strtotime($a['fecha'] ?? '1970-01-01');
+            $timeB = strtotime($b['fecha'] ?? '1970-01-01');
+            return $timeB - $timeA;
+        });
+    
+        $conn->close();
+        
+        return array_slice($movimientos, 0, 20); // Limitar a los últimos 20 movimientos
+    } catch (Exception $e) {
+        error_log("Error en obtenerMovimientosDelDia: " . $e->getMessage());
+        if (isset($conn)) {
+            $conn->close();
+        }
+        return [];
+    }
+}
+
+/**
  * Registra ingreso de vehículo con hora asignada (solo guardia)
  * Solo permite ingresar vehículos que tengan una solicitud de agendamiento aprobada
  */
-function registrarIngresoBasico($placa, $usuario_id) {
+function registrarIngresoBasico($placa, $usuario_id, $motivo_retraso = null) {
     $conn = conectar_Pepsico();
     
     // Verificar si ya existe un registro activo con esa placa
@@ -273,6 +393,14 @@ function registrarIngresoBasico($placa, $usuario_id) {
         $valores[] = "'Bueno'";
     }
     
+    // Agregar MotivoRetraso si existe la columna y se proporcionó un motivo
+    if (in_array('MotivoRetraso', $columnas_existentes) && !empty($motivo_retraso)) {
+        $campos[] = "MotivoRetraso";
+        $valores[] = "?";
+        $tipos .= "s";
+        $parametros[] = $motivo_retraso;
+    }
+    
     // NOTA: Proposito y Observaciones NO se insertan porque no existen en ingreso_vehiculos
     // Esos datos están en la tabla solicitudes_agendamiento (s.Proposito, s.Observaciones)
     
@@ -430,16 +558,23 @@ function registrarSalidaVehiculo($placa, $usuario_id) {
     $resultEstado = $conn->query($checkEstado);
     $tieneEstado = ($resultEstado && $resultEstado->num_rows > 0);
     
-    // Verificar si existe la columna FechaSalida
-    $checkFechaSalida = "SHOW COLUMNS FROM ingreso_vehiculos LIKE 'FechaSalida'";
+    // Verificar si existe la columna FechaSalida (puede estar en mayúsculas o minúsculas)
+    $checkFechaSalida = "SHOW COLUMNS FROM ingreso_vehiculos WHERE Field IN ('FechaSalida', 'fechasalida')";
     $resultFechaSalida = $conn->query($checkFechaSalida);
     $tieneFechaSalida = ($resultFechaSalida && $resultFechaSalida->num_rows > 0);
+    
+    // Obtener el nombre exacto de la columna si existe
+    $nombreColumnaFechaSalida = null;
+    if ($tieneFechaSalida) {
+        $row = $resultFechaSalida->fetch_assoc();
+        $nombreColumnaFechaSalida = $row['Field']; // Usar el nombre exacto de la columna
+    }
     
     // Construir la consulta UPDATE dinámicamente
     $camposUpdate = [];
     
-    if ($tieneFechaSalida) {
-        $camposUpdate[] = "FechaSalida = NOW()";
+    if ($nombreColumnaFechaSalida) {
+        $camposUpdate[] = "`{$nombreColumnaFechaSalida}` = NOW()";
     }
     
     if ($tieneEstado) {
@@ -493,29 +628,26 @@ function registrarSalidaVehiculo($placa, $usuario_id) {
 /**
  * Obtiene vehículos con horas agendadas aprobadas (para vista del guardia)
  */
-function obtenerVehiculosAgendados($fecha = null) {
+function obtenerVehiculosAgendados($fecha = null, $rol = null, $soloPendientes = false) {
     $conn = conectar_Pepsico();
     
     if (!$conn) {
         return [];
     }
     
-    // Si no se proporciona fecha, usar la fecha actual
-    if ($fecha === null) {
+    // Si el rol es Guardia, mostrar todo el historial sin filtrar por fecha
+    $esGuardia = ($rol === 'Guardia');
+    
+    // Si no se proporciona fecha y no es Guardia, usar la fecha actual
+    if ($fecha === null && !$esGuardia) {
         $fecha = date('Y-m-d');
     }
     
     $vehiculos = [];
     
     try {
-        // Asegurar que la fecha esté en formato YYYY-MM-DD
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
-            error_log("Formato de fecha inválido en obtenerVehiculosAgendados: " . $fecha);
-            $fecha = date('Y-m-d');
-        }
-        
-        // Consulta para obtener vehículos agendados para la fecha especificada
-        // Incluye estados: Aprobada, Atrasado (puede tener agenda válida), y No llegó (para mostrar histórico)
+        // Consulta para obtener vehículos agendados
+        // Si es Guardia, muestra todo el historial; si no, filtra por fecha
         $sql = "SELECT 
                     s.ID as SolicitudID,
                     s.Placa,
@@ -547,11 +679,26 @@ function obtenerVehiculosAgendados($fecha = null) {
                 LEFT JOIN ingreso_vehiculos iv ON s.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci 
                     AND iv.Estado = 'Ingresado'
                 WHERE s.AgendaID IS NOT NULL
-                    AND DATE(a.Fecha) = ?
-                    AND s.Estado IN ('Aprobada', 'Atrasado', 'No llegó')
-                ORDER BY a.HoraInicio ASC";
+                    AND s.Estado IN ('Aprobada', 'Atrasado', 'No llegó')";
         
-        error_log("obtenerVehiculosAgendados - Fecha buscada: " . $fecha);
+        // Si solo se quieren pendientes, filtrar por EstadoIngreso
+        if ($soloPendientes) {
+            $sql .= " AND iv.ID IS NULL";
+        }
+        
+        // Si no es Guardia, agregar filtro de fecha
+        if (!$esGuardia) {
+            // Asegurar que la fecha esté en formato YYYY-MM-DD
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+                error_log("Formato de fecha inválido en obtenerVehiculosAgendados: " . $fecha);
+                $fecha = date('Y-m-d');
+            }
+            $sql .= " AND DATE(a.Fecha) = ?";
+        }
+        
+        $sql .= " ORDER BY a.Fecha DESC, a.HoraInicio ASC";
+        
+        error_log("obtenerVehiculosAgendados - Rol: " . $rol . ", Es Guardia: " . ($esGuardia ? 'Sí' : 'No') . ", Solo Pendientes: " . ($soloPendientes ? 'Sí' : 'No') . ", Fecha buscada: " . ($fecha ?? 'Todas'));
         
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
@@ -560,7 +707,10 @@ function obtenerVehiculosAgendados($fecha = null) {
             return [];
         }
         
-        $stmt->bind_param("s", $fecha);
+        // Solo bindear parámetro si no es Guardia
+        if (!$esGuardia) {
+            $stmt->bind_param("s", $fecha);
+        }
         
         if (!$stmt->execute()) {
             error_log("Error ejecutando consulta en obtenerVehiculosAgendados: " . mysqli_stmt_error($stmt));
@@ -585,6 +735,154 @@ function obtenerVehiculosAgendados($fecha = null) {
         
     } catch (Exception $e) {
         error_log("Error obteniendo vehículos agendados: " . $e->getMessage());
+        if ($conn) {
+            $conn->close();
+        }
+        return [];
+    }
+    
+    return $vehiculos;
+}
+
+/**
+ * Obtiene el historial completo de vehículos agendados desde ingreso_vehiculos
+ */
+function obtenerHistorialVehiculosAgendados($fecha = null, $rol = null) {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return [];
+    }
+    
+    // Si el rol es Guardia, mostrar todo el historial sin filtrar por fecha
+    $esGuardia = ($rol === 'Guardia');
+    
+    // Si no se proporciona fecha y no es Guardia, usar la fecha actual
+    if ($fecha === null && !$esGuardia) {
+        $fecha = date('Y-m-d');
+    }
+    
+    $vehiculos = [];
+    
+    try {
+        // Consulta para obtener historial desde ingreso_vehiculos como tabla principal
+        // Se relaciona con solicitudes_agendamiento y agenda_taller para obtener información de agenda
+        // Usando los nombres exactos de columnas de ingreso_vehiculos
+        // Agrupando por vehículo para evitar duplicados cuando hay múltiples solicitudes
+        $sql = "SELECT 
+                    iv.Id as VehiculoID,
+                    COALESCE(iv.placa, iv.Placa) as Placa,
+                    COALESCE(sa.TipoVehiculo, iv.tipovehiculo, iv.TipoVehiculo) as TipoVehiculo,
+                    COALESCE(sa.Marca, iv.marca, iv.Marca) as Marca,
+                    COALESCE(sa.Modelo, iv.modelo, iv.Modelo) as Modelo,
+                    COALESCE(sa.Anio, iv.anio, iv.Anio) as Anio,
+                    COALESCE(sa.ConductorNombre, iv.conductorNombre, iv.ConductorNombre) as ConductorNombre,
+                    COALESCE(sa.Proposito, 'N/A') as Proposito,
+                    COALESCE(sa.Observaciones, '') as Observaciones,
+                    sa.ID as SolicitudID,
+                    sa.Estado as EstadoSolicitud,
+                    sa.FechaCreacion as FechaSolicitud,
+                    a.ID as AgendaID,
+                    a.Fecha as FechaAgenda,
+                    a.HoraInicio,
+                    a.HoraFin,
+                    u.NombreUsuario as ChoferNombre,
+                    u.Correo as ChoferCorreo,
+                    sup.NombreUsuario as SupervisorNombre,
+                    CASE 
+                        WHEN COALESCE(iv.fechasalida, iv.FechaSalida) IS NOT NULL THEN 'En Circulación'
+                        WHEN COALESCE(iv.estado, iv.Estado) = 'Finalizado' THEN 'En Circulación'
+                        WHEN COALESCE(iv.estado, iv.Estado) = 'Ingresado' THEN 'Ingresado'
+                        WHEN COALESCE(iv.estado, iv.Estado) = 'Completado' THEN 'Completado'
+                        WHEN COALESCE(iv.estado, iv.Estado) = 'Asignado' THEN 'Solicitó Hora'
+                        WHEN COALESCE(sa.Estado, '') = 'Aprobada' THEN 'Solicitó Hora'
+                        WHEN COALESCE(sa.Estado, '') = 'Atrasado' THEN 'Solicitó Hora'
+                        WHEN COALESCE(sa.Estado, '') = 'No llegó' THEN 'No Llegó'
+                        WHEN COALESCE(sa.Estado, '') = 'Cancelada' THEN 'Cancelada'
+                        ELSE 'Pendiente Ingreso'
+                    END as EstadoIngreso,
+                    COALESCE(iv.fechaingreso, iv.FechaIngreso) as FechaIngreso,
+                    COALESCE(iv.fechasalida, iv.FechaSalida) as FechaSalida,
+                    COALESCE(iv.estado, iv.Estado) as EstadoVehiculo,
+                    iv.FechaRegistro
+                FROM ingreso_vehiculos iv
+                LEFT JOIN (
+                    SELECT sa1.*
+                    FROM solicitudes_agendamiento sa1
+                    INNER JOIN (
+                        SELECT Placa, MAX(FechaCreacion) as MaxFecha
+                        FROM solicitudes_agendamiento
+                        WHERE Estado IN ('Aprobada', 'Atrasado', 'No llegó', 'Completada', 'Cancelada')
+                        GROUP BY Placa
+                    ) sa2 ON sa1.Placa = sa2.Placa AND sa1.FechaCreacion = sa2.MaxFecha
+                    WHERE sa1.Estado IN ('Aprobada', 'Atrasado', 'No llegó', 'Completada', 'Cancelada')
+                ) sa ON sa.Placa COLLATE utf8mb4_unicode_ci = COALESCE(iv.placa, iv.Placa) COLLATE utf8mb4_unicode_ci
+                LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
+                LEFT JOIN usuarios u ON sa.ChoferID = u.UsuarioID
+                LEFT JOIN usuarios sup ON sa.SupervisorID = sup.UsuarioID
+                WHERE 1=1";
+        
+        // Si no es Guardia, agregar filtro de fecha por fechaingreso o FechaAgenda
+        if (!$esGuardia) {
+            // Asegurar que la fecha esté en formato YYYY-MM-DD
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+                error_log("Formato de fecha inválido en obtenerHistorialVehiculosAgendados: " . $fecha);
+                $fecha = date('Y-m-d');
+            }
+            $sql .= " AND (DATE(COALESCE(iv.fechaingreso, iv.FechaIngreso)) = ? OR (a.Fecha IS NOT NULL AND DATE(a.Fecha) = ?))";
+        }
+        
+        // Ordenar por FechaAgenda primero (si existe), luego por FechaIngreso, de más reciente a más antigua
+        // Usar STR_TO_DATE para asegurar ordenamiento correcto de fechas
+        $sql .= " ORDER BY 
+                    CASE 
+                        WHEN a.Fecha IS NOT NULL THEN STR_TO_DATE(a.Fecha, '%Y-%m-%d')
+                        ELSE DATE(COALESCE(iv.fechaingreso, iv.FechaIngreso))
+                    END DESC,
+                    CASE 
+                        WHEN a.HoraInicio IS NOT NULL THEN TIME(a.HoraInicio)
+                        ELSE TIME(COALESCE(iv.fechaingreso, iv.FechaIngreso))
+                    END DESC,
+                    COALESCE(iv.fechaingreso, iv.FechaIngreso) DESC";
+        
+        error_log("obtenerHistorialVehiculosAgendados - Rol: " . $rol . ", Es Guardia: " . ($esGuardia ? 'Sí' : 'No') . ", Fecha buscada: " . ($fecha ?? 'Todas'));
+        
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            error_log("Error preparando consulta en obtenerHistorialVehiculosAgendados: " . mysqli_error($conn));
+            $conn->close();
+            return [];
+        }
+        
+        // Solo bindear parámetro si no es Guardia (dos veces porque hay dos condiciones OR)
+        if (!$esGuardia) {
+            $stmt->bind_param("ss", $fecha, $fecha);
+        }
+        
+        if (!$stmt->execute()) {
+            error_log("Error ejecutando consulta en obtenerHistorialVehiculosAgendados: " . mysqli_stmt_error($stmt));
+            $stmt->close();
+            $conn->close();
+            return [];
+        }
+        
+        $result = $stmt->get_result();
+        $count = 0;
+        
+        while ($row = $result->fetch_assoc()) {
+            $vehiculos[] = $row;
+            $count++;
+            error_log("Vehículo historial encontrado - Placa: " . ($row['Placa'] ?? 'N/A') . ", Estado: " . ($row['EstadoVehiculo'] ?? 'N/A') . ", Fecha: " . ($row['FechaIngreso'] ?? 'N/A'));
+        }
+        
+        error_log("obtenerHistorialVehiculosAgendados - Total vehículos encontrados: " . $count);
+        error_log("SQL ejecutado: " . $sql);
+        
+        $stmt->close();
+        $conn->close();
+        
+    } catch (Exception $e) {
+        error_log("Error obteniendo historial de vehículos agendados: " . $e->getMessage());
         if ($conn) {
             $conn->close();
         }
@@ -1137,7 +1435,7 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
     $diferenciaSegundos = $horaActualTimestamp - $horaInicioTimestamp;
     $diferenciaMinutos = round($diferenciaSegundos / 60);
     
-    // Caso 1: Llegó más de 10 minutos antes - No puede ingresar (debe esperar)
+    // Caso 1: Llegó más de 10 minutos antes - Puede ingresar pero requiere motivo
     if ($horaActualTimestamp < $horaLimiteAntesTimestamp) {
         $minutosAntes = abs($diferenciaMinutos);
         $conn->close();
@@ -1162,15 +1460,21 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'ChoferNombre' => $solicitud['ChoferNombre']
             ],
             'tiene_agenda' => true,
-            'puede_ingresar' => false,
+            'puede_ingresar' => true, // Cambiado a true para permitir ingreso con motivo
             'puede_salir' => false,
-            'mensaje' => "El vehículo llegó {$minutosAntes} minutos antes de la hora asignada (" . date('H:i', strtotime($horaInicio)) . "). Debe esperar hasta 10 minutos antes de su hora de cita."
+            'es_temprano' => true,
+            'requiere_motivo_retraso' => true, // Requiere motivo para ingreso temprano
+            'tipo_atraso' => 'temprano',
+            'mensaje' => "El vehículo llegó {$minutosAntes} minutos antes de la hora asignada (" . date('H:i', strtotime($horaInicio)) . "). Se requiere un motivo para permitir el ingreso anticipado.",
+            'hora_actual' => $horaActual,
+            'diferencia_minutos' => -$minutosAntes
         ];
     }
     
-    // Caso 2: Llegó más de 30 minutos después - No puede ingresar, marcar como "No llegó"
+    // Caso 2: Llegó más de 30 minutos después - Puede ingresar pero requiere motivo de retraso
     if ($horaActualTimestamp > $horaLimiteAtrasadoTimestamp) {
-        marcarSolicitudNoLlego($solicitud['SolicitudID']);
+        // NO marcar automáticamente como "No llegó", permitir ingreso con motivo
+        $diferenciaMinutos = round($diferenciaSegundos / 60);
         
         $conn->close();
         return [
@@ -1194,13 +1498,15 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
                 'ChoferNombre' => $solicitud['ChoferNombre']
             ],
             'tiene_agenda' => true,
-            'puede_ingresar' => false,
+            'puede_ingresar' => true, // Cambiado a true para permitir ingreso con motivo
             'puede_salir' => false,
             'es_atrasado' => true,
             'no_llego' => true,
+            'requiere_motivo_retraso' => true, // Nuevo flag para indicar que requiere motivo
             'tipo_atraso' => 'no_llego',
-            'mensaje' => 'El vehículo no llegó a tiempo. Pasó más de 30 minutos de la hora asignada (' . date('H:i', strtotime($horaInicio)) . '). La solicitud ha sido marcada como "No llegó" y el proceso ha sido cerrado. Debe crear una nueva solicitud de agendamiento.',
-            'hora_actual' => $horaActual
+            'mensaje' => 'El vehículo llegó con más de 30 minutos de retraso (' . date('H:i', strtotime($horaInicio)) . '). Se requiere ingresar un motivo del retraso para permitir el ingreso.',
+            'hora_actual' => $horaActual,
+            'diferencia_minutos' => $diferenciaMinutos
         ];
     }
     

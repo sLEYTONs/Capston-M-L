@@ -40,6 +40,9 @@ class ControlIngresoApp {
 
         // Modal Novedad
         $('#btnGuardarNovedad').click(() => this.guardarNovedad());
+        
+        // Modal Atrasado - Botón permitir ingreso con motivo
+        $('#btnPermitirIngresoConMotivo').click(() => this.permitirIngresoConMotivo());
     }
 
     actualizarInterfazOperacion() {
@@ -95,8 +98,15 @@ class ControlIngresoApp {
                     const data = response.data;
                     this.vehiculoActual = data;
                     
-                    // Si es atrasado y NO puede ingresar (más de 30 minutos o más de 10 minutos antes), mostrar modal
-                    if (data.es_atrasado && !data.puede_ingresar) {
+                    // Si es atrasado o temprano y requiere motivo de retraso, mostrar modal
+                    if ((data.es_atrasado || data.es_temprano) && data.requiere_motivo_retraso) {
+                        this.mostrarModalAtrasado(data);
+                        // También mostrar información básica
+                        if (data.vehiculo) {
+                            this.mostrarInformacionBasica(data);
+                        }
+                    } else if (data.es_atrasado && !data.puede_ingresar) {
+                        // Si es atrasado y NO puede ingresar (caso antiguo, no debería llegar aquí)
                         this.mostrarModalAtrasado(data);
                         // También mostrar información básica
                         if (data.vehiculo) {
@@ -181,6 +191,7 @@ class ControlIngresoApp {
                 <div class="alert alert-success mb-3" id="alertAgenda">
                     <i class="fas fa-check-circle me-2"></i>
                     <strong>Vehículo completado:</strong> El mecánico ha terminado el proceso. El vehículo está listo para salir.
+                    <br><small class="mt-2 d-block"><i class="fas fa-info-circle me-1"></i>Puede proceder con el registro de salida usando el botón "Confirmar Salida".</small>
                 </div>
             `;
             
@@ -343,9 +354,9 @@ class ControlIngresoApp {
         // Para salida: solo si el vehículo está ingresado
         const puedeSalir = tieneVehiculo && this.vehiculoActual.puede_salir;
         
-        // Fotos son opcionales, solo se requiere que tenga vehículo y pueda ingresar
+        // Fotos son opcionales para ingreso y salida
         $('#btnProcesarIngreso').prop('disabled', !puedeIngresar);
-        $('#btnProcesarSalida').prop('disabled', !puedeSalir || !tieneFotos); // Para salida sí se requieren fotos
+        $('#btnProcesarSalida').prop('disabled', !puedeSalir); // Fotos opcionales para salida también
         $('#btnReportarNovedad').prop('disabled', !tieneVehiculo);
     }
 
@@ -358,6 +369,12 @@ class ControlIngresoApp {
         // Verificar que tenga agenda y pueda ingresar
         if (!this.vehiculoActual.puede_ingresar) {
             this.mostrarAlerta('Este vehículo no puede ingresar en este momento. Verifique la hora asignada.', 'warning');
+            return;
+        }
+
+        // Si requiere motivo de retraso, mostrar el modal en lugar de procesar directamente
+        if (this.vehiculoActual.requiere_motivo_retraso) {
+            this.mostrarModalAtrasado(this.vehiculoActual);
             return;
         }
 
@@ -391,6 +408,7 @@ class ControlIngresoApp {
                     this.mostrarModalExito('Ingreso registrado correctamente', 'El vehículo ha sido ingresado al taller.');
                     this.limpiarInterfaz();
                     this.cargarEstadisticas();
+                    this.cargarNovedades(); // Actualizar movimientos
                 } else {
                     this.mostrarAlerta(response.message || 'Error al registrar ingreso', 'error');
                 }
@@ -403,11 +421,18 @@ class ControlIngresoApp {
     }
 
     procesarSalida() {
-        if (!this.vehiculoActual || this.fotosCapturadas.length < 2) {
-            this.mostrarAlerta('Capture al menos 2 fotos del vehículo antes de registrar la salida', 'warning');
+        if (!this.vehiculoActual) {
+            this.mostrarAlerta('Primero busque un vehículo por placa', 'warning');
             return;
         }
 
+        // Verificar que el vehículo pueda salir
+        if (!this.vehiculoActual.puede_salir) {
+            this.mostrarAlerta('Este vehículo no puede salir. Debe estar completado por el mecánico.', 'warning');
+            return;
+        }
+
+        // Las fotos son opcionales - si hay fotos, se guardarán, pero no son requeridas
         this.registrarSalida();
     }
 
@@ -429,6 +454,7 @@ class ControlIngresoApp {
                     this.mostrarModalExito('Salida registrada correctamente', 'El vehículo ha sido registrado como salido del taller.');
                     this.limpiarInterfaz();
                     this.cargarEstadisticas();
+                    this.cargarNovedades(); // Actualizar movimientos
                 } else {
                     this.mostrarAlerta(response.message, 'error');
                 }
@@ -648,40 +674,138 @@ class ControlIngresoApp {
     }
 
     cargarNovedades() {
+        // Mostrar estado de carga
+        $('#listaNovedades').html('<div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando movimientos...</div>');
+        
         $.ajax({
             url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
             type: 'POST',
-            data: { action: 'obtenerNovedades' },
+            data: { action: 'obtenerMovimientosDelDia' },
             dataType: 'json',
+            timeout: 10000, // 10 segundos de timeout
             success: (response) => {
-                if (response.success) {
-                    this.mostrarNovedades(response.data);
+                console.log('Respuesta de movimientos:', response);
+                if (response && response.success !== undefined) {
+                    const movimientos = response.data || [];
+                    this.mostrarMovimientos(movimientos);
+                } else {
+                    console.warn('Respuesta sin success:', response);
+                    $('#listaNovedades').html('<div class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No hay movimientos registrados hoy</div>');
                 }
+            },
+            error: (xhr, status, error) => {
+                console.error('Error al cargar movimientos:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    statusCode: xhr.status
+                });
+                
+                let mensaje = 'Error al cargar movimientos';
+                if (status === 'timeout') {
+                    mensaje = 'Tiempo de espera agotado. Intente nuevamente.';
+                } else if (xhr.status === 0) {
+                    mensaje = 'No se pudo conectar con el servidor.';
+                }
+                
+                $('#listaNovedades').html(`<div class="text-center text-muted py-4"><i class="fas fa-exclamation-triangle me-2"></i>${mensaje}</div>`);
             }
         });
     }
 
-    mostrarNovedades(novedades) {
+    mostrarMovimientos(movimientos) {
         const container = $('#listaNovedades');
         
-        if (novedades.length === 0) {
-            container.html('<div class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No hay novedades recientes</div>');
+        if (movimientos.length === 0) {
+            container.html('<div class="text-center text-muted py-4"><i class="fas fa-info-circle me-2"></i>No hay movimientos registrados hoy</div>');
             return;
         }
 
-        let html = '';
-        novedades.forEach(novedad => {
+        let html = `
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 80px;">Hora</th>
+                            <th style="width: 100px;">Tipo</th>
+                            <th style="width: 100px;">Placa</th>
+                            <th>Vehículo</th>
+                            <th>Conductor</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        movimientos.forEach(movimiento => {
+            const esIngreso = movimiento.tipo_movimiento === 'Ingreso';
+            const tipoBadge = esIngreso ? 'success' : 'info';
+            const tipoIcono = esIngreso ? 'fa-arrow-down' : 'fa-arrow-up';
+            const tipoTexto = esIngreso ? 'Ingreso' : 'Salida';
+            
+            // Formatear fecha y hora
+            const fechaHora = new Date(movimiento.fecha);
+            const hora = fechaHora.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            // Obtener información del vehículo
+            const vehiculo = `${movimiento.marca || ''} ${movimiento.modelo || ''}`.trim() || '<span class="text-muted">-</span>';
+            const conductor = movimiento.conductor && movimiento.conductor !== 'N/A' ? movimiento.conductor : '<span class="text-muted">-</span>';
+            
+            // Formatear estado de manera más atractiva
+            let estadoHtml = '';
+            const estado = movimiento.estado || '';
+            
+            if (!estado || estado === 'N/A' || estado.trim() === '') {
+                // Si no hay estado, mostrar un badge más bonito
+                if (esIngreso) {
+                    estadoHtml = '<span class="badge bg-success bg-opacity-75">En Taller</span>';
+                } else {
+                    estadoHtml = '<span class="badge bg-info bg-opacity-75">Retirado</span>';
+                }
+            } else {
+                // Mapear estados a colores más bonitos
+                const estadoLower = estado.toLowerCase();
+                let estadoBadgeClass = 'bg-secondary';
+                
+                if (estadoLower.includes('completado') || estadoLower.includes('finalizado')) {
+                    estadoBadgeClass = 'bg-success';
+                } else if (estadoLower.includes('ingresado') || estadoLower.includes('asignado')) {
+                    estadoBadgeClass = 'bg-primary';
+                } else if (estadoLower.includes('en proceso') || estadoLower.includes('proceso')) {
+                    estadoBadgeClass = 'bg-warning';
+                } else if (estadoLower.includes('cancelado') || estadoLower.includes('rechazado')) {
+                    estadoBadgeClass = 'bg-danger';
+                } else if (estadoLower.includes('retirado') || estadoLower.includes('salida')) {
+                    estadoBadgeClass = 'bg-info';
+                }
+                
+                estadoHtml = `<span class="badge ${estadoBadgeClass}">${estado}</span>`;
+            }
+            
             html += `
-                <div class="novedad-item ${novedad.gravedad.toLowerCase()}">
-                    <div class="d-flex justify-content-between">
-                        <span class="novedad-tipo">${novedad.tipo}</span>
-                        <small class="novedad-fecha">${this.formatearFecha(novedad.fecha)}</small>
-                    </div>
-                    <div class="novedad-descripcion">${novedad.descripcion}</div>
-                    <small><strong>Vehículo:</strong> ${novedad.placa}</small>
-                </div>
+                <tr>
+                    <td class="text-muted"><small>${hora}</small></td>
+                    <td>
+                        <span class="badge bg-${tipoBadge}">
+                            <i class="fas ${tipoIcono} me-1"></i>${tipoTexto}
+                        </span>
+                    </td>
+                    <td><strong>${movimiento.placa}</strong></td>
+                    <td>${vehiculo}</td>
+                    <td>${conductor}</td>
+                    <td>${estadoHtml}</td>
+                </tr>
             `;
         });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
 
         container.html(html);
     }
@@ -729,8 +853,9 @@ class ControlIngresoApp {
     mostrarModalAtrasado(data) {
         const vehiculo = data.vehiculo;
         const agenda = data.agenda;
-        const tipoAtraso = data.tipo_atraso; // 'fecha', 'hora', o 'no_llego'
+        const tipoAtraso = data.tipo_atraso; // 'fecha', 'hora', 'no_llego', o 'temprano'
         const esNoLlego = tipoAtraso === 'no_llego';
+        const esTemprano = tipoAtraso === 'temprano';
         
         // Formatear hora actual
         let horaActualFormateada = '';
@@ -748,11 +873,11 @@ class ControlIngresoApp {
         
         // Calcular diferencia de tiempo
         let diferenciaTexto = '';
-        if (tipoAtraso === 'hora' || tipoAtraso === 'no_llego') {
+        if (tipoAtraso === 'hora' || tipoAtraso === 'no_llego' || tipoAtraso === 'temprano') {
             const horaInicio = new Date(`2000-01-01 ${agenda.HoraInicio}`);
             const horaActual = new Date(`2000-01-01 ${data.hora_actual || horaActualFormateada}`);
             const diferenciaMs = horaActual - horaInicio;
-            const diferenciaMin = Math.floor(diferenciaMs / 60000);
+            const diferenciaMin = Math.abs(Math.floor(diferenciaMs / 60000));
             
             if (diferenciaMin > 0) {
                 if (diferenciaMin >= 60) {
@@ -771,29 +896,129 @@ class ControlIngresoApp {
         $('#modalAtrasadoHora').text(`${this.formatearHora(agenda.HoraInicio)} - ${this.formatearHora(agenda.HoraFin)}`);
         $('#modalAtrasadoHoraLlegada').text(horaActualFormateada);
         
+        // Verificar si requiere motivo de retraso
+        const requiereMotivo = data.requiere_motivo_retraso === true;
+        
         // Personalizar según el tipo de atraso
-        if (esNoLlego) {
-            // No llegó - más de 30 minutos
-            $('#modalAtrasadoHeader').removeClass('bg-warning text-dark').addClass('bg-danger text-white');
-            $('#modalAtrasadoTitulo').html('<i class="fas fa-times-circle me-2"></i>Vehículo No Llegó');
-            $('#modalAtrasadoTituloPrincipal').text('Vehículo No Llegó a Tiempo').removeClass('text-warning').addClass('text-danger');
-            $('#modalAtrasadoSubtitulo').text('El vehículo no llegó dentro del margen de tiempo permitido');
-            $('#modalAtrasadoIcono').html('<i class="fas fa-times-circle fa-4x text-danger"></i>');
-            $('#modalAtrasadoAlerta').removeClass('alert-warning alert-info').addClass('alert-danger');
-            $('#modalAtrasadoIconoAlerta').removeClass('text-info').addClass('text-danger');
-            $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: No Llegó');
+        if (esTemprano && requiereMotivo) {
+            // Llegó temprano - más de 10 minutos antes
+            $('#modalAtrasadoHeader').removeClass('bg-danger text-white').addClass('bg-info text-white');
+            $('#modalAtrasadoTitulo').html('<i class="fas fa-clock me-2"></i>Vehículo Llegó Temprano');
+            $('#modalAtrasadoTituloPrincipal').text('Vehículo Llegó Antes de la Hora Asignada').removeClass('text-danger text-warning').addClass('text-info');
+            $('#modalAtrasadoSubtitulo').text('El vehículo llegó antes del margen de tiempo permitido');
+            $('#modalAtrasadoIcono').html('<i class="fas fa-clock fa-4x text-info"></i>');
+            $('#modalAtrasadoAlerta').removeClass('alert-danger alert-warning alert-info').addClass('alert-info');
+            $('#modalAtrasadoIconoAlerta').removeClass('text-danger text-warning').addClass('text-info');
+            $('#modalAtrasadoMotivoTitulo').text('Motivo del Ingreso Anticipado');
             
-            const mensajeNoLlego = `El vehículo <strong>NO LLEGÓ</strong> a tiempo. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} El margen máximo de atraso permitido es de 30 minutos.`;
-            $('#mensajeAtrasado').html(mensajeNoLlego);
+            const mensajeTemprano = `El vehículo <strong>llegó antes de la hora asignada</strong>. Llegó ${diferenciaTexto ? `<strong>${diferenciaTexto}</strong> antes` : 'antes'} de la hora asignada (${this.formatearHora(agenda.HoraInicio)}). Para permitir el ingreso, por favor, ingrese un motivo.`;
+            $('#mensajeAtrasado').html(mensajeTemprano);
             
             $('#modalAtrasadoInfoTexto').html(`
-                <div class="alert alert-danger mb-0">
-                    <strong><i class="fas fa-exclamation-triangle me-2"></i>No se puede confirmar el ingreso:</strong><br>
-                    El vehículo no llegó a la hora asignada y ha pasado más de 30 minutos del tiempo permitido.<br>
-                    La solicitud ha sido marcada automáticamente como <strong>"No llegó"</strong> y el proceso ha sido cerrado.<br><br>
-                    <strong>El conductor deberá crear una nueva solicitud de agendamiento.</strong>
+                <div class="alert alert-info mb-0">
+                    <strong><i class="fas fa-info-circle me-2"></i>Ingreso Permitido con Motivo:</strong><br>
+                    El vehículo llegó antes del margen de tiempo permitido (10 minutos antes), pero puede ingresar al taller.<br>
+                    Por favor, ingrese el motivo del ingreso anticipado en el campo de abajo para completar el registro.
                 </div>
             `);
+            
+            // Mostrar campo de motivo y botón de permitir ingreso
+            $('#campoMotivoRetraso').show();
+            $('#tituloMotivoRetraso').html('<i class="fas fa-edit me-2 text-info"></i>Motivo del Ingreso Anticipado (Obligatorio)');
+            $('#labelMotivoRetraso').text('Describa el motivo por el cual el vehículo llegó antes de la hora asignada:');
+            $('#motivoRetraso').attr('placeholder', 'Ejemplo: Llegada anticipada por disponibilidad, terminó ruta anterior antes de lo esperado, etc.');
+            $('#btnPermitirIngresoConMotivo').show();
+            $('#btnPermitirIngresoConMotivo').prop('disabled', true);
+            $('#motivoRetraso').val('').removeClass('is-invalid');
+            $('#btnCerrarModalAtrasado').text('Cancelar');
+            
+            // La validación se configurará cuando el modal esté completamente visible
+            // (ver evento 'shown.bs.modal' más abajo)
+        } else if (esNoLlego) {
+            // No llegó - más de 30 minutos
+            if (requiereMotivo) {
+                // Permite ingreso con motivo
+                $('#modalAtrasadoHeader').removeClass('bg-danger text-white').addClass('bg-warning text-dark');
+                $('#modalAtrasadoTitulo').html('<i class="fas fa-clock me-2"></i>Vehículo Llegó Tarde');
+                $('#modalAtrasadoTituloPrincipal').text('Vehículo Llegó con Retraso').removeClass('text-danger').addClass('text-warning');
+                $('#modalAtrasadoSubtitulo').text('El vehículo llegó después del margen de tiempo permitido');
+                $('#modalAtrasadoIcono').html('<i class="fas fa-exclamation-triangle fa-4x text-warning"></i>');
+                $('#modalAtrasadoAlerta').removeClass('alert-danger alert-info').addClass('alert-warning');
+                $('#modalAtrasadoIconoAlerta').removeClass('text-danger').addClass('text-warning');
+                $('#modalAtrasadoMotivoTitulo').text('Información del Retraso');
+                
+                const mensajeNoLlego = `El vehículo <strong>llegó con retraso</strong>. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} Para permitir el ingreso, debe ingresar un motivo del retraso.`;
+                $('#mensajeAtrasado').html(mensajeNoLlego);
+                
+                $('#modalAtrasadoInfoTexto').html(`
+                    <div class="alert alert-warning mb-0">
+                        <strong><i class="fas fa-info-circle me-2"></i>Ingreso Permitido con Motivo:</strong><br>
+                        El vehículo llegó fuera del margen de tiempo permitido, pero puede ingresar al taller.<br>
+                        Por favor, ingrese el motivo del retraso en el campo de abajo para completar el registro.
+                    </div>
+                `);
+                
+                // Mostrar campo de motivo y botón de permitir ingreso
+                $('#campoMotivoRetraso').show();
+                $('#tituloMotivoRetraso').html('<i class="fas fa-edit me-2 text-warning"></i>Motivo del Retraso (Obligatorio)');
+                $('#labelMotivoRetraso').text('Describa el motivo por el cual el vehículo llegó tarde:');
+                $('#motivoRetraso').attr('placeholder', 'Ejemplo: Tráfico pesado en la autopista, problema mecánico en ruta, etc.');
+                $('#btnPermitirIngresoConMotivo').show();
+                $('#btnPermitirIngresoConMotivo').prop('disabled', true);
+                $('#motivoRetraso').val('').removeClass('is-invalid');
+                $('#btnCerrarModalAtrasado').text('Cancelar');
+                
+                // Remover eventos anteriores y agregar nuevo listener
+                $('#motivoRetraso').off('input keyup paste change');
+                
+                // Habilitar/deshabilitar botón según el input del motivo
+                const validarMotivoRetraso = () => {
+                    const motivo = $('#motivoRetraso').val().trim();
+                    console.log('Validando motivo retraso:', motivo, 'Longitud:', motivo.length);
+                    if (motivo.length >= 10) {
+                        $('#motivoRetraso').removeClass('is-invalid');
+                        $('#btnPermitirIngresoConMotivo').prop('disabled', false);
+                        console.log('Botón habilitado');
+                    } else {
+                        $('#motivoRetraso').addClass('is-invalid');
+                        $('#btnPermitirIngresoConMotivo').prop('disabled', true);
+                        console.log('Botón deshabilitado');
+                    }
+                };
+                
+                $('#motivoRetraso').on('input keyup paste change', validarMotivoRetraso);
+                
+                // Validar inmediatamente si hay texto
+                setTimeout(() => {
+                    validarMotivoRetraso();
+                }, 100);
+            } else {
+                // Comportamiento antiguo (no debería llegar aquí, pero por seguridad)
+                $('#modalAtrasadoHeader').removeClass('bg-warning text-dark').addClass('bg-danger text-white');
+                $('#modalAtrasadoTitulo').html('<i class="fas fa-times-circle me-2"></i>Vehículo No Llegó');
+                $('#modalAtrasadoTituloPrincipal').text('Vehículo No Llegó a Tiempo').removeClass('text-warning').addClass('text-danger');
+                $('#modalAtrasadoSubtitulo').text('El vehículo no llegó dentro del margen de tiempo permitido');
+                $('#modalAtrasadoIcono').html('<i class="fas fa-times-circle fa-4x text-danger"></i>');
+                $('#modalAtrasadoAlerta').removeClass('alert-warning alert-info').addClass('alert-danger');
+                $('#modalAtrasadoIconoAlerta').removeClass('text-info').addClass('text-danger');
+                $('#modalAtrasadoMotivoTitulo').text('Motivo de Rechazo: No Llegó');
+                
+                const mensajeNoLlego = `El vehículo <strong>NO LLEGÓ</strong> a tiempo. Pasó más de 30 minutos de la hora asignada (${this.formatearHora(agenda.HoraInicio)}).${diferenciaTexto ? ` Llegó con un retraso de <strong>${diferenciaTexto}</strong> después de la hora asignada.` : ''} El margen máximo de atraso permitido es de 30 minutos.`;
+                $('#mensajeAtrasado').html(mensajeNoLlego);
+                
+                $('#modalAtrasadoInfoTexto').html(`
+                    <div class="alert alert-danger mb-0">
+                        <strong><i class="fas fa-exclamation-triangle me-2"></i>No se puede confirmar el ingreso:</strong><br>
+                        El vehículo no llegó a la hora asignada y ha pasado más de 30 minutos del tiempo permitido.<br>
+                        La solicitud ha sido marcada automáticamente como <strong>"No llegó"</strong> y el proceso ha sido cerrado.<br><br>
+                        <strong>El conductor deberá crear una nueva solicitud de agendamiento.</strong>
+                    </div>
+                `);
+                
+                // Ocultar campo de motivo y botón
+                $('#campoMotivoRetraso').hide();
+                $('#btnPermitirIngresoConMotivo').hide();
+            }
         } else if (tipoAtraso === 'fecha') {
             // Fecha pasada
             $('#modalAtrasadoHeader').removeClass('bg-danger text-white').addClass('bg-warning text-dark');
@@ -832,12 +1057,183 @@ class ControlIngresoApp {
             `);
         }
         
-        // Mostrar el modal
+        // Si no requiere motivo, ocultar campo y botón
+        if (!requiereMotivo) {
+            $('#campoMotivoRetraso').hide();
+            $('#btnPermitirIngresoConMotivo').hide();
+        }
+        
+        // Guardar referencia a los datos para usar en el botón
+        this.datosAtrasado = data;
+        
+        // Limpiar campos de motivo al mostrar el modal
+        $('#motivoRetraso').val('').removeClass('is-invalid');
+        $('#inputMotivoRetraso').val('').removeClass('is-invalid');
+        
+        // Agregar evento para limpiar cuando se cierra el modal
         const modalElement = document.getElementById('modalAtrasado');
         if (modalElement) {
+            // Remover listeners anteriores para evitar duplicados
+            $(modalElement).off('hidden.bs.modal shown.bs.modal');
+            
+            // Agregar listener para cuando el modal se muestra completamente
+            $(modalElement).on('shown.bs.modal', () => {
+                // Re-vincular eventos de validación después de que el modal esté visible
+                const campoMotivo = $('#motivoRetraso');
+                const btnPermitir = $('#btnPermitirIngresoConMotivo');
+                
+                if (campoMotivo.length === 0) {
+                    console.error('Campo motivoRetraso no encontrado después de mostrar modal');
+                    return;
+                }
+                
+                if (btnPermitir.length === 0) {
+                    console.error('Botón btnPermitirIngresoConMotivo no encontrado');
+                    return;
+                }
+                
+                // Remover eventos anteriores
+                campoMotivo.off('input keyup paste change blur');
+                
+                // Función de validación
+                const validarMotivoModal = function() {
+                    const motivo = $(this).val().trim();
+                    const longitud = motivo.length;
+                    console.log('Validación después de mostrar modal - Motivo:', motivo, 'Longitud:', longitud);
+                    
+                    if (longitud >= 10) {
+                        $(this).removeClass('is-invalid');
+                        btnPermitir.prop('disabled', false);
+                        console.log('Botón habilitado después de validación - Longitud:', longitud);
+                    } else {
+                        $(this).addClass('is-invalid');
+                        btnPermitir.prop('disabled', true);
+                        console.log('Botón deshabilitado - motivo muy corto. Longitud:', longitud);
+                    }
+                };
+                
+                // Vincular eventos usando jQuery
+                campoMotivo.on('input keyup paste change blur', validarMotivoModal);
+                
+                // También usar evento nativo como respaldo (más confiable)
+                const elementoNativo = campoMotivo[0];
+                if (elementoNativo) {
+                    // Remover listeners nativos anteriores si existen
+                    const nuevoListener = function() {
+                        const motivo = this.value.trim();
+                        console.log('Evento nativo - Validando motivo:', motivo, 'Longitud:', motivo.length);
+                        
+                        if (motivo.length >= 10) {
+                            $(this).removeClass('is-invalid');
+                            btnPermitir.prop('disabled', false);
+                            console.log('Botón habilitado (evento nativo)');
+                        } else {
+                            $(this).addClass('is-invalid');
+                            btnPermitir.prop('disabled', true);
+                            console.log('Botón deshabilitado (evento nativo)');
+                        }
+                    };
+                    
+                    elementoNativo.addEventListener('input', nuevoListener, { passive: true });
+                    elementoNativo.addEventListener('keyup', nuevoListener, { passive: true });
+                    elementoNativo.addEventListener('paste', function() {
+                        setTimeout(nuevoListener, 10);
+                    }, { passive: true });
+                }
+                
+                // Validar inmediatamente después de que el modal esté visible
+                setTimeout(() => {
+                    if (campoMotivo.length > 0) {
+                        validarMotivoModal.call(campoMotivo[0]);
+                    }
+                }, 250);
+            });
+            
+            // Agregar listener para limpiar cuando se cierra
+            $(modalElement).on('hidden.bs.modal', () => {
+                $('#motivoRetraso').val('').removeClass('is-invalid');
+                $('#inputMotivoRetraso').val('').removeClass('is-invalid');
+                $('#campoMotivoRetraso').hide();
+                $('#btnPermitirIngresoConMotivo').hide();
+            });
+            
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
         }
+    }
+    
+    permitirIngresoConMotivo() {
+        const motivo = $('#motivoRetraso').val().trim();
+        const esTemprano = this.vehiculoActual && this.vehiculoActual.es_temprano;
+        const tipoMensaje = esTemprano ? 'del ingreso anticipado' : 'del retraso';
+        
+        if (!motivo) {
+            this.mostrarAlerta(`Debe ingresar un motivo ${tipoMensaje} para continuar`, 'warning');
+            $('#motivoRetraso').focus();
+            return;
+        }
+        
+        if (motivo.length < 10) {
+            this.mostrarAlerta('El motivo debe tener al menos 10 caracteres', 'warning');
+            $('#motivoRetraso').focus();
+            return;
+        }
+        
+        // Cerrar el modal
+        const modalElement = document.getElementById('modalAtrasado');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
+        
+        // Guardar el motivo en el vehículo actual
+        if (this.vehiculoActual) {
+            this.vehiculoActual.motivo_retraso = motivo;
+            this.vehiculoActual.puede_ingresar = true; // Asegurar que puede ingresar
+        }
+        
+        // Proceder con el ingreso
+        this.registrarIngresoBasicoConMotivo(motivo);
+    }
+    
+    registrarIngresoBasicoConMotivo(motivo) {
+        const placa = this.vehiculoActual.vehiculo ? this.vehiculoActual.vehiculo.Placa : this.vehiculoActual.Placa;
+        
+        if (!placa) {
+            this.mostrarAlerta('No se pudo obtener la placa del vehículo', 'error');
+            return;
+        }
+        
+        $.ajax({
+            url: '../app/model/control_ingreso/scripts/s_control_ingreso.php',
+            type: 'POST',
+            data: {
+                action: 'registrarIngresoBasico',
+                placa: placa,
+                motivo_retraso: motivo
+            },
+            dataType: 'json',
+            success: (response) => {
+                if (response.success) {
+                    // Guardar fotos si hay (opcionales)
+                    if (this.fotosCapturadas.length > 0) {
+                        this.guardarTodasLasFotos(placa);
+                    }
+                    this.mostrarModalExito('Ingreso registrado correctamente', 'El vehículo ha sido ingresado al taller con motivo de retraso registrado.');
+                    this.limpiarInterfaz();
+                    this.cargarEstadisticas();
+                    this.cargarNovedades(); // Actualizar movimientos
+                } else {
+                    this.mostrarAlerta(response.message || 'Error al registrar ingreso', 'error');
+                }
+            },
+            error: (xhr, status, error) => {
+                console.error('Error en registrarIngresoBasicoConMotivo:', error, xhr.responseText);
+                this.mostrarAlerta('Error al registrar ingreso: ' + error, 'error');
+            }
+        });
     }
 
     mostrarAlerta(mensaje, tipo) {

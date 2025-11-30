@@ -14,6 +14,18 @@
     gap: 1rem;
 }
 
+.historial-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .vehiculos-header h4 {
     margin: 0;
     font-weight: 600;
@@ -44,35 +56,259 @@
     min-width: 180px;
 }
 
-#vehiculos-agendados-table {
+#vehiculos-agendados-table,
+#historial-vehiculos-table {
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
 }
 
-#vehiculos-agendados-table thead th {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+#vehiculos-agendados-table thead th,
+#historial-vehiculos-table thead th {
     color: #fff;
     border-bottom: none;
     padding: 1rem 1.25rem;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.9rem;
+    position: relative;
 }
 
-#vehiculos-agendados-table tbody tr {
+#vehiculos-agendados-table thead th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Estilos individuales para cada columna del encabezado - Vehículos Pendientes */
+#vehiculos-agendados-table thead th:nth-child(1) {
+    /* Placa */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #4c63d2;
+}
+
+/* Estilos individuales para cada columna del encabezado - Historial */
+#historial-vehiculos-table thead th:nth-child(1) {
+    /* Placa */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #4c63d2;
+}
+
+#vehiculos-agendados-table thead th:nth-child(2),
+#historial-vehiculos-table thead th:nth-child(2) {
+    /* Vehículo */
+    border-left: 3px solid #5a6fd8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(2) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(2) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #5a6fd8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(3),
+#historial-vehiculos-table thead th:nth-child(3) {
+    /* Conductor */
+    border-left: 3px solid #687be0;
+}
+
+#vehiculos-agendados-table thead th:nth-child(3) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(3) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #687be0;
+}
+
+#vehiculos-agendados-table thead th:nth-child(4),
+#historial-vehiculos-table thead th:nth-child(4) {
+    /* Fecha Agenda */
+    border-left: 3px solid #7687e8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(4) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(4) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #7687e8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(5),
+#historial-vehiculos-table thead th:nth-child(5) {
+    /* Hora */
+    border-left: 3px solid #8493f0;
+}
+
+#vehiculos-agendados-table thead th:nth-child(5) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(5) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #8493f0;
+}
+
+#vehiculos-agendados-table thead th:nth-child(6),
+#historial-vehiculos-table thead th:nth-child(6) {
+    /* Propósito */
+    border-left: 3px solid #929ff8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(6) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(6) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #929ff8;
+}
+
+#vehiculos-agendados-table thead th:nth-child(7),
+#historial-vehiculos-table thead th:nth-child(7) {
+    /* Estado */
+    border-left: 3px solid #a0abff;
+}
+
+#vehiculos-agendados-table thead th:nth-child(7) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(7) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #a0abff;
+}
+
+#vehiculos-agendados-table thead th:nth-child(8),
+#historial-vehiculos-table thead th:nth-child(8) {
+    /* Acciones */
+    border-left: 3px solid #aeb7ff;
+}
+
+#vehiculos-agendados-table thead th:nth-child(8) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#historial-vehiculos-table thead th:nth-child(8) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-left: 3px solid #aeb7ff;
+}
+
+#vehiculos-agendados-table tbody tr,
+#historial-vehiculos-table tbody tr {
     transition: all 0.2s ease;
+    border-bottom: 1px solid #e9ecef;
 }
 
-#vehiculos-agendados-table tbody tr:hover {
+#vehiculos-agendados-table tbody tr:hover,
+#historial-vehiculos-table tbody tr:hover {
     background-color: #f8f9fa;
     transform: scale(1.01);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-#vehiculos-agendados-table tbody td {
+/* Estilos individuales para cada celda de las filas */
+#vehiculos-agendados-table tbody td,
+#historial-vehiculos-table tbody td {
     padding: 1rem 1.25rem;
     vertical-align: middle;
+}
+
+/* Placa - Estilo destacado */
+#vehiculos-agendados-table tbody td:nth-child(1) {
+    font-weight: 700;
+    color: #667eea;
+    border-left: 3px solid #667eea;
+    background: linear-gradient(to right, rgba(102, 126, 234, 0.05), transparent);
+}
+
+#historial-vehiculos-table tbody td:nth-child(1) {
+    font-weight: 700;
+    color: #667eea;
+    border-left: 3px solid #667eea;
+    background: linear-gradient(to right, rgba(102, 126, 234, 0.05), transparent);
+}
+
+/* Vehículo */
+#vehiculos-agendados-table tbody td:nth-child(2),
+#historial-vehiculos-table tbody td:nth-child(2) {
+    color: #495057;
+    border-left: 3px solid #e9ecef;
+}
+
+/* Conductor */
+#vehiculos-agendados-table tbody td:nth-child(3),
+#historial-vehiculos-table tbody td:nth-child(3) {
+    color: #6c757d;
+    border-left: 3px solid #e9ecef;
+    font-style: italic;
+}
+
+/* Fecha Agenda */
+#vehiculos-agendados-table tbody td:nth-child(4),
+#historial-vehiculos-table tbody td:nth-child(4) {
+    color: #495057;
+    border-left: 3px solid #e9ecef;
+    font-weight: 500;
+}
+
+/* Hora */
+#vehiculos-agendados-table tbody td:nth-child(5) {
+    color: #667eea;
+    border-left: 3px solid #e9ecef;
+    font-weight: 600;
+}
+
+#historial-vehiculos-table tbody td:nth-child(5) {
+    color: #667eea;
+    border-left: 3px solid #e9ecef;
+    font-weight: 600;
+}
+
+/* Propósito */
+#vehiculos-agendados-table tbody td:nth-child(6),
+#historial-vehiculos-table tbody td:nth-child(6) {
+    color: #495057;
+    border-left: 3px solid #e9ecef;
+}
+
+/* Estado */
+#vehiculos-agendados-table tbody td:nth-child(7),
+#historial-vehiculos-table tbody td:nth-child(7) {
+    border-left: 3px solid #e9ecef;
+}
+
+/* Acciones */
+#vehiculos-agendados-table tbody td:nth-child(8),
+#historial-vehiculos-table tbody td:nth-child(8) {
+    border-left: 3px solid #e9ecef;
+    text-align: center;
+}
+
+/* Efecto hover específico por columna */
+#vehiculos-agendados-table tbody tr:hover td:nth-child(1) {
+    background: linear-gradient(to right, rgba(102, 126, 234, 0.1), transparent);
+    border-left-color: #667eea;
+}
+
+#vehiculos-agendados-table tbody tr:hover td:nth-child(5) {
+    color: #764ba2;
+}
+
+#historial-vehiculos-table tbody tr:hover td:nth-child(1) {
+    background: linear-gradient(to right, rgba(102, 126, 234, 0.1), transparent);
+    border-left-color: #667eea;
+}
+
+#historial-vehiculos-table tbody tr:hover td:nth-child(5) {
+    color: #764ba2;
 }
 
 .badge {

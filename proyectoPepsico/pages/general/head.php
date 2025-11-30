@@ -97,16 +97,23 @@
 
             /* Container con margen para compensar el sidebar */
             .pc-container {
-            margin-left: 280px; /* Compensar el sidebar fijo */
-            width: calc(100% - 280px);
+            margin-left: 0; /* Iniciar sin margen (sidebar oculto por defecto) */
+            width: 100%;
             min-height: calc(100vh - 140px);
-            transition: margin-left 0.1s ease, width 0.1s ease; /* Transición más rápida */
+            transition: margin-left 0.3s ease, width 0.3s ease; /* Transición suave */
+            }
+            
+            /* Cuando el sidebar está visible, ajustar el contenedor */
+            .pc-sidebar:not(.pc-sidebar-hide) ~ .pc-container,
+            body:has(.pc-sidebar:not(.pc-sidebar-hide)) .pc-container {
+            margin-left: 280px;
+            width: calc(100% - 280px);
             }
             
             /* Transición suave del sidebar para hover */
             @media (min-width: 1025px) {
             .pc-sidebar {
-                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Transición suave y elegante */
+                transition: transform 0.3s ease !important; /* Transición más rápida */
                 will-change: transform; /* Optimización de rendimiento */
             }
             .pc-sidebar.pc-sidebar-hide {
@@ -116,11 +123,23 @@
                 transform: translateX(0) !important; /* Mostrar sidebar */
             }
             .pc-sidebar ~ .pc-header {
-                transition: left 0.15s ease !important;
+                transition: left 0.3s ease !important;
             }
             .pc-sidebar ~ .pc-footer,
             .pc-sidebar ~ .pc-container {
-                transition: margin-left 0.15s ease !important; /* Transición más rápida */
+                transition: margin-left 0.3s ease, width 0.3s ease !important; /* Transición suave */
+            }
+            
+            /* Ajustar contenedor cuando sidebar está oculto */
+            .pc-sidebar.pc-sidebar-hide ~ .pc-container {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            
+            /* Ajustar contenedor cuando sidebar está visible */
+            .pc-sidebar:not(.pc-sidebar-hide) ~ .pc-container {
+                margin-left: 280px !important;
+                width: calc(100% - 280px) !important;
             }
             
             /* Ocultar botones del header en desktop */

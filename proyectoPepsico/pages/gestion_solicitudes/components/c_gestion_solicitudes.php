@@ -49,6 +49,7 @@
                             <th>Propósito</th>
                             <th>Estado</th>
                             <th>Chofer</th>
+                            <th>Hora Solicitud</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>

@@ -1038,6 +1038,37 @@ document.addEventListener('DOMContentLoaded', function() {
   let hoverTimeout;
   let isHovering = false;
   
+  // Función para actualizar el contenedor cuando el sidebar se oculta/muestra
+  function updateContainerWidth() {
+    const container = document.querySelector('.pc-container');
+    if (container) {
+      if (sidebar.classList.contains('pc-sidebar-hide')) {
+        container.style.marginLeft = '0';
+        container.style.width = '100%';
+      } else {
+        container.style.marginLeft = '280px';
+        container.style.width = 'calc(100% - 280px)';
+      }
+    }
+  }
+  
+  // Ocultar sidebar automáticamente al cargar la página (especialmente para Guardia)
+  if (sidebar && window.innerWidth > 1024) {
+    // Inicializar contenedor sin margen (sidebar oculto)
+    updateContainerWidth();
+    
+    // Ocultar sidebar al cargar (más rápido)
+    setTimeout(function() {
+      sidebar.classList.add('pc-sidebar-hide');
+      sidebar.style.transform = 'translateX(-100%)';
+      sidebar.style.transition = 'transform 0.3s ease';
+      updateContainerWidth();
+    }, 100); // Delay muy corto para ocultar rápidamente
+  } else if (sidebar && window.innerWidth <= 1024) {
+    // En móviles, asegurar que el contenedor use todo el ancho
+    updateContainerWidth();
+  }
+  
   // Usar la variable sidebar ya declarada arriba
   if (sidebarHoverTrigger && sidebar && window.innerWidth > 1024) {
     // Asegurar que el área de detección esté siempre visible cuando el sidebar está oculto
@@ -1049,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         sidebarHoverTrigger.style.opacity = '0.3';
       }
+      updateContainerWidth();
     }
     
     // Verificar estado inicial
@@ -1076,7 +1108,8 @@ document.addEventListener('DOMContentLoaded', function() {
         sidebar.classList.remove('pc-sidebar-hide');
         sidebar.style.transform = 'translateX(0)';
         sidebar.style.left = '0';
-        sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        sidebar.style.transition = 'transform 0.3s ease';
+        updateContainerWidth();
       }
     });
     
@@ -1087,10 +1120,11 @@ document.addEventListener('DOMContentLoaded', function() {
       sidebar.classList.remove('pc-sidebar-hide');
       sidebar.style.transform = 'translateX(0)';
       sidebar.style.left = '0';
-      sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+      sidebar.style.transition = 'transform 0.3s ease';
+      updateContainerWidth();
     });
     
-    // Cerrar el sidebar cuando el mouse sale (con delay)
+    // Cerrar el sidebar cuando el mouse sale (con delay reducido)
     sidebar.addEventListener('mouseleave', function(e) {
       isHovering = false;
       // Verificar si el mouse se movió al área de detección
@@ -1103,9 +1137,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isHovering && sidebar && !sidebar.matches(':hover') && !sidebarHoverTrigger.matches(':hover')) {
           sidebar.classList.add('pc-sidebar-hide');
           sidebar.style.transform = 'translateX(-100%)';
-          sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+          sidebar.style.transition = 'transform 0.3s ease';
+          updateContainerWidth();
         }
-      }, 500); // Delay de 500ms antes de cerrar
+      }, 200); // Delay reducido de 500ms a 200ms
     });
     
     // Cerrar cuando el mouse sale del área de detección
@@ -1121,13 +1156,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isHovering && sidebar && !sidebar.matches(':hover')) {
           sidebar.classList.add('pc-sidebar-hide');
           sidebar.style.transform = 'translateX(-100%)';
-          sidebar.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+          sidebar.style.transition = 'transform 0.3s ease';
+          updateContainerWidth();
         }
-      }, 500);
+      }, 200); // Delay reducido
     });
     
-    // Debug en consola
-    console.log('Sidebar hover inicializado. Trigger:', sidebarHoverTrigger, 'Sidebar:', sidebar);
+    // Cerrar sidebar al hacer clic fuera de él
+    document.addEventListener('click', function(e) {
+      if (window.innerWidth > 1024) {
+        // Si el clic no está en el sidebar ni en el trigger, cerrar el sidebar
+        if (!sidebar.contains(e.target) && !sidebarHoverTrigger.contains(e.target)) {
+          if (!sidebar.classList.contains('pc-sidebar-hide')) {
+            sidebar.classList.add('pc-sidebar-hide');
+            sidebar.style.transform = 'translateX(-100%)';
+            sidebar.style.transition = 'transform 0.3s ease';
+            updateContainerWidth();
+          }
+        }
+      }
+    });
   }
 });
 </script>

@@ -197,15 +197,15 @@
             </div>
         </div>
 
-        <!-- Panel de Novedades Recientes -->
+        <!-- Panel de Movimientos del Día -->
         <div class="card guardia-card mt-3">
             <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Actividad Reciente</h5>
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Actividad Reciente - Movimientos de Hoy</h5>
             </div>
             <div class="card-body p-0">
-                <div id="listaNovedades" class="novedades-list">
+                <div id="listaNovedades" class="movimientos-list" style="max-height: 400px; overflow-y: auto;">
                     <div class="text-center text-muted py-4">
-                        <i class="fas fa-info-circle me-2"></i>No hay actividad reciente
+                        <i class="fas fa-spinner fa-spin me-2"></i>Cargando movimientos...
                     </div>
                 </div>
             </div>
@@ -415,10 +415,46 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Campo para motivo de retraso/anticipación (solo cuando requiere_motivo_retraso) -->
+                <div class="card border-0 bg-warning bg-opacity-10 mb-3" id="campoMotivoRetraso" style="display: none;">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3" id="tituloMotivoRetraso">
+                            <i class="fas fa-edit me-2 text-warning"></i>Motivo (Obligatorio)
+                        </h6>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" id="labelMotivoRetraso">Describa el motivo:</label>
+                            <textarea class="form-control" id="motivoRetraso" rows="4" 
+                                      placeholder="Ejemplo: Tráfico pesado, problema mecánico, llegada anticipada por disponibilidad, etc." 
+                                      required minlength="10"></textarea>
+                            <div class="invalid-feedback">
+                                Por favor, ingrese un motivo de al menos 10 caracteres.
+                            </div>
+                            <small class="text-muted">Este motivo será registrado junto con el ingreso del vehículo.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección para Motivo de Retraso (oculta por defecto) -->
+                <div id="motivo-retraso-section" style="display: none;">
+                    <hr class="my-4">
+                    <h6 class="mb-3"><i class="fas fa-pencil-alt me-2"></i>Motivo del Retraso</h6>
+                    <div class="mb-3">
+                        <label for="inputMotivoRetraso" class="form-label">Explique el motivo por el cual el vehículo llegó tarde:</label>
+                        <textarea class="form-control" id="inputMotivoRetraso" rows="3" 
+                                  placeholder="Ej: Problemas de tráfico, retraso en carga anterior, etc." required minlength="10"></textarea>
+                        <div class="invalid-feedback">
+                            Por favor, ingrese un motivo de al menos 10 caracteres.
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCerrarModalAtrasado">
                     <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-success" id="btnPermitirIngresoConMotivo" style="display: none;">
+                    <i class="fas fa-check-circle me-1"></i>Permitir Ingreso con Motivo
                 </button>
             </div>
         </div>

@@ -1600,3 +1600,7 @@
 [28-Nov-2025 21:23:34 America/Santiago] Horas disponibles para fecha 2025-11-29: 2
 [28-Nov-2025 21:23:34 America/Santiago] Horas disponibles para fecha 2025-11-28: 3
 [28-Nov-2025 21:25:42 America/Santiago] Notificación de aprobación enviada al chofer ID: 52
+[29-Nov-2025 19:36:46 America/Santiago] Notificaciones enviadas a 10 supervisores
+[29-Nov-2025 19:53:29 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
+[29-Nov-2025 21:12:29 America/Santiago] Notificaciones enviadas a 10 supervisores
+[29-Nov-2025 21:18:11 America/Santiago] Notificación de aprobación enviada al chofer ID: 51

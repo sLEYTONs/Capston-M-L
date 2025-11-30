@@ -49,6 +49,16 @@ class ConsultaVehiculos {
             e.preventDefault();
             this.limpiarCampo(e.currentTarget);
         });
+
+        // Botón actualizar tabla
+        $('#btn-actualizar-tabla').on('click', () => {
+            this.actualizarTabla();
+        });
+
+        // Botón mágico - marcar retirados
+        $('#btn-marcar-retirados').on('click', () => {
+            this.marcarVehiculosRetirados();
+        });
     }
 
     debounceBusqueda() {
@@ -339,6 +349,48 @@ class ConsultaVehiculos {
 
     cargarTodosLosVehiculos() {
         this.buscarVehiculos();
+    }
+
+    actualizarTabla() {
+        // Recargar la tabla con los mismos filtros
+        this.buscarVehiculos();
+        this.mostrarToast('Éxito', 'Tabla actualizada correctamente', 'success');
+    }
+
+    marcarVehiculosRetirados() {
+        // Confirmar acción
+        if (!confirm('¿Está seguro de marcar todos los vehículos como retirados excepto KSZJ43 y WLVY22?\n\nEsta acción no se puede deshacer.')) {
+            return;
+        }
+
+        // Mostrar loading
+        const $btn = $('#btn-marcar-retirados');
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+
+        $.ajax({
+            url: '../app/model/consulta/scripts/s_consulta.php',
+            type: 'POST',
+            data: {
+                action: 'marcarVehiculosRetirados'
+            },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarToast('Éxito', `Se marcaron ${response.total} vehículos como retirados correctamente`, 'success');
+                    // Actualizar la tabla
+                    this.actualizarTabla();
+                } else {
+                    this.mostrarToast('Error', response.message || 'Error al marcar vehículos', 'danger');
+                }
+            },
+            error: (xhr, status, error) => {
+                this.mostrarToast('Error', 'Error de conexión: ' + error, 'danger');
+            },
+            complete: () => {
+                $btn.prop('disabled', false).html(originalHtml);
+            }
+        });
     }
 
     actualizarContador(total) {

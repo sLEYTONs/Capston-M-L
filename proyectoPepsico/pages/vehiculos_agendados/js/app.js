@@ -1,9 +1,11 @@
 class VehiculosAgendados {
     constructor() {
         this.table = null;
+        this.historialTable = null;
         this.fechaActual = new Date().toISOString().split('T')[0];
         this.baseUrl = this.getBaseUrl();
         this.vehiculosData = []; // Almacenar datos de vehículos para el modal
+        this.historialData = []; // Almacenar datos del historial para el modal
         this.inicializar();
     }
 
@@ -53,13 +55,18 @@ class VehiculosAgendados {
         this.inicializarDataTable();
         this.inicializarEventos();
         this.cargarVehiculos();
+        this.cargarHistorial();
     }
 
     inicializarEventos() {
         const fechaFiltro = document.getElementById('fecha-filtro');
         const btnRefrescar = document.getElementById('btn-refrescar');
+        const fechaFiltroHistorial = document.getElementById('fecha-filtro-historial');
+        const btnRefrescarHistorial = document.getElementById('btn-refrescar-historial');
+        const esGuardia = window.esGuardia === true;
 
-        if (fechaFiltro) {
+        // Solo agregar evento de fecha si no es Guardia y el filtro existe
+        if (fechaFiltro && !esGuardia) {
             fechaFiltro.addEventListener('change', () => {
                 this.cargarVehiculos();
             });
@@ -70,11 +77,24 @@ class VehiculosAgendados {
                 this.cargarVehiculos();
             });
         }
+
+        // Eventos para el historial
+        if (fechaFiltroHistorial && !esGuardia) {
+            fechaFiltroHistorial.addEventListener('change', () => {
+                this.cargarHistorial();
+            });
+        }
+
+        if (btnRefrescarHistorial) {
+            btnRefrescarHistorial.addEventListener('click', () => {
+                this.cargarHistorial();
+            });
+        }
     }
 
     inicializarDataTable() {
         if ($.fn.DataTable) {
-            this.table = $('#vehiculos-agendados-table').DataTable({
+            const configDataTable = {
                 language: {
                     "sProcessing": "Procesando...",
                     "sLengthMenu": "Mostrar _MENU_ registros",
@@ -100,22 +120,36 @@ class VehiculosAgendados {
                     }
                 },
                 responsive: true,
-                order: [[3, 'asc'], [4, 'asc']], // Ordenar por fecha y hora
                 pageLength: 25,
                 columnDefs: [
                     { orderable: false, targets: 7 } // Columna de acciones no ordenable
                 ]
+            };
+
+            // Tabla de vehículos pendientes
+            this.table = $('#vehiculos-agendados-table').DataTable({
+                ...configDataTable,
+                order: [[3, 'asc'], [4, 'asc']] // Ordenar por fecha y hora
             });
+
+            // Tabla de historial - se inicializará después de cargar los datos
+            // No inicializar aquí, se hará en mostrarHistorialVehiculos
         }
     }
 
     cargarVehiculos() {
+        // Cargar solo vehículos pendientes
+        const esGuardia = window.esGuardia === true;
         const fechaFiltro = document.getElementById('fecha-filtro');
-        const fecha = fechaFiltro ? fechaFiltro.value : this.fechaActual;
+        const fecha = (esGuardia || !fechaFiltro) ? null : fechaFiltro.value;
 
         const formData = new FormData();
         formData.append('action', 'obtenerVehiculosAgendados');
+        formData.append('soloPendientes', 'true'); // Solo pendientes
+        // Solo enviar fecha si no es Guardia
+        if (!esGuardia && fecha) {
         formData.append('fecha', fecha);
+        }
 
         fetch(this.baseUrl, {
             method: 'POST',
@@ -136,6 +170,41 @@ class VehiculosAgendados {
         });
     }
 
+    cargarHistorial() {
+        // Cargar historial completo
+        const esGuardia = window.esGuardia === true;
+        const fechaFiltroHistorial = document.getElementById('fecha-filtro-historial');
+        const fecha = (esGuardia || !fechaFiltroHistorial) ? null : fechaFiltroHistorial.value;
+
+        const formData = new FormData();
+        formData.append('action', 'obtenerHistorialVehiculosAgendados');
+        // Solo enviar fecha si no es Guardia
+        if (!esGuardia && fecha) {
+            formData.append('fecha', fecha);
+        }
+
+        fetch(this.baseUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Respuesta historial:', data);
+            if (data.success && data.data) {
+                console.log('Datos historial recibidos:', data.data.length, 'registros');
+                this.historialData = data.data; // Guardar datos para el modal
+                this.mostrarHistorial(data.data);
+            } else {
+                console.error('Error en respuesta historial:', data);
+                this.mostrarErrorHistorial(data.message || 'Error al cargar historial');
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar historial:', error);
+            this.mostrarErrorHistorial('Error de conexión al cargar historial');
+        });
+    }
+
     mostrarVehiculos(vehiculos) {
         const tbody = document.querySelector('#vehiculos-agendados-table tbody');
         if (!tbody) return;
@@ -147,7 +216,7 @@ class VehiculosAgendados {
                 <tr>
                     <td colspan="8" class="text-center py-4">
                         <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No hay vehículos agendados para la fecha seleccionada</p>
+                        <p class="text-muted">No hay vehículos pendientes de ingreso</p>
                     </td>
                 </tr>
             `;
@@ -203,7 +272,261 @@ class VehiculosAgendados {
         }
     }
 
-    verDetalles(solicitudId) {
+
+    mostrarHistorial(vehiculos) {
+        const tbody = document.querySelector('#historial-vehiculos-table tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (vehiculos.length === 0) {
+            const esGuardia = window.esGuardia === true;
+            const mensaje = esGuardia 
+                ? 'No hay vehículos en el historial' 
+                : 'No hay vehículos en el historial para la fecha seleccionada';
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">${mensaje}</p>
+                    </td>
+                </tr>
+            `;
+            // Si la tabla ya existe, destruirla antes de mostrar el mensaje vacío
+            if (this.historialTable) {
+                this.historialTable.destroy();
+                this.historialTable = null;
+            }
+            
+            // Inicializar DataTable incluso cuando está vacía para que los controles funcionen
+            setTimeout(() => {
+                this.historialTable = $('#historial-vehiculos-table').DataTable({
+                    language: {
+                        "sProcessing": "Procesando...",
+                        "sLengthMenu": "Mostrar _MENU_ registros",
+                        "sZeroRecords": "No se encontraron resultados",
+                        "sEmptyTable": "Ningún dato disponible en esta tabla",
+                        "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                        "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                        "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                        "sSearch": "Buscar:",
+                        "sUrl": "",
+                        "sInfoThousands": ",",
+                        "sLoadingRecords": "Cargando...",
+                        "oPaginate": {
+                            "sFirst": "Primero",
+                            "sLast": "Último",
+                            "sNext": "Siguiente",
+                            "sPrevious": "Anterior"
+                        },
+                        "oAria": {
+                            "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                            "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                        }
+                    },
+                    responsive: true,
+                    pageLength: 25,
+                    searching: true,
+                    ordering: true,
+                    info: true,
+                    paging: true,
+                    lengthChange: true,
+                    columnDefs: [
+                        { 
+                            type: 'date', 
+                            targets: 3,
+                            orderable: true,
+                            searchable: true
+                        },
+                        { 
+                            targets: [0, 1, 2, 4, 5, 6],
+                            orderable: true,
+                            searchable: true
+                        },
+                        { 
+                            orderable: false, 
+                            searchable: false,
+                            targets: 7
+                        }
+                    ]
+                });
+            }, 100);
+            return;
+        }
+
+        vehiculos.forEach(vehiculo => {
+            const row = document.createElement('tr');
+            
+            // Formatear fecha - usar FechaAgenda si existe, sino FechaIngreso
+            const fechaParaMostrar = vehiculo.FechaAgenda || vehiculo.FechaIngreso;
+            const fechaFormateada = fechaParaMostrar ? this.formatearFechaAgenda(fechaParaMostrar) : 'N/A';
+            
+            // Crear fecha ISO para ordenamiento (YYYY-MM-DD)
+            let fechaParaOrdenar = '';
+            if (fechaParaMostrar) {
+                const fechaObj = this.parsearFecha(fechaParaMostrar);
+                if (fechaObj && !isNaN(fechaObj.getTime())) {
+                    fechaParaOrdenar = fechaObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                }
+            }
+
+            // Formatear hora - usar HoraInicio/HoraFin de agenda si existe
+            let horaFormateada = 'N/A';
+            let horaParaOrdenar = '';
+            if (vehiculo.HoraInicio) {
+                const horaInicio = vehiculo.HoraInicio.substring(0, 5);
+                const horaFin = vehiculo.HoraFin ? vehiculo.HoraFin.substring(0, 5) : '';
+                horaFormateada = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
+                horaParaOrdenar = vehiculo.HoraInicio; // Para ordenamiento
+            } else if (vehiculo.FechaIngreso) {
+                // Si no hay hora de agenda, usar hora de ingreso
+                const fechaIngreso = new Date(vehiculo.FechaIngreso);
+                horaFormateada = fechaIngreso.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                horaParaOrdenar = fechaIngreso.toTimeString().substring(0, 8); // HH:MM:SS
+            }
+
+            // Estado badge - usar EstadoIngreso o EstadoVehiculo
+            const estado = vehiculo.EstadoIngreso || vehiculo.EstadoVehiculo || 'N/A';
+            let estadoClass = 'secondary';
+            let estadoIcon = 'fa-question-circle';
+            let estadoTexto = estado;
+            
+            if (estado === 'En Circulación') {
+                estadoClass = 'info';
+                estadoIcon = 'fa-road';
+                estadoTexto = 'En Circulación';
+            } else if (estado === 'Ingresado') {
+                estadoClass = 'success';
+                estadoIcon = 'fa-check-circle';
+                estadoTexto = 'En Taller';
+            } else if (estado === 'Completado') {
+                estadoClass = 'info';
+                estadoIcon = 'fa-check-double';
+                estadoTexto = 'Completado';
+            } else if (estado === 'Asignado' || estado === 'Solicitó Hora') {
+                estadoClass = 'warning';
+                estadoIcon = 'fa-clock';
+                estadoTexto = 'Solicitó Hora';
+            } else if (estado === 'No Llegó' || estado === 'No llegó') {
+                estadoClass = 'danger';
+                estadoIcon = 'fa-times-circle';
+                estadoTexto = 'No Llegó';
+            } else if (estado === 'Cancelada') {
+                estadoClass = 'secondary';
+                estadoIcon = 'fa-ban';
+                estadoTexto = 'Cancelada';
+            } else if (estado === 'Pendiente Ingreso') {
+                estadoClass = 'warning';
+                estadoIcon = 'fa-hourglass-half';
+                estadoTexto = 'Pendiente Ingreso';
+            }
+
+            // Vehículo completo
+            const vehiculoCompleto = `${vehiculo.Marca || ''} ${vehiculo.Modelo || ''} ${vehiculo.TipoVehiculo || ''}`.trim() || 'N/A';
+
+            // ID para el botón - usar SolicitudID si existe, sino VehiculoID
+            const idParaDetalle = vehiculo.SolicitudID || vehiculo.VehiculoID;
+
+            row.innerHTML = `
+                <td><strong>${vehiculo.Placa}</strong></td>
+                <td>${vehiculoCompleto}</td>
+                <td>${vehiculo.ConductorNombre || 'N/A'}</td>
+                <td data-order="${fechaParaOrdenar || '9999-12-31'}">${fechaFormateada}</td>
+                <td data-order="${horaParaOrdenar || '23:59:59'}"><i class="fas fa-clock me-1"></i>${horaFormateada}</td>
+                <td>${vehiculo.Proposito || 'N/A'}</td>
+                <td>
+                    <span class="badge bg-${estadoClass}">
+                        <i class="fas ${estadoIcon} me-1"></i>${estadoTexto}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="vehiculosAgendados.verDetallesHistorial(${idParaDetalle}, ${vehiculo.SolicitudID ? 'true' : 'false'})" title="Ver detalles">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+        // Inicializar o redibujar DataTable
+        if (this.historialTable) {
+            // Destruir tabla existente
+            this.historialTable.destroy();
+            this.historialTable = null;
+        }
+        
+        // Esperar un momento para que el DOM se actualice
+        setTimeout(() => {
+            // Inicializar DataTable con configuración completa
+            this.historialTable = $('#historial-vehiculos-table').DataTable({
+                language: {
+                    "sProcessing": "Procesando...",
+                    "sLengthMenu": "Mostrar _MENU_ registros",
+                    "sZeroRecords": "No se encontraron resultados",
+                    "sEmptyTable": "Ningún dato disponible en esta tabla",
+                    "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
+                    "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
+                    "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
+                    "sSearch": "Buscar:",
+                    "sUrl": "",
+                    "sInfoThousands": ",",
+                    "sLoadingRecords": "Cargando...",
+                    "oPaginate": {
+                        "sFirst": "Primero",
+                        "sLast": "Último",
+                        "sNext": "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
+                },
+                responsive: true,
+                pageLength: 25,
+                order: [[3, 'desc'], [4, 'desc']], // Orden inicial por fecha y hora descendente
+                columnDefs: [
+                    { 
+                        type: 'date', 
+                        targets: 3, // Columna de fecha (índice 3) - usar tipo date para ordenamiento correcto
+                        orderable: true,
+                        searchable: true
+                    },
+                    { 
+                        targets: 4, // Columna de hora (índice 4)
+                        orderable: true,
+                        searchable: true
+                    },
+                    { 
+                        targets: 5, // Columna de propósito (índice 5)
+                        orderable: true,
+                        searchable: true
+                    },
+                    { 
+                        targets: [0, 1, 2, 6], // Placa, Vehículo, Conductor, Estado - todas ordenables y filtrables
+                        orderable: true,
+                        searchable: true
+                    },
+                    { 
+                        orderable: false, 
+                        searchable: false,
+                        targets: 7 // Columna de acciones (índice 7) - no ordenable ni filtrable
+                    }
+                ],
+                // Habilitar todas las funciones de DataTable
+                searching: true,
+                ordering: true,
+                info: true,
+                paging: true,
+                lengthChange: true,
+                // Asegurar que el ordenamiento funcione correctamente
+                orderMulti: true
+            });
+        }, 100);
+    }
+
+    verDetallesHistorial(id, esSolicitud = false) {
         const modalElement = document.getElementById('detalles-modal');
         const content = document.getElementById('detalles-content');
 
@@ -215,10 +538,14 @@ class VehiculosAgendados {
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
 
-        // Buscar el vehículo en los datos cargados
+        // Buscar el vehículo en los datos del historial
         let vehiculo = null;
-        if (this.vehiculosData) {
-            vehiculo = this.vehiculosData.find(v => v.SolicitudID == solicitudId);
+        if (this.historialData) {
+            if (esSolicitud) {
+                vehiculo = this.historialData.find(v => v.SolicitudID == id);
+            } else {
+                vehiculo = this.historialData.find(v => v.VehiculoID == id);
+            }
         }
 
         if (!vehiculo) {
@@ -226,25 +553,78 @@ class VehiculosAgendados {
             return;
         }
 
-        // Formatear fecha usando el método helper
-        const fechaFormateada = this.formatearFechaAgenda(vehiculo.FechaAgenda, {
+        // Reutilizar la misma función de mostrar detalles
+        this.mostrarDetallesEnModal(vehiculo);
+    }
+
+    mostrarDetallesEnModal(vehiculo) {
+        const content = document.getElementById('detalles-content');
+
+        // Formatear fecha - usar FechaAgenda si existe, sino FechaIngreso
+        const fechaParaMostrar = vehiculo.FechaAgenda || vehiculo.FechaIngreso;
+        let fechaFormateada = 'N/A';
+        if (fechaParaMostrar) {
+            fechaFormateada = this.formatearFechaAgenda(fechaParaMostrar, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
+        }
 
-        // Formatear hora
-        const horaInicio = vehiculo.HoraInicio ? vehiculo.HoraInicio.substring(0, 5) : 'N/A';
+        // Formatear hora - usar HoraInicio/HoraFin de agenda si existe
+        let horaFormateada = 'N/A';
+        if (vehiculo.HoraInicio) {
+            const horaInicio = vehiculo.HoraInicio.substring(0, 5);
         const horaFin = vehiculo.HoraFin ? vehiculo.HoraFin.substring(0, 5) : '';
-        const horaFormateada = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
+            horaFormateada = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
+        } else if (vehiculo.FechaIngreso) {
+            // Si no hay hora de agenda, usar hora de ingreso
+            const fechaIngreso = new Date(vehiculo.FechaIngreso);
+            horaFormateada = fechaIngreso.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        }
 
         // Vehículo completo
         const vehiculoCompleto = `${vehiculo.Marca || ''} ${vehiculo.Modelo || ''} ${vehiculo.TipoVehiculo || ''}`.trim() || 'N/A';
 
-        // Estado badge
-        const estadoClass = vehiculo.EstadoIngreso === 'Ingresado' ? 'success' : 'warning';
-        const estadoTexto = vehiculo.EstadoIngreso === 'Ingresado' ? 'Ingresado' : 'Pendiente Ingreso';
+        // Estado badge - usar EstadoIngreso o EstadoVehiculo
+        const estado = vehiculo.EstadoIngreso || vehiculo.EstadoVehiculo || 'N/A';
+        let estadoClass = 'secondary';
+        let estadoIcon = 'fa-question-circle';
+        let estadoTexto = estado;
+        
+        if (estado === 'En Circulación') {
+            estadoClass = 'info';
+            estadoIcon = 'fa-road';
+            estadoTexto = 'En Circulación';
+        } else if (estado === 'Ingresado') {
+            estadoClass = 'success';
+            estadoIcon = 'fa-check-circle';
+            estadoTexto = 'En Taller';
+        } else if (estado === 'Completado') {
+            estadoClass = 'info';
+            estadoIcon = 'fa-check-double';
+            estadoTexto = 'Completado';
+        } else if (estado === 'Asignado' || estado === 'Solicitó Hora') {
+            estadoClass = 'warning';
+            estadoIcon = 'fa-clock';
+            estadoTexto = 'Solicitó Hora';
+        } else if (estado === 'No Llegó' || estado === 'No llegó') {
+            estadoClass = 'danger';
+            estadoIcon = 'fa-times-circle';
+            estadoTexto = 'No Llegó';
+        } else if (estado === 'Cancelada') {
+            estadoClass = 'secondary';
+            estadoIcon = 'fa-ban';
+            estadoTexto = 'Cancelada';
+        } else if (estado === 'Pendiente Ingreso') {
+            estadoClass = 'warning';
+            estadoIcon = 'fa-hourglass-half';
+            estadoTexto = 'Pendiente Ingreso';
+        } else {
+            estadoClass = 'secondary';
+            estadoIcon = 'fa-question-circle';
+        }
 
         content.innerHTML = `
             <div class="detalles-vehiculo">
@@ -289,18 +669,54 @@ class VehiculosAgendados {
                             </div>
                             <div class="card-body">
                                 <table class="table table-borderless table-sm mb-0">
+                                    ${vehiculo.FechaAgenda ? `
                                     <tr>
-                                        <th width="40%" class="text-muted">Fecha:</th>
+                                        <th width="40%" class="text-muted">Fecha Agenda:</th>
                                         <td><i class="fas fa-calendar-alt me-1 text-primary"></i>${fechaFormateada}</td>
                                     </tr>
+                                    ` : vehiculo.FechaIngreso ? `
                                     <tr>
-                                        <th class="text-muted">Hora:</th>
+                                        <th width="40%" class="text-muted">Fecha Ingreso:</th>
+                                        <td><i class="fas fa-calendar-alt me-1 text-primary"></i>${fechaFormateada}</td>
+                                    </tr>
+                                    ` : ''}
+                                    ${vehiculo.HoraInicio ? `
+                                    <tr>
+                                        <th class="text-muted">Hora Agenda:</th>
                                         <td><i class="fas fa-clock me-1 text-primary"></i>${horaFormateada}</td>
                                     </tr>
+                                    ` : vehiculo.FechaIngreso ? `
+                                    <tr>
+                                        <th class="text-muted">Hora Ingreso:</th>
+                                        <td><i class="fas fa-clock me-1 text-primary"></i>${horaFormateada}</td>
+                                    </tr>
+                                    ` : ''}
                                     <tr>
                                         <th class="text-muted">Estado:</th>
-                                        <td><span class="badge bg-${estadoClass}">${estadoTexto}</span></td>
+                                        <td><span class="badge bg-${estadoClass}"><i class="fas ${estadoIcon} me-1"></i>${estadoTexto}</span></td>
                                     </tr>
+                                    ${vehiculo.FechaSalida ? `
+                                    <tr>
+                                        <th class="text-muted">Fecha Salida:</th>
+                                        <td><i class="fas fa-sign-out-alt me-1 text-primary"></i>${this.formatearFechaAgenda(vehiculo.FechaSalida, {
+                                            weekday: 'short',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })}</td>
+                                    </tr>
+                                    ` : ''}
+                                    ${vehiculo.FechaRegistro ? `
+                                    <tr>
+                                        <th class="text-muted">Fecha Registro:</th>
+                                        <td><i class="fas fa-calendar me-1 text-primary"></i>${this.formatearFechaAgenda(vehiculo.FechaRegistro, {
+                                            weekday: 'short',
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })}</td>
+                                    </tr>
+                                    ` : ''}
                                     ${vehiculo.SupervisorNombre ? `
                                     <tr>
                                         <th class="text-muted">Supervisor:</th>
@@ -344,8 +760,49 @@ class VehiculosAgendados {
         `;
     }
 
+    verDetalles(solicitudId) {
+        const modalElement = document.getElementById('detalles-modal');
+        const content = document.getElementById('detalles-content');
+
+        if (!modalElement || !content) return;
+
+        content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div><p class="mt-2">Cargando detalles...</p></div>';
+        
+        // Mostrar modal usando Bootstrap
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        // Buscar el vehículo en los datos cargados
+        let vehiculo = null;
+        if (this.vehiculosData) {
+            vehiculo = this.vehiculosData.find(v => v.SolicitudID == solicitudId);
+        }
+
+        if (!vehiculo) {
+            content.innerHTML = '<p class="text-danger">No se pudieron cargar los detalles del vehículo.</p>';
+            return;
+        }
+
+        // Reutilizar la función de mostrar detalles
+        this.mostrarDetallesEnModal(vehiculo);
+    }
+
     mostrarError(mensaje) {
         const tbody = document.querySelector('#vehiculos-agendados-table tbody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                        <p>${mensaje}</p>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    mostrarErrorHistorial(mensaje) {
+        const tbody = document.querySelector('#historial-vehiculos-table tbody');
         if (tbody) {
             tbody.innerHTML = `
                 <tr>
