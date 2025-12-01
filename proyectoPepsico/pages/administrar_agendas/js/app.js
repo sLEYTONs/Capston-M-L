@@ -98,6 +98,7 @@ $(document).ready(function() {
                     title: evento.title || 'Agenda',
                     start: start,
                     end: end,
+                    allDay: false, // Asegurar que no sea evento de todo el día
                     extendedProps: {
                         agendaId: parseInt(evento.id),
                         disponible: evento.disponible !== undefined ? evento.disponible : 1,
@@ -130,41 +131,37 @@ $(document).ready(function() {
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
             locale: 'es',
+            timeZone: 'local',
             firstDay: 1, // Lunes
-                slotMinTime: '09:00:00', // Inicio a las 9:00 AM
-                slotMaxTime: '24:00:00', // Fin a las 24:00 (12 PM medianoche)
-                slotDuration: '00:30:00', // Intervalos de 30 minutos (como Google Calendar)
-                slotLabelInterval: '01:00:00', // Mostrar etiqueta cada hora
+            // Configuración para vistas de tiempo (semana y día)
+            slotMinTime: '09:00:00',
+            slotMaxTime: '24:00:00',
+            slotDuration: '00:30:00',
+            slotLabelInterval: '01:00:00',
+            snapDuration: '00:30:00',
             allDaySlot: false,
-                height: 'auto',
-                contentHeight: 700,
-                aspectRatio: null,
-                scrollTime: '09:00:00', // Hora inicial al cargar (9 AM)
-                scrollTimeReset: false, // No resetear el scroll al cambiar de vista
-                slotLabelFormat: {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    omitZeroMinute: false,
-                    meridiem: 'short'
-                },
-                slotLabelContent: function(arg) {
-                    // Formatear manualmente para asegurar AM/PM
-                    const date = arg.date;
-                    const hours = date.getHours();
-                    const minutes = date.getMinutes();
-                    
-                    // Solo mostrar etiquetas en las horas completas (cuando minutes === 0)
-                    if (minutes === 0) {
-                        const ampm = hours >= 12 ? 'PM' : 'AM';
-                        const displayHours = hours % 12 || 12;
-                        return displayHours + ' ' + ampm;
-                    }
-                    // Para slots menores, retornar string vacío
-                    return '';
-                },
-                slotLaneClassNames: function() {
-                    return ['fc-timegrid-slot'];
-                },
+            height: 'auto',
+            contentHeight: 'auto', // Altura automática para que quepan todas las horas
+            scrollTime: '09:00:00',
+            scrollTimeReset: false,
+            slotLabelFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                omitZeroMinute: true,
+                meridiem: 'short'
+            },
+            slotLabelContent: function(arg) {
+                const date = arg.date;
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                
+                if (minutes === 0) {
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    const displayHours = hours % 12 || 12;
+                    return displayHours + ' ' + ampm;
+                }
+                return '';
+            },
             editable: false,
                 selectable: true, // Permitir selección para crear nuevas agendas
                 selectMirror: true,
@@ -172,25 +169,110 @@ $(document).ready(function() {
                 dayMaxEvents: true,
                 weekends: true,
                 events: eventosIniciales, // Cargar eventos iniciales
-                // Permitir crear agenda haciendo clic en una fecha/hora
+                // Manejar clic directo en un slot de tiempo (más preciso)
+                dateClick: function(info) {
+                    // Abrir modal para crear nueva agenda con la fecha/hora del slot clickeado
+                    limpiarFormulario();
+                    
+                    // info.date ya está en hora local gracias a timeZone: 'local'
+                    const clickedDate = new Date(info.date);
+                    
+                    // Obtener componentes de fecha/hora en hora local
+                    const year = clickedDate.getFullYear();
+                    const month = String(clickedDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(clickedDate.getDate()).padStart(2, '0');
+                    let hours = clickedDate.getHours(); // Hora local (0-23)
+                    const minutes = clickedDate.getMinutes(); // Minutos locales (0-59)
+                    
+                    // Redondear a la hora completa
+                    // Si estamos en la segunda mitad del slot (minutos >= 30), avanzar a la siguiente hora
+                    if (minutes >= 30) {
+                        hours = hours + 1;
+                        if (hours >= 24) {
+                            hours = 0;
+                        }
+                    }
+                    
+                    // Formatear fecha (YYYY-MM-DD)
+                    const fecha = `${year}-${month}-${day}`;
+                    
+                    // Formatear hora inicio (HH:MM) - siempre será hora completa (MM = 00)
+                    const horaInicio = String(hours).padStart(2, '0') + ':00';
+                    
+                    // Calcular hora de fin: inicio + 1 hora exacta
+                    let horaFinHours = hours + 1;
+                    if (horaFinHours >= 24) {
+                        horaFinHours = 0;
+                    }
+                    const horaFin = String(horaFinHours).padStart(2, '0') + ':00';
+                    
+                    // Rellenar formulario
+                    $('#agenda-fecha').val(fecha);
+                    $('#agenda-hora-inicio').val(horaInicio);
+                    $('#agenda-hora-fin').val(horaFin);
+                    
+                    // Abrir modal
+                    const modalElement = document.getElementById('modalAgenda');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
+                },
+                // Permitir crear agenda haciendo clic y arrastrando (selección)
                 select: function(selectInfo) {
                     // Abrir modal para crear nueva agenda con la fecha/hora seleccionada
                     limpiarFormulario();
+                    
+                    // Obtener la fecha/hora del slot seleccionado
+                    // Usar selectInfo.start que ya está en hora local gracias a timeZone: 'local'
                     const start = new Date(selectInfo.start);
                     
-                    // Calcular hora de fin: inicio + 1 hora exacta
-                    const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 hora
+                    // Obtener componentes de fecha/hora en hora local
+                    // Estos métodos siempre devuelven valores en hora local
+                    const year = start.getFullYear();
+                    const month = String(start.getMonth() + 1).padStart(2, '0');
+                    const day = String(start.getDate()).padStart(2, '0');
+                    let hours = start.getHours(); // Hora local (0-23)
+                    const minutes = start.getMinutes(); // Minutos locales (0-59)
+                    const seconds = start.getSeconds(); // Segundos locales
+                    
+                    // Redondear a la hora completa basándose en el slot
+                    // Si estamos en la segunda mitad del slot de 30 minutos (minutos >= 30), avanzar a la siguiente hora
+                    if (minutes >= 30) {
+                        hours = hours + 1;
+                        // Manejar cambio de día si es necesario
+                        if (hours >= 24) {
+                            hours = 0;
+                            // Nota: No manejamos cambio de día aquí porque sería complejo
+                            // En la práctica, esto raramente ocurre con horarios de trabajo normales
+                        }
+                    }
                     
                     // Formatear fecha (YYYY-MM-DD)
-                    const fecha = start.toISOString().split('T')[0];
+                    const fecha = `${year}-${month}-${day}`;
                     
-                    // Formatear hora inicio (HH:MM)
-                    const horaInicio = String(start.getHours()).padStart(2, '0') + ':' + 
-                                      String(start.getMinutes()).padStart(2, '0');
+                    // Formatear hora inicio (HH:MM) - siempre será hora completa (MM = 00)
+                    const horaInicio = String(hours).padStart(2, '0') + ':00';
                     
-                    // Formatear hora fin (HH:MM)
-                    const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
-                                   String(end.getMinutes()).padStart(2, '0');
+                    // Calcular hora de fin: inicio + 1 hora exacta
+                    let horaFinHours = hours + 1;
+                    if (horaFinHours >= 24) {
+                        horaFinHours = 0;
+                    }
+                    const horaFin = String(horaFinHours).padStart(2, '0') + ':00';
+                    
+                    // Debug: mostrar en consola para verificar (puede comentarse después)
+                    console.log('Selección de slot:', {
+                        startOriginal: selectInfo.start,
+                        startLocal: start,
+                        year, month, day,
+                        hoursOriginal: start.getHours(),
+                        minutesOriginal: minutes,
+                        hoursRedondeado: hours,
+                        fecha,
+                        horaInicio,
+                        horaFin
+                    });
                     
                     // Rellenar formulario
                     $('#agenda-fecha').val(fecha);
@@ -217,14 +299,32 @@ $(document).ready(function() {
                     const disponible = info.event.extendedProps.disponible !== undefined ? info.event.extendedProps.disponible : 1;
                     $(info.el).attr('data-disponible', disponible);
                     
-                    // Personalizar título del evento
-                    const title = disponible === 1 ? 'Disponible' : 'Ocupado';
-                    if (info.event.title === 'Agenda' || !info.event.title) {
-                        info.event.setProp('title', title);
+                    // Obtener las horas del evento para mostrarlas en el título
+                    const start = new Date(info.event.start);
+                    const end = new Date(info.event.end);
+                    
+                    // Formatear horas (HH:MM)
+                    const horaInicio = String(start.getHours()).padStart(2, '0') + ':' + 
+                                      String(start.getMinutes()).padStart(2, '0');
+                    const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
+                                   String(end.getMinutes()).padStart(2, '0');
+                    
+                    // Verificar si el título ya tiene el formato correcto (contiene horas)
+                    const tituloActual = info.event.title || '';
+                    const estado = disponible === 1 ? 'Disponible' : 'Ocupado';
+                    
+                    // Solo actualizar el título si no tiene el formato correcto o si es muy genérico
+                    if (!tituloActual.includes('-') || tituloActual === 'Agenda' || tituloActual === 'Disponible' || tituloActual === 'Ocupado') {
+                        const nuevoTitulo = `${horaInicio} - ${horaFin} (${estado})`;
+                        info.event.setProp('title', nuevoTitulo);
+                    } else if (!tituloActual.includes(estado)) {
+                        // Si tiene horas pero no tiene el estado, agregarlo
+                        const nuevoTitulo = `${tituloActual.split('(')[0].trim()} (${estado})`;
+                        info.event.setProp('title', nuevoTitulo);
                     }
                     
-                    // Agregar tooltip con información
-                    let tooltip = `Estado: ${title}`;
+                    // Agregar tooltip con información completa
+                    let tooltip = `${horaInicio} - ${horaFin}\nEstado: ${estado}`;
                     if (info.event.extendedProps.observaciones) {
                         tooltip += `\nObservaciones: ${info.event.extendedProps.observaciones}`;
                     }
@@ -312,17 +412,17 @@ $(document).ready(function() {
                             const startISO = agenda.Fecha + 'T' + horaInicio;
                             const endISO = agenda.Fecha + 'T' + horaFin;
 
-                            // Determinar título y color según disponibilidad
-                            let titulo = `${agenda.HoraInicio.substring(0, 5)} - ${agenda.HoraFin.substring(0, 5)}`;
-                            if (agenda.Observaciones) {
-                                titulo += ` (${agenda.Observaciones.substring(0, 20)}...)`;
-                            }
+                            // Determinar título con horas y estado
+                            const estado = agenda.Disponible ? 'Disponible' : 'Ocupado';
+                            let titulo = `${agenda.HoraInicio.substring(0, 5)} - ${agenda.HoraFin.substring(0, 5)} (${estado})`;
+                            // No agregar observaciones al título para mantenerlo corto y legible
 
                     const evento = {
                         id: agenda.ID.toString(),
                                 title: titulo,
                                 start: startISO,
                                 end: endISO,
+                                allDay: false, // Asegurar que no sea evento de todo el día
                         extendedProps: {
                             agendaId: agenda.ID,
                             disponible: agenda.Disponible ? 1 : 0,

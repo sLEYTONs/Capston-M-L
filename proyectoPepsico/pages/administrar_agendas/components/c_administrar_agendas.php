@@ -64,21 +64,21 @@ $eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_H
     </div>
 
     <!-- Vista de Calendario -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-4 calendar-card">
+        <div class="card-header calendar-header">
             <h5 class="mb-0">
                 <i class="fas fa-calendar me-2"></i>Vista de Calendario
             </h5>
         </div>
-        <div class="card-body" style="padding: 0;">
+        <div class="card-body calendar-body">
             <div id="calendario-agendas"></div>
-            <div id="calendario-loading" style="display: none; text-align: center; padding: 40px;">
+            <div id="calendario-loading" class="calendar-loading">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Cargando calendario...</span>
                 </div>
                 <p class="mt-3 text-muted">Cargando calendario...</p>
             </div>
-            <div id="calendario-error" style="display: none; text-align: center; padding: 40px; color: #dc3545;">
+            <div id="calendario-error" class="calendar-error">
                 <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
                 <p>Error al cargar el calendario. Por favor, recarga la página.</p>
                 <button class="btn btn-primary" onclick="location.reload()">Recargar Página</button>
