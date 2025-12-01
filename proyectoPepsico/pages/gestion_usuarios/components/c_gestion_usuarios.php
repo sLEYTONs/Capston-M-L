@@ -4,11 +4,6 @@
             <div class="card-header">
                 <div class="d-flex align-items-center justify-content-between">
                     <h5 class="mb-0">Registrar Nuevo Usuario</h5>
-                    <button type="button" id="btn-autofill-usuario"
-                        onclick="(function(){var n=['Juan','Carlos','Pedro','Luis','Miguel','José','Francisco','Antonio','Manuel','Diego'],a=['Pérez','González','Rodríguez','Martínez','López','García','Fernández','Sánchez','Ramírez','Torres'],nm=n[Math.floor(Math.random()*n.length)],ap=a[Math.floor(Math.random()*a.length)],u=nm.toLowerCase()+'.'+ap.toLowerCase(),e=u+'@pepsico.cl',c='Chofer123!';document.getElementById('nombre_usuario').value=nm+' '+ap;document.getElementById('correo').value=e;document.getElementById('clave').value=c;document.getElementById('rol').value='Chofer';document.getElementById('estado').value='1';})()"
-                        style="cursor: pointer; border: none; background: red; color: white; width: 60px; height: 35px; border-radius: 4px; font-weight: bold;">
-                        AUTO
-                    </button>
                 </div>
             </div>
             <div class="card-body">

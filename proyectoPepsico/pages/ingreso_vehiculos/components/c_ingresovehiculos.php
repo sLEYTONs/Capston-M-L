@@ -19,14 +19,9 @@
                             <!-- Información del Vehículo -->
                             <div class="row mb-4">
                                 <div class="col-12">
-                                    <div class="d-flex align-items-center">
-                                        <h6 class="section-title mb-0">
-                                            <i class="fas fa-car me-2"></i>Información del Vehículo
-                                        </h6>
-                                        <button type="button" id="btn-autofill-vehiculo" onclick="(function(){var c='BCDFGHJKLMNPRSTVWXYZ',p='';for(var i=0;i<4;i++)p+=c[Math.floor(Math.random()*c.length)];p+=Math.floor(Math.random()*90+10);var m=['Toyota','Mercedes-Benz','Volvo','Scania','Isuzu'],mo={'Toyota':['Hilux','Dyna'],'Mercedes-Benz':['Actros','Atego'],'Volvo':['FH','FM'],'Scania':['R450','P320'],'Isuzu':['NQR','NPR']},t=['Camión','Furgoneta','Camioneta'],ma=m[Math.floor(Math.random()*m.length)],md=mo[ma][Math.floor(Math.random()*mo[ma].length)];document.getElementById('placa').value=p;document.getElementById('tipo_vehiculo').value=t[Math.floor(Math.random()*t.length)];document.getElementById('marca').value=ma;document.getElementById('modelo').value=md;document.getElementById('anio').value=Math.floor(Math.random()*10)+2015;document.getElementById('kilometraje').value=Math.floor(Math.random()*240000)+10000;document.getElementById('conductor_nombre').value=['Juan Pérez','Carlos González','Pedro Rodríguez'][Math.floor(Math.random()*3)];})()" style="cursor: pointer; border: none; background: red; color: white; width: 60px; height: 35px; margin-left: 8px; border-radius: 4px; font-weight: bold;">
-                                            AUTO
-                                        </button>
-                                    </div>
+                                    <h6 class="section-title mb-0">
+                                        <i class="fas fa-car me-2"></i>Información del Vehículo
+                                    </h6>
                                     <hr>
                                 </div>
 
