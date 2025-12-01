@@ -99,7 +99,7 @@
     <!-- Tabla de Reportes -->
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-table me-2"></i>Reportes de Mantenimientos</h5>
             </div>
             <div class="card-body">

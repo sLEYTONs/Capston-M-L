@@ -3,6 +3,58 @@
 require_once __DIR__ . '/../../../app/model/agendamiento/functions/f_agendamiento.php';
 require_once __DIR__ . '/../../../app/config/conexion.php';
 
+// Función helper para verificar si una agenda ya pasó
+function agendaVencida($fecha, $horaFin) {
+    if (empty($fecha) || empty($horaFin)) {
+        return false;
+    }
+    
+    // Crear DateTime para la fecha/hora de fin de la agenda
+    $horaFinFormat = $horaFin;
+    if (substr_count($horaFinFormat, ':') === 1) {
+        $horaFinFormat .= ':00';
+    }
+    
+    try {
+        $fechaHoraFin = new DateTime($fecha . ' ' . $horaFinFormat);
+        $ahora = new DateTime();
+        
+        // Si la fecha/hora de fin ya pasó, está vencida
+        return $fechaHoraFin < $ahora;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+// Función helper para obtener el estado visual de una agenda
+function obtenerEstadoAgenda($agenda) {
+    $disponible = ($agenda['Disponible'] == 1 || $agenda['Disponible'] === true || $agenda['Disponible'] === '1');
+    
+    // Verificar si está vencida
+    if (agendaVencida($agenda['Fecha'], $agenda['HoraFin'])) {
+        return [
+            'clase' => 'bg-secondary',
+            'texto' => 'Vencida',
+            'icono' => 'fa-clock'
+        ];
+    }
+    
+    // Si no está vencida, verificar disponibilidad
+    if ($disponible) {
+        return [
+            'clase' => 'bg-success',
+            'texto' => 'Disponible',
+            'icono' => 'fa-check-circle'
+        ];
+    } else {
+        return [
+            'clase' => 'bg-danger',
+            'texto' => 'Ocupado',
+            'icono' => 'fa-times-circle'
+        ];
+    }
+}
+
 // Obtener todas las agendas para renderizar en la tabla
 $agendas_data = obtenerTodasLasAgendas();
 $agendas = ($agendas_data['status'] === 'success') ? $agendas_data['data'] : [];
@@ -95,14 +147,14 @@ $eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_H
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table id="tabla-agendas" class="table table-striped table-hover" style="width:100%">
+                <table id="tabla-agendas" class="table-agendas-moderna" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Fecha</th>
                             <th>Hora Inicio</th>
                             <th>Hora Fin</th>
-                            <th>Disponible</th>
+                            <th>Estado</th>
                             <th>Observaciones</th>
                             <th>Acciones</th>
                         </tr>
@@ -110,9 +162,13 @@ $eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_H
                     <tbody>
                         <?php if (!empty($agendas)): ?>
                             <?php foreach ($agendas as $agenda): ?>
+                                <?php 
+                                $estado = obtenerEstadoAgenda($agenda);
+                                $vencida = agendaVencida($agenda['Fecha'], $agenda['HoraFin']);
+                                ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($agenda['ID']); ?></td>
-                                    <td>
+                                    <td class="text-center"><?php echo htmlspecialchars($agenda['ID']); ?></td>
+                                    <td class="text-center">
                                         <?php 
                                         if (!empty($agenda['Fecha'])) {
                                             $fecha = new DateTime($agenda['Fecha']);
@@ -122,25 +178,30 @@ $eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_H
                                         }
                                         ?>
                                     </td>
-                                    <td><?php echo !empty($agenda['HoraInicio']) ? htmlspecialchars(substr($agenda['HoraInicio'], 0, 5)) : '-'; ?></td>
-                                    <td><?php echo !empty($agenda['HoraFin']) ? htmlspecialchars(substr($agenda['HoraFin'], 0, 5)) : '-'; ?></td>
-                                    <td>
-                                        <?php if ($agenda['Disponible'] == 1 || $agenda['Disponible'] === true || $agenda['Disponible'] === '1'): ?>
-                                            <span class="badge bg-success">Disponible</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger">Ocupado</span>
-                                        <?php endif; ?>
+                                    <td class="text-center"><?php echo !empty($agenda['HoraInicio']) ? htmlspecialchars(substr($agenda['HoraInicio'], 0, 5)) : '-'; ?></td>
+                                    <td class="text-center"><?php echo !empty($agenda['HoraFin']) ? htmlspecialchars(substr($agenda['HoraFin'], 0, 5)) : '-'; ?></td>
+                                    <td class="text-center">
+                                        <span class="badge badge-estado <?php echo $estado['clase']; ?>">
+                                            <i class="fas <?php echo $estado['icono']; ?> me-1"></i>
+                                            <?php echo htmlspecialchars($estado['texto']); ?>
+                                        </span>
                                     </td>
-                                    <td><?php echo !empty($agenda['Observaciones']) ? htmlspecialchars($agenda['Observaciones']) : '-'; ?></td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-warning btn-editar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger btn-eliminar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                    <td class="text-left"><?php echo !empty($agenda['Observaciones']) ? htmlspecialchars($agenda['Observaciones']) : '-'; ?></td>
+                                    <td class="text-center">
+                                        <?php if (!$vencida): ?>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-warning btn-editar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger btn-eliminar" data-id="<?php echo htmlspecialchars($agenda['ID']); ?>" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-muted" title="Agenda vencida - No se pueden realizar acciones">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

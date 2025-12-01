@@ -33,9 +33,6 @@
                     <h5 class="mb-0"><i class="fas fa-list me-2"></i>Resultados de Búsqueda</h5>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
-                    <button class="btn btn-warning" id="btn-marcar-retirados" title="Marcar todos los vehículos como retirados excepto KSZJ43 y WLVY22">
-                        <i class="fas fa-magic me-2"></i>Botón Mágico
-                    </button>
                     <button class="btn btn-primary" id="btn-actualizar-tabla">
                         <i class="fas fa-sync-alt me-2"></i>Actualizar Tabla
                     </button>

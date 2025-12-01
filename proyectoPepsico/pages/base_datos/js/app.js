@@ -23,6 +23,8 @@ class BaseDatosApp {
         $('#refresh-repuestos').click(() => this.actualizarTablaRepuestos());
         $('#refresh-usuarios').click(() => this.actualizarTablaUsuarios());
         $('#refresh-conductores').click(() => this.actualizarTablaConductores());
+        $('#asignar-vehiculo-pedro').click(() => this.asignarVehiculoPedro());
+        $('#eliminar-duplicados').click(() => this.eliminarVehiculosDuplicados());
         
         // Exportación
         $('#export-csv-completo').click(() => this.exportarCSVCompleto());
@@ -72,7 +74,24 @@ class BaseDatosApp {
                 url: '../app/model/base_datos/scripts/s_base_datos.php',
                 type: 'POST',
                 data: { action: 'obtenerVehiculos' },
-                dataSrc: 'data'
+                dataSrc: (json) => {
+                    if (json.success && Array.isArray(json.data)) {
+                        return json.data;
+                    } else {
+                        console.error('Error en respuesta de vehículos:', json);
+                        if (json.message) {
+                            setTimeout(() => {
+                                this.mostrarNotificacion(json.message || 'Error al cargar vehículos', 'error');
+                            }, 100);
+                        }
+                        return [];
+                    }
+                },
+                error: (xhr, error, thrown) => {
+                    console.error('Error AJAX al cargar vehículos:', error, thrown);
+                    console.error('Respuesta del servidor:', xhr.responseText);
+                    this.mostrarNotificacion('Error al cargar los datos de vehículos. Por favor, recarga la página.', 'error');
+                }
             },
             columns: [
                 { data: 'ID' },
@@ -82,17 +101,24 @@ class BaseDatosApp {
                 { 
                     data: 'Estado',
                     render: (data) => {
+                        // Si el estado está vacío o es null, usar "En Circulación"
+                        const estadoValue = (!data || data === '' || data === null) ? 'En Circulación' : data;
+                        
                         // Mapear estados a clases y textos
                         const estadoMap = {
                             'Ingresado': { class: 'badge-info', texto: 'Ingresado' },
                             'Asignado': { class: 'badge-warning', texto: 'Asignado' },
                             'En Proceso': { class: 'badge-primary', texto: 'En Proceso' },
+                            'En Pausa': { class: 'badge-warning', texto: 'En Pausa' },
+                            'En Revisión': { class: 'badge-info', texto: 'En Revisión' },
                             'Completado': { class: 'badge-success', texto: 'Completado' },
+                            'En Circulación': { class: 'badge-success', texto: 'En Circulación' },
+                            'Disponible': { class: 'badge-success', texto: 'Disponible' },
                             'active': { class: 'badge-activo', texto: 'Activo' },  // Compatibilidad con datos antiguos
                             'inactive': { class: 'badge-inactivo', texto: 'Inactivo' }
                         };
                         
-                        const estado = estadoMap[data] || { class: 'badge-secondary', texto: data || 'Desconocido' };
+                        const estado = estadoMap[estadoValue] || { class: 'badge-success', texto: 'En Circulación' };
                         return `<span class="badge badge-estado ${estado.class}">${estado.texto}</span>`;
                     }
                 },
@@ -473,6 +499,92 @@ class BaseDatosApp {
             this.dataTables.conductores.ajax.reload();
             this.mostrarNotificacion('Conductores actualizados', 'success');
         }
+    }
+
+    asignarVehiculoPedro() {
+        // Confirmar antes de ejecutar
+        if (!confirm('¿Asignar un vehículo de Luis López a Pedro Sánchez?\n\nSe quitará el vehículo más antiguo de Luis López y se asignará a Pedro.\n\n¿Desea continuar?')) {
+            return;
+        }
+
+        // Mostrar indicador de carga
+        const boton = $('#asignar-vehiculo-pedro');
+        const textoOriginal = boton.html();
+        boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+
+        $.ajax({
+            url: '../app/model/base_datos/scripts/s_base_datos.php',
+            type: 'POST',
+            data: { action: 'asignarVehiculoPedro' },
+            dataType: 'json',
+            success: (response) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                
+                if (response.success) {
+                    this.mostrarNotificacion(response.message || 'Vehículo asignado correctamente', 'success');
+                    // Recargar las tablas
+                    setTimeout(() => {
+                        if (this.dataTables.vehiculos) {
+                            this.dataTables.vehiculos.ajax.reload();
+                        }
+                        if (this.dataTables.conductores) {
+                            this.dataTables.conductores.ajax.reload();
+                        }
+                        this.cargarEstadisticas();
+                    }, 1000);
+                } else {
+                    this.mostrarNotificacion(response.message || 'Error al asignar vehículo', 'error');
+                }
+            },
+            error: (xhr, status, error) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                console.error('Error al asignar vehículo:', error);
+                this.mostrarNotificacion('Error al asignar vehículo. Por favor, intente nuevamente.', 'error');
+            }
+        });
+    }
+
+    eliminarVehiculosDuplicados() {
+        // Confirmar antes de ejecutar
+        if (!confirm('¿Está seguro de eliminar vehículos duplicados?\n\nEsto eliminará los registros duplicados de vehículos con la misma placa, manteniendo solo el más reciente.\n\n¿Desea continuar?')) {
+            return;
+        }
+
+        // Mostrar indicador de carga
+        const boton = $('#eliminar-duplicados');
+        const textoOriginal = boton.html();
+        boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+
+        $.ajax({
+            url: '../app/model/base_datos/scripts/s_base_datos.php',
+            type: 'POST',
+            data: { action: 'eliminarVehiculosDuplicados' },
+            dataType: 'json',
+            success: (response) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                
+                if (response.success) {
+                    this.mostrarNotificacion(response.message || 'Vehículos duplicados eliminados correctamente', 'success');
+                    // Recargar las tablas
+                    setTimeout(() => {
+                        if (this.dataTables.vehiculos) {
+                            this.dataTables.vehiculos.ajax.reload();
+                        }
+                        if (this.dataTables.conductores) {
+                            this.dataTables.conductores.ajax.reload();
+                        }
+                        this.cargarEstadisticas();
+                    }, 1000);
+                } else {
+                    this.mostrarNotificacion(response.message || 'Error al eliminar vehículos duplicados', 'error');
+                }
+            },
+            error: (xhr, status, error) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                console.error('Error al eliminar vehículos duplicados:', error);
+                this.mostrarNotificacion('Error al eliminar vehículos duplicados. Por favor, intente nuevamente.', 'error');
+            }
+        });
     }
 
     actualizarTablaRepuestos() {

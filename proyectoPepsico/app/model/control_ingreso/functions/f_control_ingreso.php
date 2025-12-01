@@ -1211,10 +1211,14 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
     }
     
     // Si es operación de SALIDA, buscar vehículos completados (terminados por mecánico)
+    // El guardia puede sacar vehículos completados sin importar nada
     if ($tipoOperacion === 'salida') {
+        // Buscar vehículo completado (prioridad 1)
         $sql = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, TipoVehiculo, Marca, Modelo
                 FROM ingreso_vehiculos 
-                WHERE Placa = ? AND Estado = 'Completado'";
+                WHERE Placa = ? AND Estado = 'Completado'
+                ORDER BY FechaIngreso DESC
+                LIMIT 1";
         
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("s", $placa);
@@ -1225,39 +1229,20 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         $stmt->close();
         
         if ($vehiculo) {
+            // Vehículo completado: puede salir sin restricciones
             $conn->close();
             return [
                 'vehiculo' => $vehiculo,
                 'tiene_agenda' => false,
                 'puede_ingresar' => false,
-                'puede_salir' => true
+                'puede_salir' => true,
+                'mensaje' => 'Vehículo completado. Puede salir del taller.'
             ];
-        } else {
-            // Verificar si está ingresado pero no completado
-            $sqlIngresado = "SELECT ID, Placa, Estado, FechaIngreso, ConductorNombre, TipoVehiculo, Marca, Modelo
-                            FROM ingreso_vehiculos 
-                            WHERE Placa = ? AND Estado = 'Ingresado'";
-            
-            $stmtIngresado = $conn->prepare($sqlIngresado);
-            $stmtIngresado->bind_param("s", $placa);
-            $stmtIngresado->execute();
-            $resultIngresado = $stmtIngresado->get_result();
-            $vehiculoIngresado = $resultIngresado->fetch_assoc();
-            $stmtIngresado->close();
-            $conn->close();
-            
-            if ($vehiculoIngresado) {
-                return [
-                    'vehiculo' => $vehiculoIngresado,
-                    'tiene_agenda' => false,
-                    'puede_ingresar' => false,
-                    'puede_salir' => false,
-                    'mensaje' => 'El vehículo aún está en proceso. Solo puede salir cuando el mecánico haya completado el trabajo.'
-                ];
-            }
-            
-            return null; // No hay vehículo ingresado para salida
         }
+        
+        // Si no está completado, no puede salir
+        $conn->close();
+        return null;
     }
     
     // Para INGRESO: Primero verificar si ya está ingresado

@@ -22,6 +22,7 @@ class ReportesMantenimientos {
         $('#btn-generar-reporte').on('click', () => this.cargarReportes());
         $('#btn-limpiar-filtros').on('click', () => this.limpiarFiltros());
         $('#btn-exportar-excel').on('click', () => this.exportarExcel());
+        $('#marcar-todos-completado').on('click', () => this.marcarTodosVehiculosCompletado());
         
         // Ver detalles
         $(document).on('click', '.btn-ver-detalles', (e) => {
@@ -306,6 +307,44 @@ class ReportesMantenimientos {
         });
         
         window.open(`../app/model/reportes/scripts/s_reportes.php?${params.toString()}&export=excel`, '_blank');
+    }
+
+    marcarTodosVehiculosCompletado() {
+        // Confirmar antes de ejecutar
+        if (!confirm('¿Está seguro de marcar TODOS los vehículos como "Completado"?\n\nEsto significa que todos los vehículos estarán marcados como fuera del taller.\n\n¿Desea continuar?')) {
+            return;
+        }
+
+        // Mostrar indicador de carga
+        const boton = $('#marcar-todos-completado');
+        const textoOriginal = boton.html();
+        boton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+
+        $.ajax({
+            url: '../app/model/base_datos/scripts/s_base_datos.php',
+            type: 'POST',
+            data: { action: 'marcarTodosVehiculosCompletado' },
+            dataType: 'json',
+            success: (response) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                
+                if (response.success) {
+                    this.mostrarNotificacion(response.message || 'Vehículos marcados como completados correctamente', 'success');
+                    // Recargar la tabla y estadísticas
+                    setTimeout(() => {
+                        this.cargarReportes();
+                        this.cargarEstadisticas();
+                    }, 1000);
+                } else {
+                    this.mostrarNotificacion(response.message || 'Error al marcar vehículos como completados', 'error');
+                }
+            },
+            error: (xhr, status, error) => {
+                boton.prop('disabled', false).html(textoOriginal);
+                console.error('Error al marcar vehículos como completados:', error);
+                this.mostrarNotificacion('Error al marcar vehículos como completados. Por favor, intente nuevamente.', 'error');
+            }
+        });
     }
 
     mostrarNotificacion(mensaje, tipo) {

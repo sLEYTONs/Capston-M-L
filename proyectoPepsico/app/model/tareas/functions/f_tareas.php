@@ -72,7 +72,9 @@ function obtenerTareasMecanico($mecanico_id) {
     }
 
     $tareas = [];
+    $tareasPorVehiculo = []; // Para eliminar duplicados: agrupar por placa/vehiculo
     $count = 0;
+    
     while ($row = mysqli_fetch_assoc($result)) {
         $count++;
         // Formatear último avance
@@ -83,15 +85,35 @@ function obtenerTareasMecanico($mecanico_id) {
                 'Descripcion' => $row['UltimaDescripcion']
             ];
         }
-        $tareas[] = $row;
         
-        // Log de la primera tarea para debug
-        if ($count === 1) {
-            error_log("Primera tarea encontrada: " . json_encode($row));
+        // Usar Placa como clave para identificar duplicados
+        $placa = $row['Placa'] ?? '';
+        $asignacionId = intval($row['AsignacionID'] ?? 0);
+        
+        // Si ya existe una asignación para esta placa, mantener solo la más reciente (ID más alto)
+        if (isset($tareasPorVehiculo[$placa])) {
+            $asignacionExistente = intval($tareasPorVehiculo[$placa]['AsignacionID'] ?? 0);
+            if ($asignacionId > $asignacionExistente) {
+                // Esta asignación es más reciente, reemplazar la anterior
+                $tareasPorVehiculo[$placa] = $row;
+            }
+            // Si es más antigua, ignorarla
+        } else {
+            // Primera vez que vemos esta placa, agregarla
+            $tareasPorVehiculo[$placa] = $row;
         }
     }
-
-    error_log("Total de tareas encontradas: " . $count);
+    
+    // Convertir el array asociativo de vuelta a un array indexado
+    $tareas = array_values($tareasPorVehiculo);
+    
+    // Log de la primera tarea para debug
+    if (count($tareas) > 0) {
+        error_log("Primera tarea encontrada (después de filtrar duplicados): " . json_encode($tareas[0]));
+    }
+    
+    error_log("Total de tareas encontradas (antes de filtrar): " . $count);
+    error_log("Total de tareas únicas (después de filtrar duplicados): " . count($tareas));
     mysqli_free_result($result);
     mysqli_close($conn);
     return $tareas;

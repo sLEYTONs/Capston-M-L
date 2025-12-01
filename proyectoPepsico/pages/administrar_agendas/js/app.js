@@ -164,7 +164,7 @@ $(document).ready(function() {
             },
             editable: false,
                 selectable: true, // Permitir selección para crear nuevas agendas
-                selectMirror: true,
+                selectMirror: false, // DESACTIVADO: no mostrar overlay visual al seleccionar
                 selectMinDistance: 0, // Permitir selección con un solo clic
                 dayMaxEvents: true,
                 weekends: true,
@@ -294,14 +294,13 @@ $(document).ready(function() {
                 editarAgendaDesdeCalendario(info.event);
             },
             eventDisplay: 'block',
-            eventDidMount: function(info) {
-                    // Agregar atributo data-disponible para estilos CSS
-                    const disponible = info.event.extendedProps.disponible !== undefined ? info.event.extendedProps.disponible : 1;
-                    $(info.el).attr('data-disponible', disponible);
-                    
-                    // Obtener las horas del evento para mostrarlas en el título
-                    const start = new Date(info.event.start);
-                    const end = new Date(info.event.end);
+            // Definir el contenido HTML del evento de forma nativa
+            eventContent: function(arg) {
+                const evento = arg.event;
+                
+                // Obtener horas del evento
+                const start = new Date(evento.start);
+                const end = new Date(evento.end);
                     
                     // Formatear horas (HH:MM)
                     const horaInicio = String(start.getHours()).padStart(2, '0') + ':' + 
@@ -309,26 +308,112 @@ $(document).ready(function() {
                     const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
                                    String(end.getMinutes()).padStart(2, '0');
                     
-                    // Verificar si el título ya tiene el formato correcto (contiene horas)
-                    const tituloActual = info.event.title || '';
+                // Obtener estado
+                const disponible = evento.extendedProps && evento.extendedProps.disponible !== undefined 
+                    ? evento.extendedProps.disponible 
+                    : 1;
                     const estado = disponible === 1 ? 'Disponible' : 'Ocupado';
                     
-                    // Solo actualizar el título si no tiene el formato correcto o si es muy genérico
-                    if (!tituloActual.includes('-') || tituloActual === 'Agenda' || tituloActual === 'Disponible' || tituloActual === 'Ocupado') {
-                        const nuevoTitulo = `${horaInicio} - ${horaFin} (${estado})`;
-                        info.event.setProp('title', nuevoTitulo);
-                    } else if (!tituloActual.includes(estado)) {
-                        // Si tiene horas pero no tiene el estado, agregarlo
-                        const nuevoTitulo = `${tituloActual.split('(')[0].trim()} (${estado})`;
-                        info.event.setProp('title', nuevoTitulo);
+                // Construir título - SIEMPRE debe tener un valor
+                let titulo = evento.title || '';
+                
+                // Si el título está vacío o es muy genérico, construir uno nuevo
+                if (!titulo || titulo.trim() === '' || titulo === 'Agenda' || titulo === 'Nueva Agenda') {
+                    titulo = `${horaInicio} - ${horaFin} (${estado})`;
+                } 
+                // Si el título no contiene horas, agregarlas
+                else if (!titulo.includes(' - ') || !titulo.includes(horaInicio)) {
+                    titulo = `${horaInicio} - ${horaFin} (${estado})`;
+                }
+                // Si tiene horas pero no tiene estado, agregarlo
+                else if (!titulo.includes(estado) && !titulo.includes('Disponible') && !titulo.includes('Ocupado')) {
+                    titulo = `${titulo.split('(')[0].trim()} (${estado})`;
+                }
+                
+                // Asegurar que el título nunca esté vacío
+                if (!titulo || titulo.trim() === '') {
+                    titulo = `${horaInicio} - ${horaFin} (${estado})`;
+                }
+                
+                // Actualizar el título en el objeto del evento
+                if (evento.title !== titulo) {
+                    evento.setProp('title', titulo);
+                }
+                
+                // Retornar HTML del evento - FullCalendar lo renderizará automáticamente
+                return {
+                    html: `<span class="fc-event-title">${titulo}</span>`
+                };
+            },
+            eventDidMount: function(info) {
+                // Obtener estado disponible desde extendedProps
+                const disponible = info.event.extendedProps.disponible !== undefined ? info.event.extendedProps.disponible : 1;
+                
+                // Agregar atributo data-disponible para estilos CSS (CRÍTICO para aplicar colores)
+                $(info.el).attr('data-disponible', disponible);
+                
+                // PRIORIDAD 1: Usar colores del objeto evento si están definidos explícitamente
+                // (Esto asegura que eventos nuevos dinámicos tengan los colores correctos)
+                if (info.event.backgroundColor && info.event.borderColor) {
+                    $(info.el).css({
+                        'background-color': info.event.backgroundColor,
+                        'border-left-color': info.event.borderColor,
+                        'color': info.event.textColor || (disponible === 1 ? '#155724' : '#721c24')
+                    });
+                    console.log('🎨 Colores aplicados desde propiedades del evento:', {
+                        backgroundColor: info.event.backgroundColor,
+                        borderColor: info.event.borderColor
+                    });
+                } 
+                // PRIORIDAD 2: Aplicar colores directamente según estado (fallback)
+                else {
+                    const esDisponible = disponible === 1;
+                    if (esDisponible) {
+                        $(info.el).css({
+                            'background-color': '#e8f5e9',
+                            'border-left-color': '#34a853',
+                            'color': '#155724'
+                        });
+                    } else {
+                        $(info.el).css({
+                            'background-color': '#ffebee',
+                            'border-left-color': '#ea4335',
+                            'color': '#721c24'
+                        });
                     }
-                    
-                    // Agregar tooltip con información completa
+                }
+                
+                // Asegurar que el evento NO sea de día completo
+                if (info.event.allDay !== false) {
+                    info.event.setProp('allDay', false);
+                }
+                
+                // Obtener horas para tooltip
+                const start = new Date(info.event.start);
+                const end = new Date(info.event.end);
+                const horaInicio = String(start.getHours()).padStart(2, '0') + ':' + 
+                                  String(start.getMinutes()).padStart(2, '0');
+                const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
+                               String(end.getMinutes()).padStart(2, '0');
+                const estado = disponible === 1 ? 'Disponible' : 'Ocupado';
+                
+                // Agregar tooltip
                     let tooltip = `${horaInicio} - ${horaFin}\nEstado: ${estado}`;
                     if (info.event.extendedProps.observaciones) {
                         tooltip += `\nObservaciones: ${info.event.extendedProps.observaciones}`;
                     }
                     $(info.el).attr('title', tooltip);
+                
+                // Debug: verificar estructura del evento
+                console.log('🎨 EventDidMount - Evento renderizado:', {
+                    id: info.event.id,
+                    title: info.event.title,
+                    start: info.event.start,
+                    end: info.event.end,
+                    allDay: info.event.allDay,
+                    disponible: disponible,
+                    extendedProps: info.event.extendedProps
+                });
             },
             datesSet: function() {
                 // Cargar eventos cuando cambia la vista
@@ -374,9 +459,12 @@ $(document).ready(function() {
     
 
     // Cargar eventos en el calendario desde la misma fuente que la tabla
+    // Retorna una promesa para poder esperarla
     function cargarEventosCalendario() {
+        return new Promise(function(resolve, reject) {
         if (!calendario) {
             console.warn('Calendario no inicializado');
+                reject(new Error('Calendario no inicializado'));
             return;
         }
 
@@ -396,41 +484,11 @@ $(document).ready(function() {
                 data.data.forEach(agenda => {
                     if (!agenda.Fecha || !agenda.HoraInicio || !agenda.HoraFin) return;
 
-                            // Formato ISO: concatenar fecha + hora (YYYY-MM-DDTHH:MM:SS)
-                            let horaInicio = agenda.HoraInicio;
-                            let horaFin = agenda.HoraFin;
-                            
-                            // Asegurar formato completo (HH:MM:SS)
-                            if (horaInicio.split(':').length === 2) {
-                                horaInicio += ':00';
-                            }
-                            if (horaFin.split(':').length === 2) {
-                                horaFin += ':00';
-                            }
-
-                            // Crear string ISO directamente
-                            const startISO = agenda.Fecha + 'T' + horaInicio;
-                            const endISO = agenda.Fecha + 'T' + horaFin;
-
-                            // Determinar título con horas y estado
-                            const estado = agenda.Disponible ? 'Disponible' : 'Ocupado';
-                            let titulo = `${agenda.HoraInicio.substring(0, 5)} - ${agenda.HoraFin.substring(0, 5)} (${estado})`;
-                            // No agregar observaciones al título para mantenerlo corto y legible
-
-                    const evento = {
-                        id: agenda.ID.toString(),
-                                title: titulo,
-                                start: startISO,
-                                end: endISO,
-                                allDay: false, // Asegurar que no sea evento de todo el día
-                        extendedProps: {
-                            agendaId: agenda.ID,
-                            disponible: agenda.Disponible ? 1 : 0,
-                            observaciones: agenda.Observaciones || ''
-                        }
-                    };
-
+                                // Usar función común para construir el evento con estructura estandarizada
+                                const evento = construirEventoDesdeAgenda(agenda);
+                                if (evento) {
                     eventos.push(evento);
+                                }
                 });
 
                         // Remover eventos existentes y agregar nuevos
@@ -443,18 +501,28 @@ $(document).ready(function() {
                             }
                         });
                         
-                        console.log(`✅ Eventos cargados en calendario: ${eventos.length}`);
+                            // FORZAR renderizado del calendario para asegurar que los eventos se muestren
+                            calendario.render();
+                            
+                            console.log(`✅ Eventos cargados en calendario: ${eventos.length} (renderizado forzado)`);
+                            resolve(eventos);
                     } else if (data.status === 'error') {
                         console.error('Error al cargar eventos:', data.message);
+                            reject(new Error(data.message || 'Error al cargar eventos'));
+                        } else {
+                            resolve([]);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Error al cargar eventos del calendario:', error);
+                        reject(new Error('Error al cargar eventos del calendario'));
                 }
             });
         } catch (error) {
             console.error('Error en cargarEventosCalendario:', error);
+                reject(error);
         }
+        });
     }
 
     // Editar agenda desde el calendario
@@ -506,6 +574,154 @@ $(document).ready(function() {
     // Los botones de vista están integrados en el header del calendario de FullCalendar
     // No se necesitan botones adicionales
 
+    // Función helper para sumar 60 minutos a una hora (REGLA DE NEGOCIO: siempre 1 hora de duración)
+    function calcularHoraFin(horaInicio) {
+        if (!horaInicio) return null;
+        
+        // Normalizar formato (HH:MM o HH:MM:SS)
+        let hora = String(horaInicio).trim();
+        if (hora.split(':').length === 2) {
+            hora += ':00';
+        }
+        
+        // Crear objeto Date con la hora de inicio
+        const partes = hora.split(':');
+        const horas = parseInt(partes[0], 10);
+        const minutos = parseInt(partes[1], 10);
+        
+        // Crear fecha de referencia (puede ser cualquier fecha)
+        const fecha = new Date(2000, 0, 1, horas, minutos, 0);
+        
+        // Sumar 60 minutos (1 hora)
+        fecha.setMinutes(fecha.getMinutes() + 60);
+        
+        // Formatear como HH:MM
+        const horaFin = String(fecha.getHours()).padStart(2, '0') + ':' + 
+                       String(fecha.getMinutes()).padStart(2, '0');
+        
+        return horaFin;
+    }
+
+    // Función común para construir un evento de calendario desde datos de agenda
+    // Esta función asegura que todos los eventos tengan la misma estructura
+    // INDISTINGUIBLE de los eventos que vienen del servidor
+    function construirEventoDesdeAgenda(agendaData) {
+        if (!agendaData || !agendaData.Fecha || !agendaData.HoraInicio || !agendaData.HoraFin) {
+            console.error('❌ Datos incompletos para construir evento:', agendaData);
+            return null;
+        }
+        
+        // Normalizar formato de hora (HH:MM:SS)
+        let horaInicio = String(agendaData.HoraInicio).trim();
+        let horaFin = String(agendaData.HoraFin).trim();
+        
+        // Asegurar formato completo (HH:MM:SS)
+        if (horaInicio.split(':').length === 2) {
+            horaInicio += ':00';
+        }
+        if (horaFin.split(':').length === 2) {
+            horaFin += ':00';
+        }
+        
+        // Validar formato de fecha (YYYY-MM-DD)
+        const fecha = String(agendaData.Fecha).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+            console.error('❌ Formato de fecha inválido:', fecha);
+            return null;
+        }
+        
+        // Crear string ISO estricto (YYYY-MM-DDTHH:mm:ss)
+        // Este formato es el requerido por FullCalendar para eventos con tiempo
+        const startISO = fecha + 'T' + horaInicio;
+        const endISO = fecha + 'T' + horaFin;
+        
+        // Validar que las fechas ISO sean válidas
+        if (isNaN(new Date(startISO).getTime()) || isNaN(new Date(endISO).getTime())) {
+            console.error('❌ Fechas ISO inválidas:', { startISO, endISO });
+            return null;
+        }
+        
+        // Extraer horas para el título (HH:MM)
+        const horaInicioDisplay = horaInicio.substring(0, 5);
+        const horaFinDisplay = horaFin.substring(0, 5);
+        
+        // Determinar estado (igual que cuando viene del servidor)
+        const disponible = agendaData.Disponible === 1 || agendaData.Disponible === true || agendaData.Disponible === '1';
+        const estado = disponible ? 'Disponible' : 'Ocupado';
+        
+        // Crear título con el mismo formato que cuando viene del servidor
+        const titulo = `${horaInicioDisplay} - ${horaFinDisplay} (${estado})`;
+        
+        // Colores según el estado (mismos valores que CSS)
+        const coloresDisponible = {
+            backgroundColor: '#e8f5e9',  // var(--success-bg)
+            borderColor: '#34a853',       // var(--success)
+            textColor: '#155724'
+        };
+        
+        const coloresOcupado = {
+            backgroundColor: '#ffebee',   // var(--danger-bg)
+            borderColor: '#ea4335',       // var(--danger)
+            textColor: '#721c24'
+        };
+        
+        const colores = disponible ? coloresDisponible : coloresOcupado;
+        
+        // Construir objeto evento con la MISMA estructura que cuando viene del servidor
+        // Añadir propiedades de color EXPLÍCITAS para garantizar que se muestren correctamente
+        const evento = {
+            id: String(agendaData.ID), // ID como string (igual que del servidor)
+            title: titulo,
+            start: startISO, // Formato ISO estricto: YYYY-MM-DDTHH:mm:ss
+            end: endISO,     // Formato ISO estricto: YYYY-MM-DDTHH:mm:ss
+            allDay: false,   // CRÍTICO: debe ser false para respetar slots de horas
+            backgroundColor: colores.backgroundColor,  // Color de fondo explícito
+            borderColor: colores.borderColor,          // Color de borde explícito
+            textColor: colores.textColor,              // Color de texto explícito
+            extendedProps: {
+                agendaId: parseInt(agendaData.ID),
+                disponible: disponible ? 1 : 0, // 1 = Disponible (verde), 0 = Ocupado (rojo)
+                observaciones: agendaData.Observaciones || ''
+            }
+        };
+        
+        console.log('🏗️ Evento construido desde agendaData:', {
+            id: evento.id,
+            title: evento.title,
+            start: evento.start,
+            end: evento.end,
+            allDay: evento.allDay,
+            extendedProps: evento.extendedProps
+        });
+        
+        return evento;
+    }
+
+    // Función helper para verificar si una agenda está vencida
+    function verificarAgendaVencida(fecha, horaFin) {
+        if (!fecha || !horaFin) {
+            return false;
+        }
+        
+        try {
+            // Formatear hora si no tiene segundos
+            let horaFinFormat = horaFin;
+            if (horaFinFormat.split(':').length === 2) {
+                horaFinFormat += ':00';
+            }
+            
+            // Crear fecha/hora de fin de la agenda
+            const fechaHoraFin = new Date(fecha + 'T' + horaFinFormat);
+            const ahora = new Date();
+            
+            // Si la fecha/hora de fin ya pasó, está vencida
+            return fechaHoraFin < ahora;
+        } catch (e) {
+            console.error('Error al verificar agenda vencida:', e);
+            return false;
+        }
+    }
+
     // Inicializar DataTable
     function inicializarTabla() {
         if (tablaAgendas) {
@@ -521,7 +737,7 @@ $(document).ready(function() {
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
             },
-            order: [[1, 'desc'], [2, 'asc']],
+            order: [[0, 'desc']],
             pageLength: 25,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
             processing: true,
@@ -556,9 +772,13 @@ $(document).ready(function() {
                 }
             },
             columns: [
-                { data: 'ID' },
+                { 
+                    data: 'ID',
+                    className: 'text-center'
+                },
                 { 
                     data: 'Fecha',
+                    className: 'text-center',
                     render: function(data) {
                         if (!data) return '-';
                         const fecha = new Date(data + 'T00:00:00');
@@ -571,28 +791,38 @@ $(document).ready(function() {
                 },
                 { 
                     data: 'HoraInicio',
+                    className: 'text-center',
                     render: function(data) {
                         return data ? data.substring(0, 5) : '-';
                     }
                 },
                 { 
                     data: 'HoraFin',
+                    className: 'text-center',
                     render: function(data) {
                         return data ? data.substring(0, 5) : '-';
                     }
                 },
                 { 
-                    data: 'Disponible',
-                    render: function(data) {
-                        if (data == 1 || data === true || data === '1') {
-                            return '<span class="badge bg-success">Disponible</span>';
+                    data: null,
+                    className: 'text-center',
+                    render: function(data, type, row) {
+                        // Verificar si la agenda está vencida
+                        const vencida = verificarAgendaVencida(row.Fecha, row.HoraFin);
+                        const disponible = (row.Disponible == 1 || row.Disponible === true || row.Disponible === '1');
+                        
+                        if (vencida) {
+                            return '<span class="badge badge-estado bg-secondary"><i class="fas fa-clock me-1"></i>Vencida</span>';
+                        } else if (disponible) {
+                            return '<span class="badge badge-estado bg-success"><i class="fas fa-check-circle me-1"></i>Disponible</span>';
                         } else {
-                            return '<span class="badge bg-danger">Ocupado</span>';
+                            return '<span class="badge badge-estado bg-danger"><i class="fas fa-times-circle me-1"></i>Ocupado</span>';
                         }
                     }
                 },
                 { 
                     data: 'Observaciones',
+                    className: 'text-left',
                     render: function(data) {
                         return data || '-';
                     }
@@ -601,7 +831,14 @@ $(document).ready(function() {
                     data: null,
                     orderable: false,
                     searchable: false,
+                    className: 'text-center',
                     render: function(data, type, row) {
+                        // Verificar si la agenda está vencida
+                        const vencida = verificarAgendaVencida(row.Fecha, row.HoraFin);
+                        
+                        if (vencida) {
+                            return '<span class="text-muted" title="Agenda vencida - No se pueden realizar acciones"><i class="fas fa-lock"></i></span>';
+                        } else {
                         return `
                             <div class="btn-group" role="group">
                                 <button class="btn btn-sm btn-warning btn-editar" data-id="${row.ID}" title="Editar">
@@ -612,6 +849,7 @@ $(document).ready(function() {
                                 </button>
                             </div>
                         `;
+                        }
                     }
                 }
             ]
@@ -640,17 +878,137 @@ $(document).ready(function() {
         }
     }
 
-    // Mostrar alerta
-    function mostrarAlerta(mensaje, tipo = 'info') {
+    // Función helper para recargar TODO: calendario + tabla de agendas
+    function recargarTodo() {
+        console.log('🔄 [recargarTodo] Iniciando recarga completa...');
+        
+        try {
+            // PASO 1: Actualizar tabla de agendas de forma segura
+            console.log('📊 [recargarTodo] Actualizando tabla de agendas...');
+            if (tablaAgendas) {
+                try {
+                    if (tablaAgendas.ajax && typeof tablaAgendas.ajax.reload === 'function') {
+                        tablaAgendas.ajax.reload(null, false);
+                        console.log('✅ [recargarTodo] Tabla recargada vía AJAX');
+                    } else {
+                        // Reinicializar tabla de forma segura
+                        if (typeof tablaAgendas.destroy === 'function') {
+                            tablaAgendas.destroy();
+                        }
+                        inicializarTabla();
+                        console.log('✅ [recargarTodo] Tabla reinicializada');
+                    }
+                } catch (tablaError) {
+                    console.warn('⚠️ Error al actualizar tabla:', tablaError);
+                    // Continuar con el calendario aunque falle la tabla
+                }
+            } else {
+                try {
+                    inicializarTabla();
+                    console.log('✅ [recargarTodo] Tabla inicializada');
+                } catch (tablaError) {
+                    console.warn('⚠️ Error al inicializar tabla:', tablaError);
+                }
+            }
+            
+            // PASO 2: Actualizar calendario de forma segura
+            console.log('📅 [recargarTodo] Actualizando calendario...');
+            if (!calendario) {
+                console.warn('⚠️ [recargarTodo] Calendario no disponible');
+                // NO recargar la página automáticamente, solo loguear el warning
+                return;
+            }
+            
+            console.log('✅ [recargarTodo] Calendario disponible, cargando eventos...');
+            
+            cargarEventosCalendario()
+                .then(function(eventos) {
+                    console.log('✅ [recargarTodo] Eventos cargados:', eventos ? eventos.length : 0);
+                    console.log('✅ [recargarTodo] Recarga completa finalizada');
+                })
+                .catch(function(error) {
+                    console.error('❌ [recargarTodo] Error al cargar calendario:', error);
+                    // NO recargar la página automáticamente si falla
+                    // El usuario puede recargar manualmente si es necesario
+                });
+                
+        } catch (error) {
+            console.error('❌ [recargarTodo] Error crítico:', error);
+            console.error('Stack trace:', error.stack);
+            // NO hacer nada más, solo loguear el error para evitar romper la página
+        }
+    }
+    
+    // Alias para compatibilidad
+    function recargarCalendario() {
+        recargarTodo();
+    }
+    
+    // Función helper para limpiar overlays residuales de SweetAlert (solo si quedan)
+    function limpiarOverlayResidual() {
+        // Solo limpiar si realmente quedan elementos de SweetAlert después de que se cierre
+        setTimeout(function() {
+            try {
+                // Buscar contenedores de SweetAlert específicamente
+                const swalContainers = document.querySelectorAll('.swal2-container');
+                swalContainers.forEach(function(container) {
+                    // Verificar que realmente sea un contenedor de SweetAlert antes de eliminar
+                    if (container && container.classList.contains('swal2-container') && container.parentNode) {
+                        container.remove();
+                    }
+                });
+                
+                // Buscar backdrops de SweetAlert específicamente
+                const swalBackdrops = document.querySelectorAll('.swal2-backdrop-show, .swal2-backdrop');
+                swalBackdrops.forEach(function(backdrop) {
+                    // Verificar que realmente sea un backdrop de SweetAlert antes de eliminar
+                    if (backdrop && backdrop.classList.contains('swal2-backdrop') && backdrop.parentNode) {
+                        backdrop.remove();
+                    }
+                });
+                
+                // Limpiar clases solo si existen y son de SweetAlert
+                if (document.body) {
+                    const bodyClasses = document.body.classList;
+                    if (bodyClasses.contains('swal2-shown')) {
+                        bodyClasses.remove('swal2-shown');
+                        bodyClasses.remove('swal2-height-auto');
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+                    }
+                }
+                
+                // Asegurar que el html no tenga clases bloqueantes
+                if (document.documentElement) {
+                    document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto');
+                    document.documentElement.style.overflow = '';
+                    document.documentElement.style.paddingRight = '';
+                }
+            } catch (e) {
+                console.warn('⚠️ Error al limpiar overlays residuales (no crítico):', e);
+                // No hacer nada más si hay error, para no romper la página
+            }
+        }, 300);
+    }
+
+    // Mostrar alerta simple
+    function mostrarAlerta(mensaje, tipo = 'info', callback = null) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 icon: tipo,
                 title: tipo === 'error' ? 'Error' : tipo === 'success' ? 'Éxito' : 'Información',
                 text: mensaje,
                 confirmButtonText: 'Aceptar'
+            }).then((result) => {
+                if (result.isConfirmed && callback && typeof callback === 'function') {
+                    callback();
+                }
             });
         } else {
             alert(mensaje);
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
         }
     }
 
@@ -676,43 +1034,211 @@ $(document).ready(function() {
         }
     });
 
-    // Guardar agenda
-    $(document).on('click', '#btn-guardar-agenda', function() {
-        const id = $('#agenda-id').val();
-        const fecha = $('#agenda-fecha').val();
-        const horaInicio = $('#agenda-hora-inicio').val();
-        const horaFin = $('#agenda-hora-fin').val();
-        const disponible = $('#agenda-disponible').is(':checked') ? 1 : 0;
-        const observaciones = $('#agenda-observaciones').val();
+    // Función simplificada para agregar evento al calendario
+    // Usa la función común construirEventoDesdeAgenda para garantizar estructura idéntica
+    function agregarEventoAlCalendario(agendaData) {
+        if (!calendario || !agendaData) {
+            console.error('❌ Calendario o datos faltantes');
+            return Promise.reject(new Error('Calendario o datos faltantes'));
+        }
+        
+        return new Promise(function(resolve, reject) {
+            try {
+                // Usar función común para construir el evento con estructura estandarizada
+                // Esto garantiza que tenga EXACTAMENTE la misma estructura que los eventos del servidor
+                const evento = construirEventoDesdeAgenda(agendaData);
+                
+                if (!evento) {
+                    console.error('❌ No se pudo construir el evento desde agendaData:', agendaData);
+                    reject(new Error('No se pudo construir el evento'));
+                    return;
+                }
+                
+                console.log('📦 Evento construido (estructura estandarizada):', evento);
+                
+                // Remover evento existente si existe (para actualización)
+                const eventoExistente = calendario.getEventById(evento.id);
+                if (eventoExistente) {
+                    console.log('🔄 Removiendo evento existente para re-renderizar:', evento.id);
+                    eventoExistente.remove();
+                }
+                
+                // Agregar evento - FullCalendar lo renderizará usando eventContent y eventDidMount
+                const eventoAgregado = calendario.addEvent(evento);
+                
+                if (!eventoAgregado) {
+                    console.error('❌ No se pudo agregar el evento al calendario');
+                    reject(new Error('No se pudo agregar el evento'));
+                    return;
+                }
+                
+                console.log('✅ Evento agregado al calendario con estructura estandarizada:', {
+                    id: evento.id,
+                    title: evento.title,
+                    start: evento.start,
+                    end: evento.end,
+                    allDay: evento.allDay,
+                    extendedProps: evento.extendedProps
+                });
+                
+                // Forzar renderizado inmediato
+                calendario.render();
+                
+                // Esperar un breve momento para que FullCalendar complete el renderizado
+                // y que eventDidMount se ejecute y aplique los estilos
+                setTimeout(function() {
+                    // Verificar que el evento se haya renderizado correctamente
+                    const eventoRenderizado = calendario.getEventById(evento.id);
+                    if (eventoRenderizado) {
+                        console.log('✅ Evento renderizado correctamente en el calendario');
+                        resolve(eventoAgregado);
+                    } else {
+                        console.warn('⚠️ El evento fue agregado pero no se encontró después del renderizado');
+                        resolve(eventoAgregado); // Resolver de todos modos
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Error al agregar evento:', error);
+                reject(error);
+            }
+        });
+    }
 
-        if (!fecha || !horaInicio || !horaFin) {
+    // Guardar agenda
+    $(document).on('click', '#btn-guardar-agenda', function(e) {
+        e.preventDefault();
+        
+        // ============================================
+        // PASO 1: CAPTURAR DATOS DEL FORMULARIO ANTES DE CUALQUIER OTRA ACCIÓN
+        // ============================================
+        const formData = {
+            id: $('#agenda-id').val() || '',
+            fecha: $('#agenda-fecha').val() || '',
+            horaInicio: $('#agenda-hora-inicio').val() || '',
+            horaFin: $('#agenda-hora-fin').val() || '',
+            disponible: $('#agenda-disponible').is(':checked') ? 1 : 0,
+            observaciones: $('#agenda-observaciones').val() || ''
+        };
+        
+        console.log('📋 Datos capturados del formulario (ANTES de aplicar regla de negocio):', formData);
+        
+        // Validaciones ANTES de enviar
+        if (!formData.fecha || !formData.horaInicio) {
             mostrarAlerta('Por favor complete todos los campos obligatorios', 'warning');
             return;
         }
 
-        if (horaInicio >= horaFin) {
-            mostrarAlerta('La hora de inicio debe ser menor que la hora de fin', 'warning');
+        // ============================================
+        // REGLA DE NEGOCIO: Las agendas deben ser SIEMPRE de 1 HORA (60 minutos)
+        // ============================================
+        // FORZAR: hora_fin = hora_inicio + 60 minutos
+        const horaFinCalculada = calcularHoraFin(formData.horaInicio);
+        if (horaFinCalculada) {
+            formData.horaFin = horaFinCalculada;
+            // Actualizar el campo en el formulario visualmente (opcional)
+            $('#agenda-hora-fin').val(horaFinCalculada);
+            console.log('🔒 REGLA DE NEGOCIO aplicada: Hora fin forzada a', horaFinCalculada, '(1 hora después de inicio)');
+        } else {
+            console.error('❌ Error al calcular hora fin');
+            mostrarAlerta('Error al calcular la hora de fin. Por favor, verifique la hora de inicio.', 'error');
             return;
         }
 
-        const datos = {
-            accion: 'gestionar_agenda',
-            id: id || '',
-            fecha: fecha,
-            hora_inicio: horaInicio,
-            hora_fin: horaFin,
-            disponible: disponible,
-            observaciones: observaciones
-        };
+        console.log('📋 Datos del formulario (DESPUÉS de aplicar regla de negocio):', formData);
 
+        // Preparar datos para enviar al servidor
+        const datosEnvio = {
+            accion: 'gestionar_agenda',
+            id: formData.id,
+            fecha: formData.fecha,
+            hora_inicio: formData.horaInicio,
+            hora_fin: formData.horaFin,
+            disponible: formData.disponible,
+            observaciones: formData.observaciones
+        };
+        
+        console.log('📤 Enviando datos al servidor:', datosEnvio);
+
+        // ============================================
+        // PASO 2: ENVIAR AL SERVIDOR
+        // ============================================
         $.ajax({
             url: baseUrl,
             type: 'POST',
-            data: datos,
+            data: datosEnvio,
             dataType: 'json',
             success: function(response) {
+                console.log('📥 Respuesta completa del servidor:', response);
+                
                 if (response.status === 'success') {
-                    mostrarAlerta(response.message || 'Agenda guardada correctamente', 'success');
+                    // ============================================
+                    // PASO 3: CONSTRUIR OBJETO DE AGENDA CON DATOS COMPLETOS
+                    // ============================================
+                    let agendaCompleta = null;
+                    
+                    // Prioridad 1: Usar datos del backend si están completos
+                    if (response.data && response.data.ID && response.data.Fecha && response.data.HoraInicio) {
+                        console.log('✅ Usando datos completos del servidor');
+                        // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos (siempre)
+                        const horaFinCalculada = calcularHoraFin(response.data.HoraInicio);
+                        agendaCompleta = {
+                            ID: parseInt(response.data.ID),
+                            Fecha: response.data.Fecha,
+                            HoraInicio: response.data.HoraInicio,
+                            HoraFin: horaFinCalculada || response.data.HoraFin, // Usar calculada o la del servidor como fallback
+                            Disponible: parseInt(response.data.Disponible) || 0,
+                            Observaciones: response.data.Observaciones || ''
+                        };
+                        console.log('🔒 Hora fin forzada a 1 hora:', agendaCompleta.HoraFin);
+                    } 
+                    // Prioridad 2: Construir desde datos del formulario + ID del servidor
+                    else if (response.agenda_id) {
+                        console.log('⚠️ Construyendo datos desde formulario + ID del servidor');
+                        // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos
+                        const horaFinCalculada = calcularHoraFin(formData.horaInicio);
+                        agendaCompleta = {
+                            ID: parseInt(response.agenda_id),
+                            Fecha: formData.fecha,
+                            HoraInicio: formData.horaInicio.length === 5 ? formData.horaInicio + ':00' : formData.horaInicio,
+                            HoraFin: horaFinCalculada || (formData.horaFin.length === 5 ? formData.horaFin + ':00' : formData.horaFin),
+                            Disponible: formData.disponible,
+                            Observaciones: formData.observaciones
+                        };
+                    } 
+                    // Prioridad 3: Usar solo datos del formulario (último recurso)
+                    else {
+                        console.warn('⚠️ Usando solo datos del formulario (sin ID del servidor)');
+                        // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos
+                        const horaFinCalculada = calcularHoraFin(formData.horaInicio);
+                        agendaCompleta = {
+                            ID: formData.id ? parseInt(formData.id) : Date.now(), // ID temporal
+                            Fecha: formData.fecha,
+                            HoraInicio: formData.horaInicio.length === 5 ? formData.horaInicio + ':00' : formData.horaInicio,
+                            HoraFin: horaFinCalculada || (formData.horaFin.length === 5 ? formData.horaFin + ':00' : formData.horaFin),
+                            Disponible: formData.disponible,
+                            Observaciones: formData.observaciones
+                        };
+                    }
+                    
+                    console.log('📦 Agenda guardada exitosamente:', agendaCompleta);
+                    
+                    // ============================================
+                    // PASO 4: ACTUALIZAR TABLA INMEDIATAMENTE
+                    // ============================================
+                    if (tablaAgendas) {
+                        if (tablaAgendas.ajax) {
+                            tablaAgendas.ajax.reload(null, false);
+                        } else {
+                            inicializarTabla();
+                        }
+                    } else {
+                        inicializarTabla();
+                    }
+                    
+                    // ============================================
+                    // PASO 5: CERRAR MODAL
+                    // ============================================
                     const modalElement = document.getElementById('modalAgenda');
                     if (modalElement) {
                         const modal = bootstrap.Modal.getInstance(modalElement);
@@ -720,8 +1246,35 @@ $(document).ready(function() {
                             modal.hide();
                         }
                     }
-                    // Actualizar tabla y calendario sin recargar página
-                    cargarAgendas();
+                    
+                    // Limpiar formulario después de cerrar el modal
+                    setTimeout(function() {
+                        limpiarFormulario();
+                    }, 300);
+                    
+                    // ============================================
+                    // PASO 6: RECARGAR CALENDARIO INMEDIATAMENTE (sin esperar al botón Aceptar)
+                    // ============================================
+                    if (calendario) {
+                        cargarEventosCalendario()
+                            .then(function(eventos) {
+                                console.log('✅ Calendario actualizado:', eventos ? eventos.length : 0);
+                            })
+                            .catch(function(error) {
+                                console.warn('⚠️ Error al recargar calendario:', error);
+                            });
+                    }
+                    
+                    // Mostrar mensaje de éxito y recargar página al hacer clic en Aceptar
+                    mostrarAlerta(
+                        response.message || 'Agenda guardada correctamente', 
+                        'success',
+                        function() {
+                            // Recargar página para eliminar overlay y mostrar datos frescos
+                            window.location.reload();
+                        }
+                    );
+                    
                 } else {
                     mostrarAlerta(response.message || 'Error al guardar la agenda', 'error');
                 }
@@ -824,9 +1377,54 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.status === 'success') {
-                    mostrarAlerta(response.message || 'Agenda eliminada correctamente', 'success');
-                    // Actualizar tabla y calendario sin recargar página
-                    cargarAgendas();
+                    // PASO 1: Eliminar evento del calendario INMEDIATAMENTE usando su ID
+                    if (calendario) {
+                        try {
+                            const eventoAEliminar = calendario.getEventById(String(id));
+                            if (eventoAEliminar) {
+                                eventoAEliminar.remove();
+                                console.log('✅ Evento eliminado del calendario:', id);
+                                // Forzar renderizado para que se vea el cambio
+                                calendario.render();
+                            } else {
+                                console.warn('⚠️ Evento no encontrado en calendario con ID:', id);
+                            }
+                        } catch (error) {
+                            console.error('❌ Error al eliminar evento del calendario:', error);
+                        }
+                    }
+                    
+                    // PASO 2: Actualizar tabla inmediatamente
+                    if (tablaAgendas) {
+                        if (tablaAgendas.ajax) {
+                            tablaAgendas.ajax.reload(null, false);
+                        } else {
+                            inicializarTabla();
+                        }
+                    } else {
+                        inicializarTabla();
+                    }
+                    
+                    // PASO 3: Recargar todos los eventos del calendario para asegurar sincronización
+                    if (calendario) {
+                        cargarEventosCalendario()
+                            .then(function(eventos) {
+                                console.log('✅ Calendario recargado completamente:', eventos ? eventos.length : 0);
+                            })
+                            .catch(function(error) {
+                                console.warn('⚠️ Error al recargar calendario:', error);
+                            });
+                    }
+                    
+                    // PASO 4: Mostrar mensaje de éxito y recargar página al hacer clic en Aceptar
+                    mostrarAlerta(
+                        response.message || 'Agenda eliminada correctamente', 
+                        'success',
+                        function() {
+                            // Recargar página para eliminar overlay y mostrar datos frescos
+                            window.location.reload();
+                        }
+                    );
                 } else {
                     mostrarAlerta(response.message || 'Error al eliminar la agenda', 'error');
                 }

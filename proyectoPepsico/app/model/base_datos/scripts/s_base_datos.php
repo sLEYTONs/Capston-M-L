@@ -1,10 +1,19 @@
 <?php
+// Limpiar cualquier output previo
+if (ob_get_level()) {
+    ob_end_clean();
+}
+
+// Solo desactivar la visualización de errores en la salida (pero seguir registrándolos)
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 session_start();
 require_once '../functions/f_base_datos.php';
 
 if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'No autorizado'], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
@@ -14,7 +23,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $es_exportacion = in_array($action, ['exportarCSV', 'exportarExcel', 'exportarJSON', 'exportarVehiculos', 'exportarConductores', 'exportarMarcas']);
 
 if (!$es_exportacion) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
 }
 
 try {
@@ -25,14 +34,48 @@ try {
             break;
             
         case 'obtenerVehiculos':
-            $filtros = [
-                'busqueda' => $_POST['busqueda'] ?? $_GET['busqueda'] ?? '',
-                'estado' => $_POST['estado'] ?? $_GET['estado'] ?? '',
-                'empresa' => $_POST['empresa'] ?? $_GET['empresa'] ?? '',
-                'marca' => $_POST['marca'] ?? $_GET['marca'] ?? ''
-            ];
-            $vehiculos = obtenerVehiculosFiltrados($filtros);
-            echo json_encode(['success' => true, 'data' => $vehiculos]);
+            try {
+                $filtros = [
+                    'busqueda' => $_POST['busqueda'] ?? $_GET['busqueda'] ?? '',
+                    'estado' => $_POST['estado'] ?? $_GET['estado'] ?? '',
+                    'empresa' => $_POST['empresa'] ?? $_GET['empresa'] ?? '',
+                    'marca' => $_POST['marca'] ?? $_GET['marca'] ?? ''
+                ];
+                
+                $vehiculos = obtenerVehiculosFiltrados($filtros);
+                
+                // Asegurar que siempre sea un array
+                if (!is_array($vehiculos)) {
+                    error_log("Warning: obtenerVehiculosFiltrados no devolvió un array");
+                    $vehiculos = [];
+                }
+                
+                $response = [
+                    'success' => true, 
+                    'data' => $vehiculos
+                ];
+                
+                echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+                
+            } catch (Exception $e) {
+                error_log("Error en obtenerVehiculos: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
+                $response = [
+                    'success' => false, 
+                    'message' => 'Error al obtener vehículos: ' . $e->getMessage(), 
+                    'data' => []
+                ];
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+            } catch (Error $e) {
+                error_log("Error fatal en obtenerVehiculos: " . $e->getMessage());
+                error_log("Stack trace: " . $e->getTraceAsString());
+                $response = [
+                    'success' => false, 
+                    'message' => 'Error fatal al obtener vehículos', 
+                    'data' => []
+                ];
+                echo json_encode($response, JSON_UNESCAPED_UNICODE);
+            }
             break;
             
         case 'obtenerEmpresas':
@@ -99,6 +142,45 @@ try {
         case 'obtenerUsuarios':
             $usuarios = obtenerUsuarios();
             echo json_encode(['success' => true, 'data' => $usuarios]);
+            break;
+            
+        case 'marcarTodosVehiculosCompletado':
+            try {
+                $resultado = marcarTodosVehiculosCompletado();
+                if (!isset($resultado['success'])) {
+                    $resultado = ['success' => false, 'message' => 'Respuesta inválida del servidor'];
+                }
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+            } catch (Exception $e) {
+                error_log("Error excepcional en marcarTodosVehiculosCompletado: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            }
+            break;
+            
+        case 'asignarVehiculoPedro':
+            try {
+                $resultado = asignarVehiculoPedro();
+                if (!isset($resultado['success'])) {
+                    $resultado = ['success' => false, 'message' => 'Respuesta inválida del servidor'];
+                }
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+            } catch (Exception $e) {
+                error_log("Error excepcional en asignarVehiculoPedro: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            }
+            break;
+            
+        case 'eliminarVehiculosDuplicados':
+            try {
+                $resultado = eliminarVehiculosDuplicados();
+                if (!isset($resultado['success'])) {
+                    $resultado = ['success' => false, 'message' => 'Respuesta inválida del servidor'];
+                }
+                echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+            } catch (Exception $e) {
+                error_log("Error excepcional en eliminarVehiculosDuplicados: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            }
             break;
             
         // Exportaciones

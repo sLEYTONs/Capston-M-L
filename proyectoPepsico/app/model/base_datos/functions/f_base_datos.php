@@ -47,64 +47,176 @@ function obtenerEstadisticasGenerales() {
 function obtenerVehiculosFiltrados($filtros) {
     $conn = conectar_Pepsico();
     
+    if (!$conn) {
+        error_log("Error: No se pudo conectar a la base de datos en obtenerVehiculosFiltrados");
+        return [];
+    }
+    
+    // Consulta simplificada - primero obtener datos básicos
     $sql = "SELECT 
-                ID,
-                Placa,
-                TipoVehiculo,
-                Marca,
-                Modelo,
-                Anio,
-                CONCAT(Marca, ' ', Modelo) as MarcaModelo,
-                ConductorNombre,
-                Estado,
-                FechaIngreso,
-                FechaRegistro,
-                Kilometraje
-            FROM ingreso_vehiculos 
+                iv.ID,
+                iv.Placa,
+                iv.TipoVehiculo,
+                iv.Marca,
+                iv.Modelo,
+                iv.Anio,
+                CONCAT(COALESCE(iv.Marca, ''), ' ', COALESCE(iv.Modelo, '')) as MarcaModelo,
+                iv.ConductorNombre,
+                COALESCE(iv.Estado, '') as EstadoRaw,
+                iv.FechaIngreso,
+                iv.FechaRegistro,
+                iv.Kilometraje
+            FROM ingreso_vehiculos iv
             WHERE 1=1";
     
     $params = [];
     $types = '';
     
     if (!empty($filtros['busqueda'])) {
-        $sql .= " AND (Placa LIKE ? OR ConductorNombre LIKE ? OR Marca LIKE ?)";
+        $sql .= " AND (iv.Placa LIKE ? OR iv.ConductorNombre LIKE ? OR iv.Marca LIKE ?)";
         $searchTerm = "%{$filtros['busqueda']}%";
         $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
         $types .= 'sss';
     }
     
-    if (!empty($filtros['estado'])) {
-        $sql .= " AND Estado = ?";
-        $params[] = $filtros['estado'];
-        $types .= 's';
-    }
+    // Los filtros de estado se aplicarán después de calcular el estado en PHP
+    // Por ahora, no filtrar por estado en la consulta SQL para evitar subconsultas complejas
     
     if (!empty($filtros['marca'])) {
-        $sql .= " AND Marca = ?";
+        $sql .= " AND iv.Marca = ?";
         $params[] = $filtros['marca'];
         $types .= 's';
     }
     
-    $sql .= " ORDER BY FechaIngreso DESC";
+    $sql .= " ORDER BY iv.FechaIngreso DESC";
     
-    $stmt = $conn->prepare($sql);
-    
-    if (!empty($params)) {
-        $stmt->bind_param($types, ...$params);
+    try {
+        $stmt = $conn->prepare($sql);
+        
+        if (!$stmt) {
+            error_log("Error preparando consulta obtenerVehiculosFiltrados: " . $conn->error);
+            $conn->close();
+            return [];
+        }
+        
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        
+        if (!$stmt->execute()) {
+            error_log("Error ejecutando consulta obtenerVehiculosFiltrados: " . $stmt->error);
+            $stmt->close();
+            $conn->close();
+            return [];
+        }
+        
+        $result = $stmt->get_result();
+        
+        // Obtener IDs de vehículos para consultar asignaciones
+        $vehiculosIds = [];
+        $vehiculosData = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $vehiculoId = intval($row['ID'] ?? 0);
+            $vehiculosIds[] = $vehiculoId;
+            $vehiculosData[$vehiculoId] = $row;
+        }
+        
+        $stmt->close();
+        
+        // Obtener estados de asignaciones activas en una sola consulta
+        $estadosAsignaciones = [];
+        if (!empty($vehiculosIds)) {
+            // Sanitizar IDs y construir consulta segura
+            $vehiculosIdsSanitizados = array_filter(array_map('intval', $vehiculosIds), function($id) {
+                return $id > 0;
+            });
+            
+            if (!empty($vehiculosIdsSanitizados)) {
+                $placeholders = str_repeat('?,', count($vehiculosIdsSanitizados) - 1) . '?';
+                $sqlAsignaciones = "SELECT VehiculoID, Estado 
+                                   FROM asignaciones_mecanico 
+                                   WHERE VehiculoID IN ($placeholders) 
+                                   AND Estado IN ('Asignado', 'En Proceso', 'En Pausa', 'En Revisión', 'Completado')
+                                   ORDER BY VehiculoID, FechaAsignacion DESC";
+                
+                $stmtAsig = $conn->prepare($sqlAsignaciones);
+                if ($stmtAsig) {
+                    $typesAsig = str_repeat('i', count($vehiculosIdsSanitizados));
+                    $stmtAsig->bind_param($typesAsig, ...$vehiculosIdsSanitizados);
+                    
+                    if ($stmtAsig->execute()) {
+                        $resultAsignaciones = $stmtAsig->get_result();
+                        while ($rowAsig = $resultAsignaciones->fetch_assoc()) {
+                            $vehId = intval($rowAsig['VehiculoID']);
+                            // Solo guardar el estado más reciente por vehículo (ordenado por fecha desc)
+                            if (!isset($estadosAsignaciones[$vehId])) {
+                                $estadosAsignaciones[$vehId] = $rowAsig['Estado'];
+                            }
+                        }
+                    }
+                    $stmtAsig->close();
+                }
+            }
+        }
+        
+        // Construir array final con estados calculados
+        $vehiculos = [];
+        foreach ($vehiculosData as $vehiculoId => $row) {
+            $estadoRaw = trim($row['EstadoRaw'] ?? '');
+            
+            // Calcular estado: prioridad 1 = asignación activa, 2 = estado del vehículo, 3 = En Circulación
+            $estadoFinal = 'En Circulación'; // Por defecto
+            
+            if (isset($estadosAsignaciones[$vehiculoId])) {
+                // Si tiene asignación activa, usar ese estado
+                $estadoFinal = $estadosAsignaciones[$vehiculoId];
+            } elseif (in_array($estadoRaw, ['Ingresado', 'Asignado', 'Completado', 'En Proceso', 'En Pausa'])) {
+                // Si tiene estado válido de taller, usarlo
+                $estadoFinal = $estadoRaw;
+            }
+            
+            $vehiculo = [
+                'ID' => $vehiculoId,
+                'Placa' => $row['Placa'] ?? '',
+                'TipoVehiculo' => $row['TipoVehiculo'] ?? '',
+                'Marca' => $row['Marca'] ?? '',
+                'Modelo' => $row['Modelo'] ?? '',
+                'Anio' => $row['Anio'] ?? '',
+                'MarcaModelo' => !empty($row['MarcaModelo']) ? trim($row['MarcaModelo']) : trim(($row['Marca'] ?? '') . ' ' . ($row['Modelo'] ?? '')),
+                'ConductorNombre' => $row['ConductorNombre'] ?? '',
+                'Estado' => $estadoFinal,
+                'FechaIngreso' => $row['FechaIngreso'] ?? null,
+                'FechaRegistro' => $row['FechaRegistro'] ?? null,
+                'Kilometraje' => $row['Kilometraje'] ?? null
+            ];
+            
+            $vehiculos[] = $vehiculo;
+        }
+        
+        // Aplicar filtro de estado después de calcular los estados
+        if (!empty($filtros['estado'])) {
+            $estadoFiltro = $filtros['estado'];
+            $vehiculos = array_filter($vehiculos, function($v) use ($estadoFiltro) {
+                return $v['Estado'] === $estadoFiltro;
+            });
+            $vehiculos = array_values($vehiculos); // Re-indexar el array
+        }
+        
+        $conn->close();
+        
+        return $vehiculos;
+        
+    } catch (Exception $e) {
+        error_log("Excepción en obtenerVehiculosFiltrados: " . $e->getMessage());
+        if (isset($stmt)) {
+            $stmt->close();
+        }
+        if ($conn) {
+            $conn->close();
+        }
+        return [];
     }
-    
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    $vehiculos = [];
-    while ($row = $result->fetch_assoc()) {
-        $vehiculos[] = $row;
-    }
-    
-    $stmt->close();
-    $conn->close();
-    
-    return $vehiculos;
 }
 
 /**
@@ -1022,5 +1134,214 @@ function obtenerUsuarios() {
     
     $conn->close();
     return $usuarios;
+}
+
+/**
+ * Marca todos los vehículos como "Completado" (fuera del taller)
+ * @return array - Array con status y mensaje
+ */
+function marcarTodosVehiculosCompletado() {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Error de conexión a la base de datos'];
+    }
+    
+    try {
+        // Contar cuántos vehículos se van a actualizar (para el mensaje)
+        $sqlCount = "SELECT COUNT(*) as total 
+                     FROM ingreso_vehiculos 
+                     WHERE Estado IS NULL 
+                        OR Estado = '' 
+                        OR Estado != 'Completado'";
+        
+        $resultCount = $conn->query($sqlCount);
+        $row = $resultCount->fetch_assoc();
+        $totalAVehiculos = intval($row['total']);
+        
+        // Actualizar todos los vehículos a "Completado"
+        $sql = "UPDATE ingreso_vehiculos 
+                SET Estado = 'Completado' 
+                WHERE Estado IS NULL 
+                   OR Estado = '' 
+                   OR Estado != 'Completado'";
+        
+        $result = $conn->query($sql);
+        
+        if (!$result) {
+            $error = $conn->error;
+            error_log("Error SQL en marcarTodosVehiculosCompletado (vehículos): " . $error);
+            throw new Exception('Error al actualizar vehículos: ' . $error);
+        }
+        
+        $vehiculosActualizados = $conn->affected_rows > 0 ? $conn->affected_rows : $totalAVehiculos;
+        
+        // También actualizar asignaciones activas a "Completado"
+        $sqlAsignaciones = "UPDATE asignaciones_mecanico 
+                           SET Estado = 'Completado' 
+                           WHERE Estado IN ('Asignado', 'En Proceso', 'En Pausa', 'En Revisión')";
+        
+        $resultAsignaciones = $conn->query($sqlAsignaciones);
+        
+        if (!$resultAsignaciones) {
+            // Log del error pero no fallar la operación principal
+            $errorAsignaciones = $conn->error;
+            error_log("Error al actualizar asignaciones: " . $errorAsignaciones);
+        }
+        
+        $conn->close();
+        
+        return [
+            'success' => true, 
+            'message' => "Se marcaron {$vehiculosActualizados} vehículo(s) como completados (fuera del taller)",
+            'vehiculos_actualizados' => $vehiculosActualizados
+        ];
+        
+    } catch (Exception $e) {
+        if (isset($conn) && $conn) {
+            $conn->close();
+        }
+        error_log("Error en marcarTodosVehiculosCompletado: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * Asigna un vehículo de Luis López a Pedro Sánchez
+ * Quita el vehículo más antiguo de Luis López y se lo asigna a Pedro
+ * @return array - Array con status y mensaje
+ */
+function asignarVehiculoPedro() {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Error de conexión a la base de datos'];
+    }
+    
+    try {
+        $nombreLuis = 'Luis López';
+        $nombrePedro = 'Pedro Sanchez';
+        
+        // 1. Buscar el vehículo más antiguo de Luis López
+        $sqlBuscar = "SELECT ID, Placa, FechaIngreso 
+                     FROM ingreso_vehiculos 
+                     WHERE ConductorNombre = ? 
+                     ORDER BY FechaIngreso ASC, ID ASC 
+                     LIMIT 1";
+        
+        $stmt = $conn->prepare($sqlBuscar);
+        $stmt->bind_param("s", $nombreLuis);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if (!$result || $result->num_rows == 0) {
+            $stmt->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'Luis López no tiene vehículos para reasignar'];
+        }
+        
+        $vehiculo = $result->fetch_assoc();
+        $vehiculoId = intval($vehiculo['ID']);
+        $placa = $vehiculo['Placa'];
+        $stmt->close();
+        
+        // 2. Verificar que Pedro existe como chofer
+        $sqlVerificarPedro = "SELECT UsuarioID, NombreUsuario 
+                             FROM USUARIOS 
+                             WHERE Rol = 'Chofer' AND NombreUsuario = ? 
+                             LIMIT 1";
+        
+        $stmtPedro = $conn->prepare($sqlVerificarPedro);
+        $stmtPedro->bind_param("s", $nombrePedro);
+        $stmtPedro->execute();
+        $resultPedro = $stmtPedro->get_result();
+        
+        if (!$resultPedro || $resultPedro->num_rows == 0) {
+            $stmtPedro->close();
+            $conn->close();
+            return ['success' => false, 'message' => 'Pedro Sánchez no existe como chofer en el sistema'];
+        }
+        
+        $stmtPedro->close();
+        
+        // 3. Asignar el vehículo a Pedro
+        $sqlAsignar = "UPDATE ingreso_vehiculos 
+                      SET ConductorNombre = ? 
+                      WHERE ID = ?";
+        
+        $stmtAsignar = $conn->prepare($sqlAsignar);
+        $stmtAsignar->bind_param("si", $nombrePedro, $vehiculoId);
+        
+        if (!$stmtAsignar->execute()) {
+            $error = $stmtAsignar->error;
+            $stmtAsignar->close();
+            $conn->close();
+            error_log("Error al asignar vehículo: " . $error);
+            return ['success' => false, 'message' => 'Error al asignar vehículo: ' . $error];
+        }
+        
+        $stmtAsignar->close();
+        $conn->close();
+        
+        return [
+            'success' => true, 
+            'message' => "Vehículo con placa {$placa} asignado correctamente de Luis López a Pedro Sánchez.",
+            'vehiculo_id' => $vehiculoId,
+            'placa' => $placa
+        ];
+        
+    } catch (Exception $e) {
+        if (isset($conn) && $conn) {
+            $conn->close();
+        }
+        error_log("Error en asignarVehiculoPedro: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Error al asignar vehículo: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * Elimina vehículos duplicados (misma placa), manteniendo solo el más reciente
+ * @return array - Array con status y mensaje
+ */
+function eliminarVehiculosDuplicados() {
+    $conn = conectar_Pepsico();
+    
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Error de conexión a la base de datos'];
+    }
+    
+    try {
+        // Identificar vehículos duplicados por placa
+        // Mantener el que tenga el ID más alto (más reciente) o FechaRegistro más reciente
+        $sql = "DELETE iv1 FROM ingreso_vehiculos iv1
+                INNER JOIN ingreso_vehiculos iv2 
+                WHERE iv1.Placa = iv2.Placa 
+                AND iv1.ID < iv2.ID";
+        
+        $result = $conn->query($sql);
+        
+        if (!$result) {
+            $error = $conn->error;
+            error_log("Error SQL en eliminarVehiculosDuplicados: " . $error);
+            throw new Exception('Error al eliminar duplicados: ' . $error);
+        }
+        
+        $vehiculosEliminados = $conn->affected_rows;
+        
+        $conn->close();
+        
+        return [
+            'success' => true, 
+            'message' => "Se eliminaron {$vehiculosEliminados} vehículo(s) duplicado(s). Se mantuvieron los registros más recientes.",
+            'vehiculos_eliminados' => $vehiculosEliminados
+        ];
+        
+    } catch (Exception $e) {
+        if (isset($conn) && $conn) {
+            $conn->close();
+        }
+        error_log("Error en eliminarVehiculosDuplicados: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Error al eliminar duplicados: ' . $e->getMessage()];
+    }
 }
 ?>

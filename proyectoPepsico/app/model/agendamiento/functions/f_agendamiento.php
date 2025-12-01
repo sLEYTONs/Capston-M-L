@@ -959,12 +959,41 @@ function gestionarAgendaTaller($datos) {
 
         $agenda_id = empty($datos['id']) ? $conn->insert_id : $datos['id'];
         $conn->commit();
+        
+        // Obtener todos los datos de la agenda guardada para devolverlos al frontend
+        $queryAgenda = "SELECT ID, Fecha, HoraInicio, HoraFin, Disponible, Observaciones, FechaCreacion, FechaActualizacion
+                       FROM agenda_taller
+                       WHERE ID = " . intval($agenda_id);
+        $resultAgenda = $conn->query($queryAgenda);
+        
+        $agendaData = null;
+        if ($resultAgenda) {
+            if ($resultAgenda->num_rows > 0) {
+                $row = $resultAgenda->fetch_assoc();
+                $agendaData = [
+                    'ID' => (int)$row['ID'],
+                    'Fecha' => $row['Fecha'],
+                    'HoraInicio' => $row['HoraInicio'],
+                    'HoraFin' => $row['HoraFin'],
+                    'Disponible' => (int)$row['Disponible'],
+                    'Observaciones' => $row['Observaciones'] ? $row['Observaciones'] : '',
+                    'FechaCreacion' => $row['FechaCreacion'],
+                    'FechaActualizacion' => $row['FechaActualizacion']
+                ];
+            } else {
+                error_log("Error: No se encontró la agenda con ID $agenda_id después de guardarla");
+            }
+        } else {
+            error_log("Error al consultar agenda guardada: " . $conn->error);
+        }
+        
         $conn->close();
 
         return [
             'status' => 'success',
             'message' => empty($datos['id']) ? 'Agenda creada correctamente' : 'Agenda actualizada correctamente',
-            'agenda_id' => $agenda_id
+            'agenda_id' => $agenda_id,
+            'data' => $agendaData
         ];
     } catch (Exception $e) {
         $conn->rollback();
@@ -1012,7 +1041,7 @@ function obtenerTodasLasAgendas($filtroFecha = null, $filtroDisponible = null) {
                     FechaActualizacion
                   FROM agenda_taller
               $whereClause
-                  ORDER BY Fecha DESC, HoraInicio DESC";
+                  ORDER BY ID DESC";
 
         $result = $conn->query($query);
     if (!$result) {

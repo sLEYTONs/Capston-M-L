@@ -154,10 +154,48 @@ function obtenerReportesMantenimientos($filtros = []) {
 
     mysqli_close($conn);
     
+    // ELIMINAR DUPLICADOS: Si hay múltiples asignaciones del mismo vehículo/mecánico en el mismo día,
+    // mantener solo la más reciente (ID más alto)
+    $reportesUnicos = [];
+    $agrupados = [];
+    
+    foreach ($reportes as $reporte) {
+        $vehiculoID = $reporte['VehiculoID'] ?? 0;
+        $mecanicoID = $reporte['MecanicoID'] ?? 0;
+        $fechaAsignacionRaw = $reporte['FechaAsignacionRaw'] ?? '';
+        
+        // Obtener solo la fecha (sin hora) para agrupar por día
+        $fechaSolo = !empty($fechaAsignacionRaw) ? date('Y-m-d', strtotime($fechaAsignacionRaw)) : '';
+        
+        // Crear clave única: VehiculoID + MecanicoID + Fecha
+        $clave = $vehiculoID . '_' . $mecanicoID . '_' . $fechaSolo;
+        
+        // Si ya existe una asignación para esta combinación, comparar IDs
+        if (isset($agrupados[$clave])) {
+            // Si el ID actual es mayor (más reciente), reemplazar
+            if (intval($reporte['AsignacionID']) > intval($agrupados[$clave]['AsignacionID'])) {
+                $agrupados[$clave] = $reporte;
+            }
+        } else {
+            // Primera vez que vemos esta combinación
+            $agrupados[$clave] = $reporte;
+        }
+    }
+    
+    // Convertir el array agrupado de vuelta a array indexado
+    $reportesUnicos = array_values($agrupados);
+    
+    // Ordenar por fecha de asignación descendente (más recientes primero)
+    usort($reportesUnicos, function($a, $b) {
+        $fechaA = strtotime($a['FechaAsignacionRaw'] ?? '');
+        $fechaB = strtotime($b['FechaAsignacionRaw'] ?? '');
+        return $fechaB - $fechaA;
+    });
+    
     return [
         'status' => 'success',
-        'data' => $reportes,
-        'total' => count($reportes)
+        'data' => $reportesUnicos,
+        'total' => count($reportesUnicos)
     ];
 }
 
