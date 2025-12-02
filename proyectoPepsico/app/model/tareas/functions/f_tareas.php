@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/conexion.php';
+require_once __DIR__ . '../../../../pages/general/funciones_notificaciones.php';
 
 function obtenerTareasMecanico($mecanico_id) {
     error_log("=== obtenerTareasMecanico ===");
@@ -230,7 +231,7 @@ function registrarAvance($asignacion_id, $descripcion, $estado) {
             throw new Exception('Error al actualizar asignación: ' . mysqli_error($conn));
         }
 
-        // 3. Si el estado es "Completado", actualizar el estado del vehículo
+        // 3. Si el estado es "Completado", actualizar el estado del vehículo y notificar al chofer
         if ($estado === 'Completado') {
             // Primero obtener el VehiculoID
             $queryGetVehiculo = "SELECT VehiculoID FROM asignaciones_mecanico WHERE ID = '$asignacion_id'";
@@ -244,6 +245,36 @@ function registrarAvance($asignacion_id, $descripcion, $estado) {
                 if (!$resultUpdateVehiculo) {
                     throw new Exception('Error al actualizar estado del vehículo: ' . mysqli_error($conn));
                 }
+
+                // Obtener información del vehículo para la notificación
+                $queryInfoVehiculo = "SELECT 
+                                        COALESCE(sa.Placa, v.Placa) AS Placa,
+                                        COALESCE(sa.Marca, v.Marca) AS Marca,
+                                        COALESCE(sa.Modelo, v.Modelo) AS Modelo
+                                    FROM ingreso_vehiculos v
+                                    LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                                        AND sa.Estado IN ('Aprobada', 'Ingresado')
+                                    WHERE v.ID = '$vehiculo_id'
+                                    ORDER BY sa.FechaCreacion DESC
+                                    LIMIT 1";
+                
+                $resultInfo = mysqli_query($conn, $queryInfoVehiculo);
+                if ($resultInfo && $infoVehiculo = mysqli_fetch_assoc($resultInfo)) {
+                    $placa = $infoVehiculo['Placa'] ?? '';
+                    $marca = $infoVehiculo['Marca'] ?? '';
+                    $modelo = $infoVehiculo['Modelo'] ?? '';
+                    
+                    // Notificar al chofer (después del commit)
+                    mysqli_commit($conn);
+                    notificarTareaCompletada($vehiculo_id, $placa, $marca, $modelo);
+                    
+                    mysqli_free_result($resultInfo);
+                    mysqli_free_result($resultVehiculo);
+                    mysqli_close($conn);
+                    return ['status' => 'success', 'message' => 'Avance registrado correctamente'];
+                }
+                
+                mysqli_free_result($resultInfo);
             }
             mysqli_free_result($resultVehiculo);
         }
@@ -317,7 +348,7 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
             throw new Exception('Error al actualizar asignación: ' . mysqli_error($conn));
         }
 
-        // 3. Si el estado es "Completado", actualizar el estado del vehículo
+        // 3. Si el estado es "Completado", actualizar el estado del vehículo y notificar al chofer
         if ($estado === 'Completado') {
             $queryGetVehiculo = "SELECT VehiculoID FROM asignaciones_mecanico WHERE ID = '$asignacion_id'";
             $resultVehiculo = mysqli_query($conn, $queryGetVehiculo);
@@ -330,6 +361,36 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
                 if (!$resultUpdateVehiculo) {
                     throw new Exception('Error al actualizar estado del vehículo: ' . mysqli_error($conn));
                 }
+
+                // Obtener información del vehículo para la notificación
+                $queryInfoVehiculo = "SELECT 
+                                        COALESCE(sa.Placa, v.Placa) AS Placa,
+                                        COALESCE(sa.Marca, v.Marca) AS Marca,
+                                        COALESCE(sa.Modelo, v.Modelo) AS Modelo
+                                    FROM ingreso_vehiculos v
+                                    LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                                        AND sa.Estado IN ('Aprobada', 'Ingresado')
+                                    WHERE v.ID = '$vehiculo_id'
+                                    ORDER BY sa.FechaCreacion DESC
+                                    LIMIT 1";
+                
+                $resultInfo = mysqli_query($conn, $queryInfoVehiculo);
+                if ($resultInfo && $infoVehiculo = mysqli_fetch_assoc($resultInfo)) {
+                    $placa = $infoVehiculo['Placa'] ?? '';
+                    $marca = $infoVehiculo['Marca'] ?? '';
+                    $modelo = $infoVehiculo['Modelo'] ?? '';
+                    
+                    // Notificar al chofer (después del commit)
+                    mysqli_commit($conn);
+                    notificarTareaCompletada($vehiculo_id, $placa, $marca, $modelo);
+                    
+                    mysqli_free_result($resultInfo);
+                    mysqli_free_result($resultVehiculo);
+                    mysqli_close($conn);
+                    return ['status' => 'success', 'message' => 'Avance registrado correctamente'];
+                }
+                
+                mysqli_free_result($resultInfo);
             }
             mysqli_free_result($resultVehiculo);
         }
@@ -342,6 +403,109 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
     } finally {
         mysqli_close($conn);
     }
+}
+
+/**
+ * Obtiene el UsuarioID del chofer a partir del vehículo
+ */
+function obtenerChoferIDPorVehiculo($vehiculo_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null;
+    }
+
+    $vehiculo_id = mysqli_real_escape_string($conn, $vehiculo_id);
+
+    // Primero intentar obtener el ChoferID desde solicitudes_agendamiento
+    $query = "SELECT sa.ChoferID 
+              FROM ingreso_vehiculos iv
+              LEFT JOIN solicitudes_agendamiento sa ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                  AND sa.Estado IN ('Aprobada', 'Ingresado')
+              WHERE iv.ID = '$vehiculo_id'
+              ORDER BY sa.FechaCreacion DESC
+              LIMIT 1";
+    
+    $result = mysqli_query($conn, $query);
+    
+    if ($result && $row = mysqli_fetch_assoc($result)) {
+        if (!empty($row['ChoferID'])) {
+            mysqli_free_result($result);
+            mysqli_close($conn);
+            return $row['ChoferID'];
+        }
+    }
+    
+    if ($result) {
+        mysqli_free_result($result);
+    }
+
+    // Si no hay ChoferID en solicitudes_agendamiento, buscar por ConductorNombre
+    $queryNombre = "SELECT ConductorNombre 
+                    FROM ingreso_vehiculos 
+                    WHERE ID = '$vehiculo_id'";
+    
+    $resultNombre = mysqli_query($conn, $queryNombre);
+    
+    if ($resultNombre && $rowNombre = mysqli_fetch_assoc($resultNombre)) {
+        $conductor_nombre = trim($rowNombre['ConductorNombre']);
+        
+        if (!empty($conductor_nombre)) {
+            // Buscar UsuarioID por NombreUsuario en la tabla usuarios
+            $queryUsuario = "SELECT UsuarioID 
+                            FROM usuarios 
+                            WHERE NombreUsuario = ? AND Rol = 'Chofer' AND Estado = 1
+                            LIMIT 1";
+            
+            $stmt = $conn->prepare($queryUsuario);
+            if ($stmt) {
+                $stmt->bind_param("s", $conductor_nombre);
+                $stmt->execute();
+                $resultUsuario = $stmt->get_result();
+                
+                if ($resultUsuario && $rowUsuario = $resultUsuario->fetch_assoc()) {
+                    $chofer_id = $rowUsuario['UsuarioID'];
+                    $stmt->close();
+                    mysqli_free_result($resultNombre);
+                    mysqli_close($conn);
+                    return $chofer_id;
+                }
+                
+                $stmt->close();
+            }
+        }
+        
+        mysqli_free_result($resultNombre);
+    }
+
+    mysqli_close($conn);
+    return null;
+}
+
+/**
+ * Notifica al chofer cuando su tarea es completada
+ */
+function notificarTareaCompletada($vehiculo_id, $placa, $marca, $modelo) {
+    $chofer_id = obtenerChoferIDPorVehiculo($vehiculo_id);
+    
+    if (!$chofer_id) {
+        error_log("No se pudo obtener el ChoferID para el vehículo ID: $vehiculo_id");
+        return false;
+    }
+
+    $titulo = "Tarea Completada";
+    $mensaje = "La tarea del vehículo {$placa} - {$marca} {$modelo} ha sido completada. Puede retirar su vehículo del taller.";
+    $modulo = "tareas";
+    $enlace = "solicitudes_agendamiento.php";
+
+    $resultado = crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+    
+    if ($resultado) {
+        error_log("Notificación de tarea completada enviada al chofer ID: $chofer_id para vehículo {$placa}");
+    } else {
+        error_log("Error al enviar notificación de tarea completada al chofer ID: $chofer_id");
+    }
+    
+    return $resultado;
 }
 
 function subirFotoAvance($archivo) {

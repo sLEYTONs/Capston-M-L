@@ -1,5 +1,14 @@
 <?php
 require_once '../../../config/conexion.php';
+// Usar __DIR__ para ruta absoluta más robusta
+$notificaciones_file = __DIR__ . '/../../../../pages/general/funciones_notificaciones.php';
+if (file_exists($notificaciones_file)) {
+    require_once $notificaciones_file;
+} else {
+    error_log("Error: No se encontró el archivo de notificaciones: $notificaciones_file");
+    // Intentar con ruta relativa como fallback
+    require_once '../../../../pages/general/funciones_notificaciones.php';
+}
 
 /**
  * Busca un vehículo por placa
@@ -423,17 +432,84 @@ function registrarSalidaVehiculo($placa, $usuario_id) {
     }
     
     $vehiculo = $resultCheck->fetch_assoc();
+    $vehiculo_id = $vehiculo['ID'];
     $stmtCheck->close();
+    
+    // Obtener información del vehículo para la notificación
+    $sqlInfo = "SELECT 
+                    COALESCE(sa.Placa, v.Placa) AS Placa,
+                    COALESCE(sa.Marca, v.Marca) AS Marca,
+                    COALESCE(sa.Modelo, v.Modelo) AS Modelo,
+                    COALESCE(sa.ChoferID, NULL) AS ChoferID,
+                    COALESCE(sa.ConductorNombre, v.ConductorNombre) AS ConductorNombre
+                FROM ingreso_vehiculos v
+                LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                    AND sa.Estado IN ('Aprobada', 'Ingresado')
+                WHERE v.ID = ?
+                ORDER BY sa.FechaCreacion DESC
+                LIMIT 1";
+    
+    $stmtInfo = $conn->prepare($sqlInfo);
+    $stmtInfo->bind_param("i", $vehiculo_id);
+    $stmtInfo->execute();
+    $resultInfo = $stmtInfo->get_result();
+    $infoVehiculo = $resultInfo->fetch_assoc();
+    $stmtInfo->close();
     
     // Actualizar estado a "Finalizado" o mantener "Completado" y agregar fecha de salida
     // Usamos un estado diferente para indicar que ya salió, o podemos usar un campo FechaSalida
     $sql = "UPDATE ingreso_vehiculos SET FechaSalida = NOW() WHERE ID = ?";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $vehiculo['ID']);
+    $stmt->bind_param("i", $vehiculo_id);
     $result = $stmt->execute();
     
     $stmt->close();
+    
+    // Notificar al chofer si la salida se registró correctamente
+    if ($result && $infoVehiculo) {
+        $chofer_id = null;
+        
+        // Intentar obtener ChoferID desde solicitudes_agendamiento
+        if (!empty($infoVehiculo['ChoferID'])) {
+            $chofer_id = $infoVehiculo['ChoferID'];
+        } else if (!empty($infoVehiculo['ConductorNombre'])) {
+            // Buscar UsuarioID por NombreUsuario
+            $conductor_nombre = trim($infoVehiculo['ConductorNombre']);
+            $sqlChofer = "SELECT UsuarioID 
+                         FROM usuarios 
+                         WHERE NombreUsuario = ? AND Rol = 'Chofer' AND Estado = 1
+                         LIMIT 1";
+            
+            $stmtChofer = $conn->prepare($sqlChofer);
+            if ($stmtChofer) {
+                $stmtChofer->bind_param("s", $conductor_nombre);
+                $stmtChofer->execute();
+                $resultChofer = $stmtChofer->get_result();
+                
+                if ($resultChofer && $rowChofer = $resultChofer->fetch_assoc()) {
+                    $chofer_id = $rowChofer['UsuarioID'];
+                }
+                
+                $stmtChofer->close();
+            }
+        }
+        
+        if ($chofer_id) {
+            $placa_notif = $infoVehiculo['Placa'] ?? $placa;
+            $marca = $infoVehiculo['Marca'] ?? '';
+            $modelo = $infoVehiculo['Modelo'] ?? '';
+            
+            $titulo = "Vehículo Retirado del Taller";
+            $mensaje = "Su vehículo {$placa_notif} - {$marca} {$modelo} ha sido retirado del taller.";
+            $modulo = "control_ingreso";
+            $enlace = "solicitudes_agendamiento.php";
+            
+            crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+            error_log("Notificación de retiro enviada al chofer ID: $chofer_id para vehículo {$placa_notif}");
+        }
+    }
+    
     $conn->close();
     
     return [

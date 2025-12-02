@@ -1,10 +1,33 @@
 <?php
-session_start();
-require_once '../functions/f_control_ingreso.php';
+// Iniciar buffer de salida para capturar cualquier error/warning
+ob_start();
+
+// Evitar warnings si la sesión ya está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+try {
+    require_once '../functions/f_control_ingreso.php';
+} catch (Exception $e) {
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Error al cargar funciones: ' . $e->getMessage()]);
+    exit();
+} catch (Error $e) {
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Error fatal al cargar funciones']);
+    exit();
+}
+
+// Limpiar cualquier salida previa (errores, warnings, etc.)
+ob_clean();
 
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
+    ob_clean();
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit();
 }
@@ -125,8 +148,15 @@ try {
             
         case 'obtenerVehiculosAgendados':
             $fecha = $_POST['fecha'] ?? date('Y-m-d');
-            $vehiculos = obtenerVehiculosAgendados($fecha);
-            echo json_encode(['success' => true, 'data' => $vehiculos]);
+            try {
+                $vehiculos = obtenerVehiculosAgendados($fecha);
+                ob_clean();
+                echo json_encode(['success' => true, 'data' => $vehiculos]);
+            } catch (Exception $e) {
+                error_log("Error en obtenerVehiculosAgendados: " . $e->getMessage());
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => 'Error al obtener vehículos agendados: ' . $e->getMessage()]);
+            }
             break;
             
         default:
@@ -135,6 +165,15 @@ try {
     }
 } catch (Exception $e) {
     error_log("Error en s_control_ingreso: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+    error_log("Stack trace: " . $e->getTraceAsString());
+    // Limpiar cualquier salida previa antes de enviar JSON
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()]);
+} catch (Error $e) {
+    error_log("Error fatal en s_control_ingreso: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    // Limpiar cualquier salida previa antes de enviar JSON
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'Error fatal del servidor']);
 }
 ?>

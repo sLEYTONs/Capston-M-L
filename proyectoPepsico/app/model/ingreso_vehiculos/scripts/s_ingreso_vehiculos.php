@@ -343,9 +343,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'registrar_vehiculo':
-                // Solo administradores pueden registrar vehículos nuevos
+                // Solo administradores y jefe de taller pueden registrar vehículos nuevos
                 session_start();
-                if (!isset($_SESSION['usuario']) || $_SESSION['usuario']['rol'] !== 'Administrador') {
+                if (!isset($_SESSION['usuario']) || ($_SESSION['usuario']['rol'] !== 'Administrador' && $_SESSION['usuario']['rol'] !== 'Jefe de Taller')) {
                     echo json_encode([
                         'success' => false,
                         'message' => 'No tiene permisos para realizar esta acción'
