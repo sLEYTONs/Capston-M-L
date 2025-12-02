@@ -1,4 +1,4 @@
-/* Estilos para Gestión de Repuestos con Jefe de Taller */
+/* Estilos mejorados para Gestión de Repuestos con Jefe de Taller */
 .pc-content {
     padding-bottom: 6rem !important;
 }
@@ -15,46 +15,198 @@
     }
 }
 
+.section {
+    padding: 0 15px;
+}
+
 .card {
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    border: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #004B93 0%, #E21C21 100%);
     color: white;
-    border-radius: 10px 10px 0 0;
+    border-radius: 0;
     padding: 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
 }
 
 .card-header h4 {
     margin: 0;
     font-weight: 600;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 2rem;
+    background: #ffffff;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #004B93;
+    box-shadow: 0 0 0 0.2rem rgba(0, 75, 147, 0.25);
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #004B93 0%, #0056b3 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004B93 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 75, 147, 0.4);
 }
 
 .table-responsive {
-    overflow: visible !important;
+    overflow-x: auto;
+    border-radius: 10px;
 }
 
 #tabla-solicitudes-pendientes,
 #tabla-comunicaciones-jefe {
     width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#tabla-solicitudes-pendientes thead th,
+#tabla-comunicaciones-jefe thead th {
+    background: linear-gradient(135deg, #004B93 0%, #0056b3 100%);
+    color: white;
+    padding: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border: none;
+}
+
+#tabla-solicitudes-pendientes tbody tr,
+#tabla-comunicaciones-jefe tbody tr {
+    transition: all 0.2s ease;
+}
+
+#tabla-solicitudes-pendientes tbody tr:hover,
+#tabla-comunicaciones-jefe tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+#tabla-solicitudes-pendientes tbody td,
+#tabla-comunicaciones-jefe tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .stat-card {
     text-align: center;
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: 2rem;
+    border-radius: 12px;
     margin-bottom: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card h3 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
+    margin: 0.5rem 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card p {
     margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.stat-card.bg-primary {
+    background: linear-gradient(135deg, #004B93 0%, #0056b3 100%) !important;
+}
+
+.stat-card.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+}
+
+.stat-card.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+}
+
+.stat-card.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.5rem;
+    }
+    
+    .stat-card h3 {
+        font-size: 2rem;
+    }
 }
 

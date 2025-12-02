@@ -4,9 +4,15 @@ require_once '../functions/f_gestion_jefe.php';
 
 header('Content-Type: application/json');
 
+// Obtener acción desde POST o GET
+$accion = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = $_POST['accion'] ?? '';
-    
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $accion = $_GET['action'] ?? $_GET['accion'] ?? '';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($accion) {
         case 'crear_solicitud':
             $datos = [
@@ -64,11 +70,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode($resultado);
             break;
             
+        case 'obtener_todos_repuestos':
+            $resultado = obtenerTodosRepuestos();
+            echo json_encode($resultado);
+            break;
+            
         default:
             echo json_encode(['status' => 'error', 'message' => 'Acción no válida']);
             break;
     }
     exit;
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    switch ($accion) {
+        case 'obtener_todos_repuestos':
+        case 'obtener_repuestos':
+            $resultado = obtenerTodosRepuestos();
+            echo json_encode($resultado);
+            exit;
+            
+        case 'obtener_solicitudes_pendientes':
+            $resultado = obtenerSolicitudesPendientes();
+            echo json_encode($resultado);
+            exit;
+            
+        case 'obtener_comunicaciones':
+            $resultado = obtenerComunicacionesJefe();
+            echo json_encode($resultado);
+            exit;
+            
+        case 'obtener_estadisticas':
+            $resultado = obtenerEstadisticasJefe();
+            echo json_encode($resultado);
+            exit;
+    }
 }
 
 http_response_code(405);

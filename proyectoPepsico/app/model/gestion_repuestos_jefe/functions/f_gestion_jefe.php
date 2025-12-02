@@ -254,3 +254,94 @@ function obtenerEstadisticasJefe() {
     return ['status' => 'success', 'data' => $estadisticas];
 }
 
+/**
+ * Conexión segura sin die() - retorna recurso mysqli
+ */
+function conectarPepsicoSeguro() {
+    try {
+        $mysqli = @mysqli_connect("localhost", "root", "", "Pepsico");
+        
+        if (!$mysqli || mysqli_connect_errno()) {
+            error_log("Error de conexión: " . (mysqli_connect_error() ?: "Error desconocido"));
+            return null;
+        }
+        
+        if (!mysqli_set_charset($mysqli, "utf8mb4")) {
+            error_log("Error cargando charset: " . mysqli_error($mysqli));
+            mysqli_close($mysqli);
+            return null;
+        }
+        
+        return $mysqli;
+    } catch (Exception $e) {
+        error_log("Excepción en conexión: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Obtiene todos los repuestos de la base de datos
+ * @return array
+ */
+function obtenerTodosRepuestos() {
+    try {
+        $conn = conectarPepsicoSeguro();
+        if (!$conn) {
+            return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
+        }
+
+        // Verificar si existe la tabla repuestos
+        $checkTable = "SHOW TABLES LIKE 'repuestos'";
+        $resultCheck = mysqli_query($conn, $checkTable);
+        $tablaExiste = ($resultCheck && mysqli_num_rows($resultCheck) > 0);
+        
+        if ($resultCheck) {
+            mysqli_free_result($resultCheck);
+        }
+
+        if (!$tablaExiste) {
+            mysqli_close($conn);
+            return ['status' => 'success', 'data' => []];
+        }
+
+        // Obtener todos los repuestos con todas las columnas
+        $query = "SELECT 
+                    id as ID,
+                    codigo as Codigo,
+                    nombre as Nombre,
+                    categoria as Categoria,
+                    stock as Stock,
+                    precio as Precio,
+                    stockminimo as StockMinimo,
+                    descripcion as Descripcion,
+                    estado as Estado,
+                    fechacreacion as FechaCreacion,
+                    fechaactualizacion as FechaActualizacion
+                  FROM repuestos
+                  ORDER BY nombre ASC";
+
+        $result = mysqli_query($conn, $query);
+        $repuestos = [];
+
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $repuestos[] = $row;
+            }
+            mysqli_free_result($result);
+        } else {
+            $error = mysqli_error($conn);
+            mysqli_close($conn);
+            return ['status' => 'error', 'message' => 'Error en consulta: ' . $error];
+        }
+
+        mysqli_close($conn);
+        return ['status' => 'success', 'data' => $repuestos];
+        
+    } catch (Exception $e) {
+        if (isset($conn)) {
+            mysqli_close($conn);
+        }
+        return ['status' => 'error', 'message' => 'Error al obtener repuestos: ' . $e->getMessage()];
+    }
+}
+

@@ -244,7 +244,7 @@ function crearSolicitudRepuestos($datos) {
         
         if ($solicitudExistente) {
             // Obtener información del repuesto para el mensaje
-            $queryRepuesto = "SELECT Nombre, Codigo FROM repuestos WHERE ID = $repuesto_id";
+            $queryRepuesto = "SELECT nombre as Nombre, codigo as Codigo FROM repuestos WHERE id = $repuesto_id";
             $resultRepuesto = mysqli_query($conn, $queryRepuesto);
             $repuesto = mysqli_fetch_assoc($resultRepuesto);
             $repuestoNombre = $repuesto['Nombre'] ?? 'Repuesto';
@@ -306,7 +306,7 @@ function crearSolicitudRepuestos($datos) {
         $solicitud_id = mysqli_insert_id($conn);
 
         // Obtener información del repuesto para la notificación
-        $queryRepuesto = "SELECT Nombre FROM repuestos WHERE ID = $repuesto_id";
+        $queryRepuesto = "SELECT nombre as Nombre FROM repuestos WHERE id = $repuesto_id";
         $resultRepuesto = mysqli_query($conn, $queryRepuesto);
         $repuesto = mysqli_fetch_assoc($resultRepuesto);
         $repuestoNombre = $repuesto['Nombre'] ?? 'Repuesto';
@@ -632,9 +632,9 @@ function obtenerRepuestosDisponibles($soloSinStock = false, $mecanico_id = null,
         return [];
     }
 
-    $where = "r.Estado = 'Activo'";
+    $where = "r.estado = 'Activo'";
     if ($soloSinStock) {
-        $where .= " AND r.Stock = 0";
+        $where .= " AND r.stock = 0";
     }
 
     // Si se proporciona el mecánico, excluir repuestos que ya tienen solicitudes pendientes o aprobadas
@@ -645,7 +645,7 @@ function obtenerRepuestosDisponibles($soloSinStock = false, $mecanico_id = null,
         
         // Excluir cualquier repuesto que ya tenga una solicitud pendiente o aprobada del mismo mecánico
         // Sin importar si tiene asignación o no, para evitar duplicados
-        $exclusionSolicitudes = " AND r.ID NOT IN (
+        $exclusionSolicitudes = " AND r.id NOT IN (
             SELECT DISTINCT sr.RepuestoID 
             FROM solicitudes_repuestos sr 
             WHERE sr.MecanicoID = $mecanico_id 
@@ -654,17 +654,17 @@ function obtenerRepuestosDisponibles($soloSinStock = false, $mecanico_id = null,
     }
 
     $query = "SELECT 
-                r.ID,
-                r.Codigo,
-                r.Nombre,
-                r.Categoria,
-                r.Stock,
-                r.StockMinimo,
-                r.Descripcion
+                r.id as ID,
+                r.codigo as Codigo,
+                r.nombre as Nombre,
+                r.categoria as Categoria,
+                r.stock as Stock,
+                r.stockminimo as StockMinimo,
+                r.descripcion as Descripcion
             FROM repuestos r
             WHERE $where
             $exclusionSolicitudes
-            ORDER BY r.Nombre ASC";
+            ORDER BY r.nombre ASC";
 
     $result = mysqli_query($conn, $query);
     $repuestos = [];
@@ -828,36 +828,73 @@ function entregarSolicitudRepuestos($solicitud_id, $entregador_id) {
  * Obtiene todos los repuestos para el inventario
  */
 function obtenerTodosRepuestos() {
-    $conn = conectar_Pepsico();
-    if (!$conn) {
-        return [];
-    }
-
-    $query = "SELECT 
-                ID,
-                Codigo,
-                Nombre,
-                Categoria,
-                Stock,
-                StockMinimo,
-                Precio,
-                Estado,
-                Descripcion
-            FROM repuestos
-            ORDER BY Nombre ASC";
-
-    $result = mysqli_query($conn, $query);
-    $repuestos = [];
-
-    if ($result) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $repuestos[] = $row;
+    try {
+        // Usar conexión segura sin die() para evitar romper la respuesta JSON
+        $conn = @new mysqli("localhost", "root", "", "Pepsico");
+        
+        if ($conn->connect_errno) {
+            return ['status' => 'error', 'message' => 'Error de conexión a la base de datos: ' . $conn->connect_error];
         }
-        mysqli_free_result($result);
-    }
+        
+        if (!$conn->set_charset("utf8mb4")) {
+            $conn->close();
+            return ['status' => 'error', 'message' => 'Error cargando charset: ' . $conn->error];
+        }
 
-    mysqli_close($conn);
-    return $repuestos;
+        // Verificar si existe la tabla repuestos
+        $checkTable = "SHOW TABLES LIKE 'repuestos'";
+        $resultCheck = mysqli_query($conn, $checkTable);
+        $tablaExiste = ($resultCheck && mysqli_num_rows($resultCheck) > 0);
+        
+        if ($resultCheck) {
+            mysqli_free_result($resultCheck);
+        }
+        
+        if (!$tablaExiste) {
+            mysqli_close($conn);
+            return ['status' => 'success', 'data' => []];
+        }
+
+        // Usar nombres de columnas con backticks para evitar problemas de case-sensitivity
+        // Intentar primero con mayúsculas (como está en el CREATE TABLE)
+        $query = "SELECT 
+                    `ID` as ID,
+                    `Codigo` as Codigo,
+                    `Nombre` as Nombre,
+                    `Categoria` as Categoria,
+                    `Stock` as Stock,
+                    `StockMinimo` as StockMinimo,
+                    `Precio` as Precio,
+                    `Estado` as Estado,
+                    `Descripcion` as Descripcion,
+                    `FechaCreacion` as FechaCreacion,
+                    `FechaActualizacion` as FechaActualizacion
+                FROM repuestos
+                ORDER BY Nombre ASC";
+
+        $result = mysqli_query($conn, $query);
+        $repuestos = [];
+
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $repuestos[] = $row;
+            }
+            mysqli_free_result($result);
+        } else {
+            $error = mysqli_error($conn);
+            mysqli_close($conn);
+            return ['status' => 'error', 'message' => 'Error en consulta: ' . $error];
+        }
+
+        mysqli_close($conn);
+        return ['status' => 'success', 'data' => $repuestos];
+        
+    } catch (Exception $e) {
+        if (isset($conn)) {
+            mysqli_close($conn);
+        }
+        return ['status' => 'error', 'message' => 'Error al obtener repuestos: ' . $e->getMessage()];
+    }
 }
 
 /**
@@ -870,18 +907,18 @@ function obtenerRepuestosStockBajo() {
     }
 
     $query = "SELECT 
-                ID,
-                Codigo,
-                Nombre,
-                Categoria,
-                Stock,
-                StockMinimo,
-                Precio,
-                Estado,
-                Descripcion
+                id as ID,
+                codigo as Codigo,
+                nombre as Nombre,
+                categoria as Categoria,
+                stock as Stock,
+                stockminimo as StockMinimo,
+                precio as Precio,
+                estado as Estado,
+                descripcion as Descripcion
             FROM repuestos
-            WHERE Estado = 'Activo' AND Stock <= StockMinimo
-            ORDER BY Stock ASC, Nombre ASC";
+            WHERE estado = 'Activo' AND stock <= stockminimo
+            ORDER BY stock ASC, nombre ASC";
 
     $result = mysqli_query($conn, $query);
     $repuestos = [];
@@ -922,7 +959,7 @@ function obtenerMovimientosStock($repuesto_id) {
     }
 
     // Obtener stock actual del repuesto
-    $queryStock = "SELECT Stock FROM repuestos WHERE ID = $repuesto_id";
+    $queryStock = "SELECT stock as Stock FROM repuestos WHERE id = $repuesto_id";
     $resultStock = mysqli_query($conn, $queryStock);
     $stockActual = 0;
     if ($resultStock && mysqli_num_rows($resultStock) > 0) {

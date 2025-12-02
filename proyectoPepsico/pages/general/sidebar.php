@@ -300,11 +300,11 @@
         <?php endif; ?>
 
         <!-- Menú desplegable para Repuestos (separado de Taller) -->
-        <?php if (tiene_acceso('repuestos.php') || tiene_acceso('solicitar_repuestos.php') || tiene_acceso('estado_solicitudes_repuestos.php')): ?>
+        <?php if (tiene_acceso('repuestos.php') || tiene_acceso('solicitar_repuestos.php') || tiene_acceso('estado_solicitudes_repuestos.php') || tiene_acceso('recepcion_entrega_repuestos.php') || tiene_acceso('registro_insumos_vehiculo.php') || tiene_acceso('comunicacion_proveedores.php') || tiene_acceso('gestion_repuestos_jefe.php')): ?>
         <li class="pc-item pc-hasmenu">
           <a href="#!" class="pc-link">
             <span class="pc-micon">
-              <i class="fas fa-cogs"></i>
+              <i class="fas fa-boxes"></i>
             </span>
             <span class="pc-mtext">Repuestos</span>
             <span class="pc-arrow">
@@ -315,20 +315,15 @@
             <?php if (tiene_acceso('repuestos.php')): ?>
             <li class="pc-item">
               <a href="repuestos.php" class="pc-link">
+                <i class="fas fa-warehouse"></i>
                 <span class="pc-mtext">Inventario</span>
-              </a>
-            </li>
-            <?php endif; ?>
-            <?php if (tiene_acceso('solicitar_repuestos.php')): ?>
-            <li class="pc-item">
-              <a href="solicitar_repuestos.php" class="pc-link">
-                <span class="pc-mtext">Solicitar Repuestos</span>
               </a>
             </li>
             <?php endif; ?>
             <?php if (tiene_acceso('estado_solicitudes_repuestos.php')): ?>
             <li class="pc-item">
               <a href="estado_solicitudes_repuestos.php" class="pc-link">
+                <i class="fas fa-clipboard-check"></i>
                 <span class="pc-mtext">Estado de Solicitudes</span>
               </a>
             </li>
@@ -336,6 +331,7 @@
             <?php if (tiene_acceso('recepcion_entrega_repuestos.php')): ?>
             <li class="pc-item">
               <a href="recepcion_entrega_repuestos.php" class="pc-link">
+                <i class="fas fa-exchange-alt"></i>
                 <span class="pc-mtext">Recepción y Entrega</span>
               </a>
             </li>
@@ -343,6 +339,7 @@
             <?php if (tiene_acceso('registro_insumos_vehiculo.php')): ?>
             <li class="pc-item">
               <a href="registro_insumos_vehiculo.php" class="pc-link">
+                <i class="fas fa-clipboard-list"></i>
                 <span class="pc-mtext">Registro de Insumos</span>
               </a>
             </li>
@@ -350,6 +347,7 @@
             <?php if (tiene_acceso('comunicacion_proveedores.php')): ?>
             <li class="pc-item">
               <a href="comunicacion_proveedores.php" class="pc-link">
+                <i class="fas fa-comments"></i>
                 <span class="pc-mtext">Comunicación Proveedores</span>
               </a>
             </li>
@@ -357,7 +355,16 @@
             <?php if (tiene_acceso('gestion_repuestos_jefe.php')): ?>
             <li class="pc-item">
               <a href="gestion_repuestos_jefe.php" class="pc-link">
+                <i class="fas fa-user-tie"></i>
                 <span class="pc-mtext">Gestión con Jefe</span>
+              </a>
+            </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('solicitar_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="solicitar_repuestos.php" class="pc-link">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="pc-mtext">Solicitar Repuestos</span>
               </a>
             </li>
             <?php endif; ?>
@@ -774,22 +781,72 @@
 
 /* Submenús */
 .pc-submenu {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.15);
   border-left: 3px solid #E21C21;
-  margin-left: 15px;
-  border-radius: 0 0 8px 8px;
+  margin-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  border-radius: 6px;
   overflow: hidden;
+  padding: 6px 0;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pc-submenu .pc-item {
+  margin: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pc-submenu .pc-item:last-child {
+  border-bottom: none;
 }
 
 .pc-submenu .pc-item .pc-link {
-  padding-left: 45px;
-  font-size: 0.9rem;
+  padding-left: 20px;
+  padding-right: 15px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 0.875rem;
   margin-bottom: 0;
   border-radius: 0;
+  position: relative;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pc-submenu .pc-item .pc-link i {
+  margin-right: 10px;
+  font-size: 0.9rem;
+  width: 18px;
+  text-align: center;
+  opacity: 0.9;
+  transition: all 0.2s ease;
 }
 
 .pc-submenu .pc-item .pc-link:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: white;
+  padding-left: 25px;
+}
+
+.pc-submenu .pc-item .pc-link:hover i {
+  opacity: 1;
+  transform: scale(1.1);
+  color: #E21C21;
+}
+
+.pc-submenu .pc-item .pc-link.active {
+  background-color: rgba(226, 28, 33, 0.2);
+  color: white;
+  border-left: 3px solid #E21C21;
+  padding-left: 17px;
+}
+
+.pc-submenu .pc-item .pc-link.active i {
+  color: #E21C21;
+  opacity: 1;
 }
 
 /* Loader personalizado */

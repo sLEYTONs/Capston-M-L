@@ -100,6 +100,7 @@ class GestionRepuestosJefe {
             order: [[0, 'desc']],
             responsive: true
         });
+
     }
 
     cargarDatos() {

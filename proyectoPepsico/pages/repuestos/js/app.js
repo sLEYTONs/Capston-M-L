@@ -27,20 +27,68 @@ class InventarioRepuestos {
 
     inicializar() {
         this.inicializarEventos();
-        this.inicializarDataTable();
-        this.cargarRepuestos();
-        this.cargarStockBajo();
+        // Esperar un poco para asegurar que el DOM esté listo
+        setTimeout(() => {
+            this.inicializarDataTable();
+            // Cargar datos después de inicializar DataTable
+            setTimeout(() => {
+                this.cargarRepuestos();
+                this.cargarResumen();
+                this.cargarCategorias();
+                if (document.getElementById('alertas-stock')) {
+                    this.cargarStockBajo();
+                }
+            }, 100);
+        }, 100);
     }
 
     inicializarEventos() {
         $('#btn-refresh').on('click', () => {
             this.cargarRepuestos();
-            this.cargarStockBajo();
+            this.cargarResumen();
+            if (document.getElementById('alertas-stock')) {
+                this.cargarStockBajo();
+            }
         });
 
         $('#btn-alertar-stock').on('click', () => {
             this.enviarAlertaStockBajo();
         });
+
+        // Filtros (si existen en el DOM)
+        if ($('#filtro-busqueda').length) {
+            $('#filtro-busqueda').on('keyup', () => {
+                if (this.dataTable) {
+                    this.dataTable.column(0).search($('#filtro-busqueda').val()).draw();
+                }
+            });
+        }
+
+        if ($('#filtro-categoria').length) {
+            $('#filtro-categoria').on('change', () => {
+                if (this.dataTable) {
+                    const categoria = $('#filtro-categoria').val();
+                    this.dataTable.column(1).search(categoria).draw();
+                }
+            });
+        }
+
+        if ($('#filtro-estado-stock').length) {
+            $('#filtro-estado-stock').on('change', () => {
+                this.aplicarFiltroEstadoStock();
+            });
+        }
+
+        if ($('#btn-limpiar-filtros').length) {
+            $('#btn-limpiar-filtros').on('click', () => {
+                $('#filtro-busqueda').val('');
+                $('#filtro-categoria').val('');
+                $('#filtro-estado-stock').val('');
+                if (this.dataTable) {
+                    this.dataTable.search('').columns().search('').draw();
+                }
+            });
+        }
 
         // Event listener para ver movimientos del stock (usando delegación de eventos)
         $(document).on('click', '.btn-ver-movimientos', (e) => {
@@ -51,13 +99,51 @@ class InventarioRepuestos {
         });
     }
 
+    aplicarFiltroEstadoStock() {
+        if (!this.dataTable) return;
+        
+        const estado = $('#filtro-estado-stock').val();
+        $.fn.dataTable.ext.search.push(
+            (settings, data, dataIndex) => {
+                if (!estado) return true;
+                
+                // Las columnas ahora son: Nombre(0), Categoria(1), Stock(2), StockMinimo(3), Precio(4), ValorTotal(5), Estado(6), Acciones(7)
+                const stock = parseInt(data[2]) || 0;
+                const stockMinimo = parseInt(data[3]) || 0;
+                
+                if (estado === 'sin') {
+                    return stock === 0;
+                } else if (estado === 'bajo') {
+                    return stock > 0 && stock <= stockMinimo;
+                } else if (estado === 'normal') {
+                    return stock > stockMinimo;
+                }
+                return true;
+            }
+        );
+        this.dataTable.draw();
+        $.fn.dataTable.ext.search.pop();
+    }
+
     inicializarDataTable() {
         if (typeof $.fn.DataTable === 'undefined') {
             console.error('DataTables no está cargado');
+            alert('Error: DataTables no está cargado. Verifica que las librerías estén incluidas.');
             return;
         }
 
-        this.dataTable = $('#repuestos-table').DataTable({
+        // Verificar que la tabla existe
+        const $table = $('#repuestos-table');
+        if ($table.length === 0) {
+            console.error('La tabla #repuestos-table no existe en el DOM');
+            alert('Error: La tabla no existe en el DOM');
+            return;
+        }
+
+        // Limpiar el tbody antes de inicializar
+        $table.find('tbody').empty();
+
+        this.dataTable = $table.DataTable({
             language: {
                 "decimal": "",
                 "emptyTable": "No hay datos disponibles en la tabla",
@@ -65,7 +151,7 @@ class InventarioRepuestos {
                 "infoEmpty": "Mostrando 0 a 0 de 0 registros",
                 "infoFiltered": "(filtrado de _MAX_ registros totales)",
                 "infoPostFix": "",
-                "thousands": ",",
+                "thousands": ".",
                 "lengthMenu": "Mostrar _MENU_ registros",
                 "loadingRecords": "Cargando...",
                 "processing": "Procesando...",
@@ -82,153 +168,129 @@ class InventarioRepuestos {
                     "sortDescending": ": activar para ordenar la columna de manera descendente"
                 }
             },
-            pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
             columns: [
-                { data: 'Codigo' },
-                { data: 'Nombre' },
-                { data: 'Categoria' },
+                { 
+                    data: 'Nombre',
+                    className: 'text-left',
+                    defaultContent: '-'
+                },
+                { 
+                    data: 'Categoria',
+                    className: 'text-left',
+                    defaultContent: '-'
+                },
                 { 
                     data: 'Stock',
-                    render: (data, type, row) => {
-                        const stock = parseInt(data);
-                        const minimo = parseInt(row.StockMinimo);
-                        let badgeClass = 'success';
-                        let icon = 'check-circle';
-                        
-                        if (stock === 0) {
-                            badgeClass = 'danger';
-                            icon = 'times-circle';
-                        } else if (stock <= minimo) {
-                            badgeClass = 'warning';
-                            icon = 'exclamation-triangle';
+                    className: 'text-right',
+                    defaultContent: '0',
+                    render: (data, type) => {
+                        if (type === 'display' || type === 'type') {
+                            const stock = parseInt(data) || 0;
+                            return stock.toLocaleString('es-CL');
                         }
-                        
-                        return `<span class="badge bg-${badgeClass}">
-                                    <i class="fas fa-${icon} me-1"></i>${stock}
-                                </span>`;
+                        return parseInt(data) || 0;
+                    }
+                },
+                { 
+                    data: 'StockMinimo',
+                    className: 'text-right',
+                    defaultContent: '0',
+                    render: (data, type) => {
+                        if (type === 'display' || type === 'type') {
+                            const minimo = parseInt(data) || 0;
+                            return minimo.toLocaleString('es-CL');
+                        }
+                        return parseInt(data) || 0;
                     }
                 },
                 { 
                     data: 'Precio',
-                    render: (data) => {
-                        return `$${this.formatearPrecioChileno(data)}`;
+                    className: 'text-right',
+                    defaultContent: '0',
+                    render: (data, type) => {
+                        if (type === 'display' || type === 'type') {
+                            return `$${this.formatearPrecioChileno(data || 0)}`;
+                        }
+                        return parseFloat(data) || 0;
                     }
                 },
                 { 
-                    data: 'Estado',
-                    render: (data) => {
-                        const estadoClass = data === 'Activo' ? 'success' : 'secondary';
-                        return `<span class="badge bg-${estadoClass}">${data}</span>`;
+                    data: null,
+                    className: 'text-right',
+                    orderable: false,
+                    defaultContent: '$0',
+                    render: (data, type, row) => {
+                        if (type === 'display' || type === 'type') {
+                            const stock = parseInt(row.Stock) || 0;
+                            const precio = parseFloat(row.Precio) || 0;
+                            const valorTotal = stock * precio;
+                            return `$${this.formatearPrecioChileno(valorTotal)}`;
+                        }
+                        const stock = parseInt(row.Stock) || 0;
+                        const precio = parseFloat(row.Precio) || 0;
+                        return stock * precio;
+                    }
+                },
+                { 
+                    data: null,
+                    className: 'text-left',
+                    orderable: false,
+                    defaultContent: '',
+                    render: (data, type, row) => {
+                        const stock = parseInt(row.Stock) || 0;
+                        const minimo = parseInt(row.StockMinimo) || 0;
+                        
+                        if (type === 'display' || type === 'type') {
+                            let badgeClass = 'success';
+                            let estadoTexto = 'Stock Normal';
+                            
+                            if (stock === 0) {
+                                badgeClass = 'danger';
+                                estadoTexto = 'Sin Stock';
+                            } else if (stock <= minimo) {
+                                badgeClass = 'warning';
+                                estadoTexto = 'Stock Bajo';
+                            }
+                            
+                            return `<span class="badge bg-${badgeClass}">${estadoTexto}</span>`;
+                        }
+                        return stock;
                     }
                 },
                 {
                     data: null,
                     orderable: false,
-                    render: (data) => {
-                        return `
-                            <button class="btn btn-sm btn-info btn-ver-movimientos" data-id="${data.ID}" data-codigo="${data.Codigo}" data-nombre="${data.Nombre}" title="Ver Movimientos de Stock">
-                                <i class="fas fa-history me-1"></i> Ver Movimientos
-                            </button>
-                        `;
+                    searchable: false,
+                    className: 'text-center',
+                    defaultContent: '',
+                    render: (data, type, row) => {
+                        if (type === 'display' || type === 'type') {
+                            return `
+                                <button class="btn btn-sm btn-info btn-ver-movimientos" 
+                                        data-id="${row.ID || ''}" 
+                                        data-codigo="${row.Codigo || ''}" 
+                                        data-nombre="${row.Nombre || ''}" 
+                                        title="Ver Movimientos de Stock">
+                                    <i class="fas fa-history me-1"></i> Movimientos
+                                </button>
+                            `;
+                        }
+                        return '';
                     }
                 }
             ],
-            order: [[1, 'asc']],
-            responsive: false,
-            scrollX: true,
-            scrollY: false,
-            autoWidth: false,
-            drawCallback: () => {
-                // Recalcular espacio después de cada redibujado
-                setTimeout(() => {
-                    this.ajustarEspacioFooter();
-                }, 100);
-            }
+            order: [[0, 'asc']],
+            responsive: true,
+            scrollX: false,
+            pageLength: 15,
+            lengthMenu: [[10, 15, 25, 50, 100], [10, 15, 25, 50, 100]],
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+            processing: true,
+            serverSide: false,
+            paging: true,
+            pagingType: 'full_numbers',
+            autoWidth: false
         });
-
-        // Event listeners para cambios en el DataTable
-        $(this.dataTable.table().container()).on('length.dt', () => {
-            setTimeout(() => {
-                this.ajustarEspacioFooter();
-            }, 100);
-        });
-
-        $(this.dataTable.table().container()).on('page.dt', () => {
-            setTimeout(() => {
-                this.ajustarEspacioFooter();
-            }, 100);
-        });
-
-        // Ajustar espacio inicial
-        setTimeout(() => {
-            this.ajustarEspacioFooter();
-        }, 500);
-    }
-
-    ajustarEspacioFooter() {
-        const pcContent = document.querySelector('.pc-content');
-        const dataTableWrapper = document.querySelector('#repuestos-table_wrapper');
-        const cardBody = document.querySelector('.repuestos-container .card-body');
-        const footer = document.querySelector('.pc-footer');
-        
-        if (!pcContent || !dataTableWrapper || !footer) {
-            return;
-        }
-
-        // Ajustar el padding-bottom del card-body según la altura del DataTable
-        if (cardBody) {
-            const dataTableHeight = dataTableWrapper.offsetHeight;
-            const espacioMinimoCardBody = 50; // Espacio mínimo en el card-body para la paginación
-            
-            // Calcular padding-bottom dinámico para el card-body
-            // Si el DataTable es muy alto, necesitamos más espacio
-            let paddingBottomCardBody = 2; // Base de 2rem
-            
-            if (dataTableHeight > 400) {
-                paddingBottomCardBody = 3; // 3rem para tablas medianas
-            }
-            if (dataTableHeight > 600) {
-                paddingBottomCardBody = 4; // 4rem para tablas grandes
-            }
-            if (dataTableHeight > 800) {
-                paddingBottomCardBody = 5; // 5rem para tablas muy grandes
-            }
-            
-            cardBody.style.paddingBottom = `${paddingBottomCardBody}rem`;
-        }
-
-        // Obtener posiciones después de ajustar el card-body
-        setTimeout(() => {
-            const dataTableBottom = dataTableWrapper.getBoundingClientRect().bottom;
-            const footerTop = footer.getBoundingClientRect().top;
-            
-            // Calcular espacio necesario
-            // Espacio mínimo deseado entre DataTable y footer (en píxeles)
-            const espacioMinimo = 100;
-            
-            // Calcular cuánto espacio necesitamos
-            const espacioActual = footerTop - dataTableBottom;
-            const espacioNecesario = espacioMinimo - espacioActual;
-            
-            // Obtener el padding-bottom actual (convertir rem a px)
-            const paddingBottomActual = parseFloat(getComputedStyle(pcContent).paddingBottom) || 0;
-            
-            // Calcular nuevo padding-bottom
-            // Si el espacio actual es menor al mínimo, aumentar el padding
-            let nuevoPaddingBottom = paddingBottomActual;
-            
-            if (espacioActual < espacioMinimo) {
-                nuevoPaddingBottom = paddingBottomActual + espacioNecesario;
-            } else {
-                // Mantener un mínimo de padding para evitar cambios bruscos
-                nuevoPaddingBottom = Math.max(paddingBottomActual, 192); // 12rem = 192px mínimo
-            }
-            
-            // Convertir a rem y aplicar
-            const nuevoPaddingRem = nuevoPaddingBottom / 16; // 1rem = 16px
-            pcContent.style.paddingBottom = `${nuevoPaddingRem}rem`;
-        }, 50);
     }
 
     cargarRepuestos() {
@@ -236,27 +298,191 @@ class InventarioRepuestos {
             method: 'GET',
             credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error HTTP: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.status === 'success' && data.data) {
+            console.log('Respuesta completa recibida:', data);
+            console.log('Status:', data?.status);
+            console.log('Data:', data?.data);
+            console.log('Es array?', Array.isArray(data?.data));
+            console.log('Cantidad de items:', data?.data?.length);
+            
+            if (data && data.status === 'success') {
                 if (this.dataTable) {
                     this.dataTable.clear();
-                    this.dataTable.rows.add(data.data);
+                    if (data.data && Array.isArray(data.data)) {
+                        console.log('Agregando', data.data.length, 'filas a la tabla');
+                        if (data.data.length > 0) {
+                            this.dataTable.rows.add(data.data);
+                        }
+                    } else {
+                        console.warn('data.data no es un array válido:', data.data);
+                    }
                     this.dataTable.draw();
+                } else {
+                    console.error('DataTable no está inicializado');
+                    this.mostrarError('Error: La tabla no está inicializada');
                 }
-                this.actualizarResumen(data.data);
-                // Ajustar espacio después de cargar datos
-                setTimeout(() => {
-                    this.ajustarEspacioFooter();
-                }, 200);
             } else {
-                this.mostrarError('Error al cargar repuestos: ' + (data.message || 'Error desconocido'));
+                console.error('Error en respuesta:', data);
+                const mensaje = data && data.message ? data.message : 'Error desconocido';
+                this.mostrarError('Error al cargar repuestos: ' + mensaje);
+                // Limpiar tabla en caso de error
+                if (this.dataTable) {
+                    this.dataTable.clear().draw();
+                }
             }
         })
         .catch(error => {
             console.error('Error al cargar repuestos:', error);
-            this.mostrarError('Error de conexión al cargar repuestos');
+            this.mostrarError('Error de conexión al cargar repuestos. Verifique la conexión a la base de datos.');
+            // Limpiar tabla en caso de error
+            if (this.dataTable) {
+                this.dataTable.clear().draw();
+            }
         });
+    }
+
+    cargarCategorias() {
+        fetch(this.baseUrl + '?action=obtenerTodosRepuestos', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                const categorias = [...new Set(data.data.map(r => r.Categoria).filter(c => c))].sort();
+                const select = $('#filtro-categoria');
+                select.empty().append('<option value="">Todas las categorías</option>');
+                categorias.forEach(cat => {
+                    select.append(`<option value="${this.escapeHtml(cat)}">${this.escapeHtml(cat)}</option>`);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar categorías:', error);
+        });
+    }
+
+    cargarResumen() {
+        fetch(this.baseUrl + '?action=obtenerTodosRepuestos', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                this.actualizarResumen(data.data);
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar resumen:', error);
+            $('#resumen-inventario').html('<div class="alert alert-danger">Error al cargar resumen</div>');
+        });
+    }
+
+    actualizarResumen(repuestos) {
+        const total = repuestos.length;
+        const activos = repuestos.filter(r => (r.Estado || 'Activo') === 'Activo').length;
+        const stockBajo = repuestos.filter(r => {
+            const stock = parseInt(r.Stock) || 0;
+            const minimo = parseInt(r.StockMinimo) || 0;
+            return (r.Estado || 'Activo') === 'Activo' && stock > 0 && stock <= minimo;
+        }).length;
+        const sinStock = repuestos.filter(r => {
+            const stock = parseInt(r.Stock) || 0;
+            return (r.Estado || 'Activo') === 'Activo' && stock === 0;
+        }).length;
+        
+        // Calcular valor total del inventario
+        const valorTotal = repuestos.reduce((sum, r) => {
+            const stock = parseInt(r.Stock) || 0;
+            const precio = parseFloat(r.Precio) || 0;
+            return sum + (stock * precio);
+        }, 0);
+
+        // Calcular por categoría
+        const porCategoria = {};
+        repuestos.forEach(r => {
+            const cat = r.Categoria || 'Sin categoría';
+            if (!porCategoria[cat]) {
+                porCategoria[cat] = { total: 0, activos: 0 };
+            }
+            porCategoria[cat].total++;
+            if ((r.Estado || 'Activo') === 'Activo') {
+                porCategoria[cat].activos++;
+            }
+        });
+
+        let categoriasHtml = '';
+        Object.keys(porCategoria).sort().forEach(cat => {
+            categoriasHtml += `
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div>
+                        <strong class="d-block" style="font-size: 0.85rem;">${this.escapeHtml(cat)}</strong>
+                        <small class="text-muted">${porCategoria[cat].activos} activos</small>
+                    </div>
+                    <span class="badge bg-primary">${porCategoria[cat].total}</span>
+                </div>
+            `;
+        });
+
+        const html = `
+            <div style="display: flex; flex-direction: column; height: 100%; min-height: 0;">
+                <div class="mb-3" style="flex-shrink: 0;">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong class="d-block">Total Repuestos</strong>
+                            <small class="text-muted">En inventario</small>
+                        </div>
+                        <h4 class="mb-0 text-primary">${total}</h4>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong class="d-block text-success">Activos</strong>
+                            <small class="text-muted">Disponibles</small>
+                        </div>
+                        <h5 class="mb-0 text-success">${activos}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong class="d-block text-warning">Stock Bajo</strong>
+                            <small class="text-muted">Requieren atención</small>
+                        </div>
+                        <h5 class="mb-0 text-warning">${stockBajo}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong class="d-block text-danger">Sin Stock</strong>
+                            <small class="text-muted">Agotados</small>
+                        </div>
+                        <h5 class="mb-0 text-danger">${sinStock}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong class="d-block">Valor Total</strong>
+                            <small class="text-muted">Del inventario</small>
+                        </div>
+                        <h5 class="mb-0 text-primary">$${this.formatearPrecioChileno(valorTotal)}</h5>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                    <h6 class="mb-2" style="flex-shrink: 0;">
+                        <i class="fas fa-tags me-1"></i>
+                        Por Categoría
+                    </h6>
+                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                        ${categoriasHtml || '<p class="text-muted small mb-0">No hay categorías</p>'}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('#resumen-inventario').html(html);
     }
 
     cargarStockBajo() {
@@ -280,69 +506,39 @@ class InventarioRepuestos {
         
         if (repuestos.length === 0) {
             container.html(`
-                <div class="alert alert-success">
+                <div class="alert alert-success mb-0">
                     <i class="fas fa-check-circle me-2"></i>
-                    No hay repuestos con stock bajo
+                    <small>No hay repuestos con stock bajo</small>
                 </div>
             `);
             return;
         }
 
         let html = '<ul class="list-unstyled mb-0">';
-        repuestos.forEach(repuesto => {
-            const stock = parseInt(repuesto.Stock);
-            const minimo = parseInt(repuesto.StockMinimo);
-            const porcentaje = minimo > 0 ? (stock / minimo) * 100 : 0;
+        repuestos.slice(0, 5).forEach(repuesto => {
+            const stock = parseInt(repuesto.Stock) || 0;
+            const minimo = parseInt(repuesto.StockMinimo) || 0;
             
             html += `
                 <li class="mb-2 p-2 border rounded">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>${repuesto.Nombre}</strong>
-                            <small class="text-muted d-block">${repuesto.Codigo}</small>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <strong class="d-block" style="font-size: 0.85rem;">${this.escapeHtml(repuesto.Nombre || '')}</strong>
+                            <small class="text-muted d-block">${this.escapeHtml(repuesto.Codigo || '')}</small>
                         </div>
-                        <div class="text-end">
-                            <span class="badge bg-${stock === 0 ? 'danger' : 'warning'}">
-                                Stock: ${stock} / ${minimo}
-                            </span>
-                        </div>
+                        <span class="badge bg-${stock === 0 ? 'danger' : 'warning'} ms-2">
+                            ${stock}/${minimo}
+                        </span>
                     </div>
                 </li>
             `;
         });
+        if (repuestos.length > 5) {
+            html += `<li class="text-center mt-2"><small class="text-muted">Y ${repuestos.length - 5} más...</small></li>`;
+        }
         html += '</ul>';
         
         container.html(html);
-    }
-
-    actualizarResumen(repuestos) {
-        const total = repuestos.length;
-        const activos = repuestos.filter(r => r.Estado === 'Activo').length;
-        const stockBajo = repuestos.filter(r => r.Estado === 'Activo' && parseInt(r.Stock) <= parseInt(r.StockMinimo)).length;
-        const sinStock = repuestos.filter(r => r.Estado === 'Activo' && parseInt(r.Stock) === 0).length;
-        
-        const html = `
-            <div class="mb-3">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Total Repuestos:</span>
-                    <strong>${total}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Activos:</span>
-                    <strong class="text-success">${activos}</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Stock Bajo:</span>
-                    <strong class="text-warning">${stockBajo}</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Sin Stock:</span>
-                    <strong class="text-danger">${sinStock}</strong>
-                </div>
-            </div>
-        `;
-        
-        $('#resumen-inventario').html(html);
     }
 
     enviarAlertaStockBajo() {
@@ -424,7 +620,6 @@ class InventarioRepuestos {
     }
 
     verMovimientosStock(repuestoId, codigo, nombre) {
-        // Cargar movimientos del stock desde el servidor
         fetch(this.baseUrl + '?action=obtenerMovimientosStock&repuesto_id=' + repuestoId, {
             method: 'GET',
             credentials: 'same-origin'
@@ -444,21 +639,17 @@ class InventarioRepuestos {
     }
 
     mostrarModalMovimientos(repuestoId, codigo, nombre, movimientos) {
-        // Eliminar modal anterior si existe y destruir DataTable si está inicializado
         const modalAnterior = $('#modalMovimientosStock');
         if (modalAnterior.length > 0) {
             const tablaAnterior = $('#tabla-movimientos');
             if (tablaAnterior.length > 0 && $.fn.DataTable.isDataTable('#tabla-movimientos')) {
                 try {
                     tablaAnterior.DataTable().destroy();
-                } catch (e) {
-                    // Ignorar errores al destruir
-                }
+                } catch (e) {}
             }
             modalAnterior.remove();
         }
 
-        // Crear el contenido del tbody
         let tbodyContent = '';
         if (movimientos && movimientos.length > 0) {
             movimientos.forEach(movimiento => {
@@ -466,8 +657,8 @@ class InventarioRepuestos {
                 const fecha = movimiento.Fecha || 'N/A';
                 const tipo = movimiento.Tipo || 'N/A';
                 const cantidad = movimiento.Cantidad || '0';
-                const stockAnterior = movimiento.StockAnterior || '0';
-                const stockNuevo = movimiento.StockNuevo || '0';
+                const stockAnterior = movimiento.StockAnterior || '-';
+                const stockNuevo = movimiento.StockNuevo || '-';
                 const usuario = movimiento.Usuario || 'N/A';
                 const observaciones = movimiento.Observaciones || '-';
                 
@@ -493,7 +684,6 @@ class InventarioRepuestos {
             `;
         }
 
-        // Crear el HTML del modal
         const modalHtml = `
             <div class="modal fade" id="modalMovimientosStock" tabindex="-1" aria-labelledby="modalMovimientosStockLabel" aria-hidden="true">
                 <div class="modal-dialog modal-xl">
@@ -533,10 +723,8 @@ class InventarioRepuestos {
             </div>
         `;
         
-        // Agregar el nuevo modal al body
         $('body').append(modalHtml);
         
-        // Obtener el elemento del modal
         const modalElement = document.getElementById('modalMovimientosStock');
         if (!modalElement) {
             console.error('No se pudo crear el modal');
@@ -548,33 +736,25 @@ class InventarioRepuestos {
             keyboard: true
         });
         
-        // Inicializar DataTable cuando el modal esté completamente visible
         $(modalElement).one('shown.bs.modal', function () {
             const tabla = $('#tabla-movimientos');
             
-            // Verificar que la tabla existe
             if (tabla.length === 0) {
                 console.error('La tabla no existe en el DOM');
                 return;
             }
 
-            // Solo inicializar DataTable si hay datos (más de una fila y no es la fila de "sin datos")
             const filas = tabla.find('tbody tr');
             if (filas.length === 0 || (filas.length === 1 && filas.find('td[colspan]').length > 0)) {
-                // No hay datos, no inicializar DataTable
                 return;
             }
 
-            // Verificar que no hay una instancia previa de DataTable
             if ($.fn.DataTable.isDataTable('#tabla-movimientos')) {
                 try {
                     tabla.DataTable().destroy();
-                } catch (e) {
-                    // Ignorar errores
-                }
+                } catch (e) {}
             }
 
-            // Inicializar DataTable
             if (typeof $.fn.DataTable !== 'undefined') {
                 try {
                     tabla.DataTable({
@@ -583,13 +763,10 @@ class InventarioRepuestos {
                         },
                         pageLength: 10,
                         lengthMenu: [10, 25, 50, 100],
-                        order: [], // Sin ordenamiento inicial
+                        order: [[0, 'desc']],
                         responsive: true,
                         destroy: true,
-                        autoWidth: false,
-                        columnDefs: [
-                            { targets: '_all', orderable: true }
-                        ]
+                        autoWidth: false
                     });
                 } catch (error) {
                     console.error('Error al inicializar DataTable:', error);
@@ -597,20 +774,16 @@ class InventarioRepuestos {
             }
         });
 
-        // Limpiar el modal cuando se cierre
         $(modalElement).on('hidden.bs.modal', function () {
             const tabla = $('#tabla-movimientos');
             if (tabla.length > 0 && $.fn.DataTable.isDataTable('#tabla-movimientos')) {
                 try {
                     tabla.DataTable().destroy();
-                } catch (e) {
-                    // Ignorar errores
-                }
+                } catch (e) {}
             }
             $(this).remove();
         });
 
-        // Mostrar el modal
         modal.show();
     }
 
@@ -633,15 +806,4 @@ class InventarioRepuestos {
 let inventarioRepuestos;
 document.addEventListener('DOMContentLoaded', () => {
     inventarioRepuestos = new InventarioRepuestos();
-    
-    // Ajustar espacio cuando se redimensiona la ventana
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            if (inventarioRepuestos && inventarioRepuestos.ajustarEspacioFooter) {
-                inventarioRepuestos.ajustarEspacioFooter();
-            }
-        }, 250);
-    });
 });

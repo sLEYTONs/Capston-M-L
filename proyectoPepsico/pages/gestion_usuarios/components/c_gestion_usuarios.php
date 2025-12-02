@@ -40,11 +40,12 @@
                                 <select class="form-control" id="rol" name="rol" required>
                                     <option value="">Seleccionar rol...</option>
                                     <option value="Administrador">Administrador</option>
-                                    <option value="Jefe de Taller">Jefe de Taller</option>
+                                    <option value="Asistente de Repuestos">Asistente de Repuestos</option>
                                     <option value="Chofer">Chofer</option>
+                                    <option value="Guardia">Guardia</option>
+                                    <option value="Jefe de Taller">Jefe de Taller</option>
                                     <option value="Mecánico">Mecánico</option>
                                     <option value="Recepcionista">Recepcionista</option>
-                                    <option value="Guardia">Guardia</option>
                                     <option value="Supervisor">Supervisor</option>
                                 </select>
                             </div>
@@ -142,11 +143,12 @@
                                 <label for="edit-rol">Rol *</label>
                                 <select class="form-control" id="edit-rol" name="rol" required>
                                     <option value="Administrador">Administrador</option>
-                                    <option value="Jefe de Taller">Jefe de Taller</option>
+                                    <option value="Asistente de Repuestos">Asistente de Repuestos</option>
                                     <option value="Chofer">Chofer</option>
+                                    <option value="Guardia">Guardia</option>
+                                    <option value="Jefe de Taller">Jefe de Taller</option>
                                     <option value="Mecánico">Mecánico</option>
                                     <option value="Recepcionista">Recepcionista</option>
-                                    <option value="Guardia">Guardia</option>
                                     <option value="Supervisor">Supervisor</option>
                                 </select>
                             </div>

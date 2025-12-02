@@ -1,32 +1,35 @@
 <!-- Sección de Repuestos -->
 <section id="repuestos-section" class="section">
     <div class="repuestos-container">
-        <div class="row">
-            <div class="col-md-9">
-                <div class="card">
+        <div class="row g-3">
+            <!-- Tabla principal - Ocupa aproximadamente 75% -->
+            <div class="col-12 col-lg-9">
+                <div class="card h-100">
                     <div class="card-header">
-                        <h4 class="card-title">
-                            <i class="fas fa-cogs me-2"></i>
+                        <h4 class="card-title mb-0">
+                            <i class="fas fa-boxes me-2"></i>
                             Inventario de Repuestos
                         </h4>
                         <div class="card-actions">
-                            <button class="btn btn-outline-secondary btn-sm" id="btn-refresh">
-                                <i class="fas fa-sync-alt me-1"></i>
+                            <button class="btn btn-outline-light btn-sm" id="btn-refresh" title="Actualizar">
+                                <i class="fas fa-sync-alt me-1"></i> Actualizar
                             </button>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="repuestos-table" class="table table-striped" style="width:100%">
-                                <thead>
+                    <div class="card-body" style="padding: 0;">
+                        <!-- Contenedor de tabla - Ocupa todo el espacio -->
+                        <div id="tabla-container" class="tabla-container" style="width: 100%; height: 100%; min-height: 500px;">
+                            <table id="repuestos-table" class="table table-striped table-hover table-bordered" style="width: 100%; margin: 0;">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Código</th>
-                                        <th>Nombre</th>
-                                        <th>Categoría</th>
-                                        <th>Stock</th>
-                                        <th>Precio</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
+                                        <th class="text-left">Nombre</th>
+                                        <th class="text-left">Categoría</th>
+                                        <th class="text-right">Stock</th>
+                                        <th class="text-right">Stock Mín.</th>
+                                        <th class="text-right">Precio Unit.</th>
+                                        <th class="text-right">Valor Total</th>
+                                        <th class="text-left">Estado</th>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -38,35 +41,42 @@
                 </div>
             </div>
             
-            <div class="col-md-3">
-                <div class="card">
+            <!-- Resumen - Al lado de la tabla, aproximadamente 25% -->
+            <div class="col-12 col-lg-3">
+                <div class="card h-100 mb-3">
                     <div class="card-header">
-                        <h5 class="card-title">
+                        <h5 class="card-title mb-0">
                             <i class="fas fa-chart-pie me-2"></i>
                             Resumen de Inventario
                         </h5>
                     </div>
                     <div class="card-body">
                         <div id="resumen-inventario">
-                            <!-- Se cargará dinámicamente -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <?php if ($usuario_rol === 'Mecánico'): ?>
-                <div class="card mt-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card">
+                    <div class="card-header">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             Stock Bajo
                         </h5>
-                        <button class="btn btn-warning btn-sm" id="btn-alertar-stock">
-                            <i class="fas fa-bell me-1"></i>Alertar Jefe
-                        </button>
                     </div>
                     <div class="card-body">
+                        <button class="btn btn-warning btn-sm w-100 mb-3" id="btn-alertar-stock">
+                            <i class="fas fa-bell me-1"></i>Alertar Jefe
+                        </button>
                         <div id="alertas-stock">
-                            <!-- Se cargarán las alertas -->
+                            <div class="text-center py-2">
+                                <small class="text-muted">Cargando alertas...</small>
+                            </div>
                         </div>
                     </div>
                 </div>

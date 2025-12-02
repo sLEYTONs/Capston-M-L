@@ -1,316 +1,242 @@
-/* Contenedor principal - evitar desplazamiento con sidebar */
-.pc-content {
-    position: relative;
-    width: 100%;
-    transition: none !important;
-}
-
+/* Contenedor principal */
 .repuestos-container {
     padding: 0;
-    margin: 0 auto;
+    margin: 0;
     width: 100%;
-    max-width: 1400px;
+    max-width: 100%;
 }
 
 .repuestos-container .row {
     margin-left: 0;
     margin-right: 0;
     width: 100%;
+    height: 100%;
 }
 
 .repuestos-container .row > [class*="col-"] {
     padding-left: 15px;
     padding-right: 15px;
+    display: flex;
+    flex-direction: column;
 }
 
-.repuestos-container .row > [class*="col-"]:first-child {
-    padding-left: 0;
-}
-
-/* Restaurar ancho original de col-md-9 y col-md-3 */
-.repuestos-container .col-md-9 {
-    flex: 0 0 75%;
-    max-width: 75%;
-}
-
-.repuestos-container .col-md-3 {
-    flex: 0 0 25%;
-    max-width: 25%;
-}
-
-.card {
+/* Cards - Base */
+.repuestos-container .card {
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e9ecef;
+    min-height: 0;
 }
 
-.card-header {
+/* Card de Inventario - usar toda la altura disponible */
+.repuestos-container .col-lg-9 .card {
+    height: 100%;
+    min-height: calc(100vh - 280px);
+}
+
+.repuestos-container .card-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-radius: 10px 10px 0 0;
-    padding: 1.5rem;
+    padding: 0.875rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+    border-bottom: none;
 }
 
-.card-header h4,
-.card-header h5 {
+.repuestos-container .card-header h4,
+.repuestos-container .card-header h5 {
     margin: 0;
     font-weight: 600;
     display: flex;
     align-items: center;
+    font-size: 1.1rem;
 }
 
-.card-actions {
+.repuestos-container .card-actions {
     display: flex;
     gap: 10px;
+    align-items: center;
 }
 
-/* Card body específico que contiene el DataTable - solo dentro del contenedor de repuestos */
+.repuestos-container .card-actions .btn {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.repuestos-container .card-actions .btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+/* Card Body - Flexbox completo */
 .repuestos-container .card-body {
-    padding: 1.5rem;
-    min-height: auto; /* Altura dinámica según contenido */
-    padding-bottom: 2rem; /* Espacio base para la paginación del DataTable */
+    padding: 1rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
 }
 
-/* Card body general - sin afectar el sidebar */
-.card-body {
-    padding: 1.5rem;
+.repuestos-container .col-lg-9 .card-body {
+    padding: 1rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible !important;
 }
 
-/* DataTable con scroll X */
+/* Filtros - tamaño fijo */
+.repuestos-container .form-control-sm,
+.repuestos-container .form-select-sm {
+    font-size: 0.875rem;
+}
+
+.repuestos-container .card-body > .row:first-child {
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+    margin-top: 0;
+}
+
+.repuestos-container .card-body > .row:first-child > * {
+    margin-bottom: 0;
+}
+
+/* Contenedor de tabla - SIMPLE Y VISIBLE */
+#tabla-container {
+    width: 100%;
+    flex: 1;
+    min-height: 400px;
+    display: block !important;
+    overflow: visible !important;
+    margin: 0;
+    padding: 0;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* DataTables Wrapper - VISIBLE */
+#repuestos-table_wrapper {
+    width: 100% !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Tabla - VISIBLE */
 #repuestos-table {
     width: 100% !important;
-    table-layout: auto;
-    margin: 0 auto;
+    display: table !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Tabla - ESTILOS BÁSICOS */
+#repuestos-table {
+    width: 100% !important;
+    margin: 0 !important;
     border-collapse: collapse;
-    min-width: 900px;
+    background-color: #fff !important;
+    table-layout: auto;
+    display: table !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-/* Forzar que el scrollbar sea visible */
-.repuestos-container .card-body {
-    overflow: visible;
+#repuestos-table thead {
+    background-color: #f8f9fa !important;
+    display: table-header-group !important;
+    visibility: visible !important;
 }
 
-.repuestos-container .card-body .table-responsive {
-    max-height: none;
-    overflow-x: scroll !important;
-    overflow-y: visible !important;
+#repuestos-table tbody {
+    display: table-row-group !important;
+    visibility: visible !important;
 }
 
 #repuestos-table th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #495057;
-    padding: 12px 8px;
+    padding: 12px 15px;
     border-bottom: 2px solid #dee2e6;
-    white-space: nowrap;
-    font-size: 0.9rem;
-}
-
-#repuestos-table td {
-    padding: 12px 10px;
+    font-size: 0.875rem;
     vertical-align: middle;
-    font-size: 0.9rem;
-    word-wrap: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: center;
+    white-space: nowrap;
 }
 
-/* Ajustar columnas específicas para mejor distribución */
-#repuestos-table th:nth-child(1),
-#repuestos-table td:nth-child(1) {
-    width: 8%;
-    min-width: 90px;
-    max-width: 120px;
-}
-
-#repuestos-table th:nth-child(2),
-#repuestos-table td:nth-child(2) {
-    width: 30%;
-    min-width: 200px;
-    max-width: 350px;
-}
-
-#repuestos-table th:nth-child(3),
-#repuestos-table td:nth-child(3) {
-    width: 15%;
-    min-width: 140px;
-    max-width: 200px;
-}
-
-#repuestos-table th:nth-child(4),
-#repuestos-table td:nth-child(4) {
-    width: 10%;
-    min-width: 100px;
-    max-width: 130px;
-}
-
-#repuestos-table th:nth-child(5),
-#repuestos-table td:nth-child(5) {
-    width: 12%;
-    min-width: 120px;
-    max-width: 150px;
-}
-
-#repuestos-table th:nth-child(6),
-#repuestos-table td:nth-child(6) {
-    width: 10%;
-    min-width: 100px;
-    max-width: 130px;
-}
-
-#repuestos-table th:nth-child(7),
-#repuestos-table td:nth-child(7) {
-    width: 15%;
-    min-width: 150px;
-    max-width: 200px;
-}
-
-.table-responsive {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    width: 100%;
-    margin-bottom: 3rem;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Estilos para hacer visible el scrollbar */
-.table-responsive::-webkit-scrollbar {
-    height: 12px;
-    background-color: #f5f5f5;
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background-color: #888;
-    border-radius: 6px;
-}
-
-.table-responsive::-webkit-scrollbar-thumb:hover {
-    background-color: #555;
-}
-
-.table-responsive::-webkit-scrollbar-track {
-    background-color: #f5f5f5;
-    border-radius: 6px;
-}
-
-/* DataTables wrapper con scroll X */
-.dataTables_wrapper {
-    width: 100% !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    margin: 0 auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Estilos para scrollbar en DataTables wrapper */
-.dataTables_wrapper::-webkit-scrollbar {
-    height: 12px;
-    background-color: #f5f5f5;
-}
-
-.dataTables_wrapper::-webkit-scrollbar-thumb {
-    background-color: #888;
-    border-radius: 6px;
-}
-
-.dataTables_wrapper::-webkit-scrollbar-thumb:hover {
-    background-color: #555;
-}
-
-.dataTables_wrapper::-webkit-scrollbar-track {
-    background-color: #f5f5f5;
-    border-radius: 6px;
-}
-
-.dataTables_scrollHead,
-.dataTables_scrollBody {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-}
-
-/* Asegurar que el contenedor de la tabla tenga scroll X */
-.repuestos-container .card-body .table-responsive {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Scrollbar para Firefox */
-.repuestos-container .card-body .table-responsive,
-.dataTables_wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: #888 #f5f5f5;
-}
-
-/* Ajustar el tamaño de la tabla para que quepa sin scroll */
-#repuestos-table {
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-/* Ajustar columnas para que quepan en el ancho disponible */
-#repuestos-table th,
 #repuestos-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    padding: 12px 15px;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #dee2e6;
 }
 
-#repuestos-table td:nth-child(2) {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.4;
+#repuestos-table tbody tr:hover {
+    background-color: #f8f9fa;
+    transition: background-color 0.2s ease;
 }
 
-/* Espacio para el wrapper del DataTable y su paginación */
-.dataTables_wrapper {
-    margin-bottom: 3rem !important;
-    padding-bottom: 2rem !important; /* Espacio extra para la paginación */
+#repuestos-table td.text-center {
+    text-align: center !important;
 }
 
-/* Asegurar que la información y paginación del DataTable tengan espacio */
-.dataTables_info,
-.dataTables_paginate {
-    margin-top: 1.5rem !important;
-    margin-bottom: 1rem !important;
-    padding-bottom: 1rem !important;
+#repuestos-table td.text-left {
+    text-align: left !important;
 }
 
-/* Ya está definido arriba */
-
-/* Badges de stock */
-.badge {
+#repuestos-table .badge {
+    display: inline-block;
     padding: 6px 12px;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
+    border-radius: 4px;
+    text-align: center;
+    margin: 0 auto;
 }
 
-/* Botones */
-.btn {
-    border-radius: 8px;
-    padding: 0.5rem 1.5rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.btn-sm {
+#repuestos-table .btn-ver-movimientos {
     padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    white-space: nowrap;
 }
 
-/* Resumen de inventario */
+/* Resumen de Inventario */
+.repuestos-container .col-lg-3 .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.repuestos-container .col-lg-3 .card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 #resumen-inventario {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 #resumen-inventario .d-flex {
@@ -322,61 +248,152 @@
     border-bottom: none;
 }
 
+#resumen-inventario .d-flex strong {
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: block;
+    width: 100%;
+    line-height: 1.3;
+}
+
+#resumen-inventario .d-flex small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+#resumen-inventario h4,
+#resumen-inventario h5 {
+    font-weight: 700;
+    margin: 0;
+}
+
+#resumen-inventario h6 {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.75rem;
+}
+
 /* Alertas de stock bajo */
+#alertas-stock {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
 #alertas-stock .list-unstyled li {
     transition: all 0.2s ease;
 }
 
 #alertas-stock .list-unstyled li:hover {
     background-color: #fff3cd !important;
-    transform: translateX(5px);
+    transform: translateX(3px);
 }
 
-/* Asegurar que el contenido no se desplace con el sidebar */
-.pc-container {
-    overflow-x: hidden;
-    position: relative;
+#alertas-stock .list-unstyled li .badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
 }
 
-.pc-content {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    transition: none !important;
-    width: 100% !important;
-    max-width: 1400px !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    padding: 0 1rem !important;
-    padding-bottom: 12rem !important; /* Espacio muy amplio para separar del footer y la paginación */
-    min-height: calc(100vh - 200px); /* Altura mínima para que el contenido tenga espacio */
-}
-
-@media (max-width: 768px) {
-    .pc-content {
-        padding-bottom: 10rem !important;
-        min-height: calc(100vh - 150px);
-    }
-}
-
-@media (max-width: 480px) {
-    .pc-content {
-        padding-bottom: 8rem !important;
-        min-height: calc(100vh - 120px);
-    }
-}
-
-/* Evitar que el custom-page-header empuje el contenido */
+/* Header de página */
 .custom-page-header {
     padding-left: 0 !important;
     margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 1rem !important;
+    background: #f8f9fa !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.pc-content {
+    padding-top: 2.5rem !important;
+    margin-top: 0 !important;
+}
+
+#repuestos-section {
+    margin-top: 2rem !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.repuestos-container {
+    margin-top: 2rem !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.custom-page-header h5 {
+    color: #212529 !important;
+    font-weight: 600 !important;
+}
+
+.custom-page-header .breadcrumb {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.custom-page-header .breadcrumb-item a {
+    color: #004B93 !important;
+    text-decoration: none !important;
+}
+
+.custom-page-header .breadcrumb-item a:hover {
+    color: #E21C21 !important;
+}
+
+.custom-page-header .breadcrumb-item.active {
+    color: #6c757d !important;
+}
+
+.custom-page-header .breadcrumb-item + .breadcrumb-item::before {
+    color: #6c757d !important;
+    content: "/" !important;
 }
 
 .page-block {
     padding-left: 15px !important;
     padding-right: 15px !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+}
+
+/* Scrollbar personalizado */
+#resumen-inventario::-webkit-scrollbar,
+#alertas-stock::-webkit-scrollbar {
+    width: 6px;
+}
+
+#resumen-inventario::-webkit-scrollbar-track,
+#alertas-stock::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#resumen-inventario::-webkit-scrollbar-thumb,
+#alertas-stock::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#resumen-inventario::-webkit-scrollbar-thumb:hover,
+#alertas-stock::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 /* Responsive */
+@media (max-width: 991px) {
+    .repuestos-container .col-lg-9,
+    .repuestos-container .col-lg-3 {
+        margin-bottom: 1rem;
+    }
+    
+    .repuestos-container .col-lg-3 .card {
+        min-height: auto;
+    }
+}
+
 @media (max-width: 768px) {
     .repuestos-container {
         padding: 0 10px;
@@ -392,5 +409,25 @@
         width: 100%;
         justify-content: flex-start;
     }
+    
+    #repuestos-table th,
+    #repuestos-table td {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+    
+    #repuestos-table .btn-ver-movimientos {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    #repuestos-table .btn-ver-movimientos i {
+        display: none;
+    }
 }
 
+/* Spinner de carga */
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}

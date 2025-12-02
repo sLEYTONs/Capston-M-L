@@ -117,8 +117,28 @@ try {
             break;
 
         case 'obtenerTodosRepuestos':
-            $repuestos = obtenerTodosRepuestos();
-            echo json_encode(['status' => 'success', 'data' => $repuestos]);
+            try {
+                $resultado = obtenerTodosRepuestos();
+                // Si ya viene con formato de respuesta, devolverlo directamente
+                if (isset($resultado['status'])) {
+                    echo json_encode($resultado);
+                } else {
+                    // Compatibilidad con formato antiguo
+                    echo json_encode(['status' => 'success', 'data' => $resultado]);
+                }
+            } catch (Exception $e) {
+                ob_clean();
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Error al obtener repuestos: ' . $e->getMessage()
+                ]);
+            } catch (Error $e) {
+                ob_clean();
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Error fatal al obtener repuestos: ' . $e->getMessage()
+                ]);
+            }
             break;
 
         case 'obtenerRepuestosStockBajo':

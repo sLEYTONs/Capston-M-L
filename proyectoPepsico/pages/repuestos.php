@@ -37,7 +37,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                     <div class="col-md-12">
                         <h5 class="mb-1">Gestión de Repuestos</h5>
                         <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb">
+                            <ol class="breadcrumb mb-0">
                                 <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
                                 <li class="breadcrumb-item active" aria-current="page">Repuestos</li>
                             </ol>
@@ -46,7 +46,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 </div>
             </div>
         </div>
-        <div class="pc-content">
+        <div class="pc-content" style="padding-top: 2.5rem;">
             <?php include 'repuestos/contents.php'; ?>
         </div>
     </div>
