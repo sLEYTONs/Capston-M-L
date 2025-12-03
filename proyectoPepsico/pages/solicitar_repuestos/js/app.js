@@ -15,8 +15,62 @@ class SolicitarRepuestos {
     }
 
     inicializar() {
+        this.cargarVehiculos();
         this.cargarRepuestos();
         this.inicializarEventos();
+    }
+
+    cargarVehiculos() {
+        // Solo cargar vehículos si el usuario es mecánico
+        const urlParams = new URLSearchParams(window.location.search);
+        const asignacionId = urlParams.get('asignacion_id');
+        
+        // Si ya hay un asignacion_id en la URL, seleccionarlo automáticamente
+        if (asignacionId && asignacionId !== '0' && asignacionId !== '') {
+            // Cargar vehículos para mostrar opciones, pero preseleccionar el de la URL
+            this.cargarVehiculosAsignados(asignacionId);
+        } else {
+            // Cargar todos los vehículos asignados al mecánico
+            this.cargarVehiculosAsignados();
+        }
+    }
+
+    cargarVehiculosAsignados(preseleccionarAsignacionId = null) {
+        fetch(this.baseUrl + '?action=obtenerVehiculosAsignados', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                this.actualizarSelectVehiculos(data.data, preseleccionarAsignacionId);
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar vehículos:', error);
+        });
+    }
+
+    actualizarSelectVehiculos(vehiculos, preseleccionarAsignacionId = null) {
+        const select = document.getElementById('vehiculo-select');
+        if (!select) return;
+
+        // Mantener la opción "Seleccionar vehículo (opcional)..."
+        select.innerHTML = '<option value="">Seleccionar vehículo (opcional)...</option>';
+        
+        vehiculos.forEach(vehiculo => {
+            const option = document.createElement('option');
+            option.value = vehiculo.AsignacionID;
+            const vehiculoTexto = `${vehiculo.Placa} - ${vehiculo.Marca} ${vehiculo.Modelo} (${vehiculo.TipoVehiculo})`;
+            option.textContent = vehiculoTexto;
+            
+            // Preseleccionar si coincide con el asignacion_id de la URL
+            if (preseleccionarAsignacionId && parseInt(vehiculo.AsignacionID) === parseInt(preseleccionarAsignacionId)) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
     }
 
     inicializarEventos() {
@@ -73,13 +127,18 @@ class SolicitarRepuestos {
         const form = document.getElementById('form-solicitud-repuestos');
         const formData = new FormData(form);
 
-        // Obtener asignacion_id de la URL si existe (para mecánicos)
+        // Obtener asignacion_id del selector de vehículo (prioridad) o de la URL
+        const asignacionIdSelect = document.getElementById('vehiculo-select')?.value;
         const urlParams = new URLSearchParams(window.location.search);
-        const asignacionId = urlParams.get('asignacion_id');
+        const asignacionIdUrl = urlParams.get('asignacion_id');
         
-        // Si hay asignacion_id en la URL, agregarlo al formData
-        // Si no hay (como para Asistente de Repuestos), no agregar nada (será null)
-        if (asignacionId && asignacionId !== '0' && asignacionId !== '') {
+        // Prioridad: selector > URL
+        const asignacionId = asignacionIdSelect && asignacionIdSelect !== '' 
+            ? asignacionIdSelect 
+            : (asignacionIdUrl && asignacionIdUrl !== '0' && asignacionIdUrl !== '' ? asignacionIdUrl : null);
+        
+        // Si hay asignacion_id, agregarlo al formData
+        if (asignacionId) {
             formData.append('asignacion_id', asignacionId);
         }
         // Si no hay asignacion_id, no agregarlo al formData (el backend lo manejará como null)

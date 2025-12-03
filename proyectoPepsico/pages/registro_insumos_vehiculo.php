@@ -22,6 +22,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
     
     <?php include 'general/head.php'; ?>
+    <link rel="stylesheet" href="../assets/css/repuestos-layout-shared.css">
     <link rel="stylesheet" href="registro_insumos_vehiculo/css/registro_insumos.css">
 </head>
 

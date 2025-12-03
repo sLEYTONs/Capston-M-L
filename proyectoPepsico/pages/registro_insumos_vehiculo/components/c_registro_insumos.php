@@ -1,17 +1,20 @@
 <!-- Sección de Registro de Insumos por Vehículo -->
 <section id="registro-insumos-section" class="section">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
+    <div class="repuestos-container">
+        <div class="repuestos-layout">
+            <!-- Contenido principal -->
+            <div class="repuestos-main-content">
+                <div class="card h-100">
                     <div class="card-header">
-                        <h4 class="card-title">
+                        <h4 class="card-title mb-0">
                             <i class="fas fa-clipboard-list me-2"></i>
                             Registro de Insumos por Vehículo
                         </h4>
-                        <button class="btn btn-primary btn-sm" id="btn-nuevo-registro">
-                            <i class="fas fa-plus me-1"></i> Nuevo Registro
-                        </button>
+                        <div class="card-actions">
+                            <button class="btn btn-outline-light btn-sm" id="btn-nuevo-registro" title="Nuevo Registro">
+                                <i class="fas fa-plus me-1"></i> Nuevo Registro
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <!-- Filtros -->
@@ -39,9 +42,9 @@
                         </div>
 
                         <!-- Tabla de Registros -->
-                        <div class="table-responsive">
-                            <table id="tabla-insumos" class="table table-striped" style="width:100%">
-                                <thead>
+                        <div class="tabla-container">
+                            <table id="tabla-insumos" class="table table-striped table-hover table-bordered" style="width:100%">
+                                <thead class="table-light">
                                     <tr>
                                         <th>Fecha</th>
                                         <th>Vehículo</th>

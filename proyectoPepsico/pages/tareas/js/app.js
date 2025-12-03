@@ -106,12 +106,22 @@ class TareasMecanico {
             this.mostrarModalPausar(asignacionId, placa);
         });
 
+        $(document).on('click', '.btn-gestionar-repuestos', (e) => {
+            const asignacionId = $(e.currentTarget).data('id');
+            const placa = $(e.currentTarget).data('placa');
+            this.mostrarModalRepuestos(asignacionId, placa);
+        });
+
         $('#guardar-avance').on('click', () => {
             this.guardarAvance();
         });
 
         $('#confirmar-pausa').on('click', () => {
             this.confirmarPausa();
+        });
+
+        $('#guardar-uso-repuestos').on('click', () => {
+            this.guardarUsoRepuestos();
         });
 
         // Manejar selección de fotos
@@ -213,6 +223,12 @@ class TareasMecanico {
                                         data-id="${data.AsignacionID}" 
                                         title="Ver Historial">
                                     <i class="fas fa-history me-1"></i>
+                                </button>
+                                <button class="btn btn-success btn-sm btn-gestionar-repuestos" 
+                                        data-id="${data.AsignacionID}" 
+                                        data-placa="${data.Placa}"
+                                        title="Gestionar Repuestos Aprobados">
+                                    <i class="fas fa-boxes me-1"></i>Repuestos
                                 </button>
                             `;
                             
@@ -873,6 +889,188 @@ class TareasMecanico {
         
         $container.append(toastHtml);
         $('.toast').toast('show');
+    }
+
+    mostrarModalRepuestos(asignacionId, placa) {
+        $('#modal-placa-repuestos').text(placa);
+        const modal = new bootstrap.Modal(document.getElementById('repuestosModal'));
+        modal.show();
+        this.cargarRepuestosAprobados();
+    }
+
+    cargarRepuestosAprobados() {
+        const lista = $('#repuestos-aprobados-lista');
+        lista.html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i><p class="text-muted mt-2">Cargando repuestos aprobados...</p></div>');
+
+        $.ajax({
+            url: '../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php',
+            type: 'POST',
+            data: { action: 'obtenerRepuestosAprobados' },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success' && response.data && response.data.length > 0) {
+                    this.mostrarRepuestosAprobados(response.data);
+                } else {
+                    lista.html('<div class="alert alert-info text-center"><i class="fas fa-info-circle me-2"></i>No tiene repuestos aprobados pendientes de gestionar.</div>');
+                }
+            },
+            error: (xhr, status, error) => {
+                lista.html(`<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar repuestos: ${error}</div>`);
+            }
+        });
+    }
+
+    mostrarRepuestosAprobados(repuestos) {
+        const lista = $('#repuestos-aprobados-lista');
+        let html = '<div class="table-responsive"><table class="table table-hover">';
+        html += '<thead><tr><th>Repuesto</th><th>Cantidad Aprobada</th><th>Usada</th><th>Devuelta</th><th>Disponible</th><th>Acciones</th></tr></thead><tbody>';
+
+        repuestos.forEach(repuesto => {
+            const cantidadDisponible = parseInt(repuesto.CantidadPendiente) || 0;
+            html += `
+                <tr>
+                    <td>
+                        <strong>${repuesto.RepuestoNombre}</strong><br>
+                        <small class="text-muted">${repuesto.RepuestoCodigo || 'Sin código'}</small>
+                        ${repuesto.Placa ? `<br><small class="text-info"><i class="fas fa-car me-1"></i>${repuesto.Placa}</small>` : ''}
+                    </td>
+                    <td>${repuesto.Cantidad}</td>
+                    <td><span class="badge bg-success">${repuesto.CantidadUsada || 0}</span></td>
+                    <td><span class="badge bg-info">${repuesto.CantidadDevuelta || 0}</span></td>
+                    <td><span class="badge bg-primary">${cantidadDisponible}</span></td>
+                    <td>
+                        ${cantidadDisponible > 0 ? `
+                            <button class="btn btn-sm btn-success btn-usar-repuesto" 
+                                    data-solicitud-id="${repuesto.SolicitudID}"
+                                    data-repuesto-nombre="${repuesto.RepuestoNombre}"
+                                    data-cantidad-aprobada="${repuesto.Cantidad}"
+                                    data-cantidad-usada="${repuesto.CantidadUsada || 0}"
+                                    data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
+                                    data-cantidad-disponible="${cantidadDisponible}">
+                                <i class="fas fa-check me-1"></i>Usar
+                            </button>
+                            <button class="btn btn-sm btn-info btn-devolver-repuesto" 
+                                    data-solicitud-id="${repuesto.SolicitudID}"
+                                    data-repuesto-nombre="${repuesto.RepuestoNombre}"
+                                    data-cantidad-aprobada="${repuesto.Cantidad}"
+                                    data-cantidad-usada="${repuesto.CantidadUsada || 0}"
+                                    data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
+                                    data-cantidad-disponible="${cantidadDisponible}">
+                                <i class="fas fa-undo me-1"></i>Devolver
+                            </button>
+                        ` : '<span class="badge bg-secondary">Completado</span>'}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table></div>';
+        lista.html(html);
+
+        // Event listeners para los botones
+        $(document).off('click', '.btn-usar-repuesto').on('click', '.btn-usar-repuesto', (e) => {
+            const $btn = $(e.currentTarget);
+            this.mostrarModalUsoRepuestos(
+                $btn.data('solicitud-id'),
+                $btn.data('repuesto-nombre'),
+                $btn.data('cantidad-aprobada'),
+                $btn.data('cantidad-usada'),
+                $btn.data('cantidad-devuelta'),
+                $btn.data('cantidad-disponible'),
+                'uso'
+            );
+        });
+
+        $(document).off('click', '.btn-devolver-repuesto').on('click', '.btn-devolver-repuesto', (e) => {
+            const $btn = $(e.currentTarget);
+            this.mostrarModalUsoRepuestos(
+                $btn.data('solicitud-id'),
+                $btn.data('repuesto-nombre'),
+                $btn.data('cantidad-aprobada'),
+                $btn.data('cantidad-usada'),
+                $btn.data('cantidad-devuelta'),
+                $btn.data('cantidad-disponible'),
+                'devolucion'
+            );
+        });
+    }
+
+    mostrarModalUsoRepuestos(solicitudId, repuestoNombre, cantidadAprobada, cantidadUsada, cantidadDevuelta, cantidadDisponible, tipo) {
+        $('#uso-solicitud-id').val(solicitudId);
+        $('#uso-tipo').val(tipo);
+        $('#info-repuesto-nombre').text(repuestoNombre);
+        $('#info-cantidad-aprobada').text(cantidadAprobada);
+        $('#info-cantidad-usada').text(cantidadUsada);
+        $('#info-cantidad-devuelta').text(cantidadDevuelta);
+        $('#info-cantidad-disponible').text(cantidadDisponible);
+        $('#cantidad-accion').val('').attr('max', cantidadDisponible);
+
+        if (tipo === 'uso') {
+            $('#modal-titulo-uso-repuestos').text('Registrar Uso de Repuestos');
+            $('#label-cantidad-accion').text('Cantidad a Usar');
+            $('#help-cantidad-accion').text(`Ingrese la cantidad que desea usar (máximo: ${cantidadDisponible})`);
+            $('#modal-header-uso-repuestos').removeClass('bg-info').addClass('bg-success');
+        } else {
+            $('#modal-titulo-uso-repuestos').text('Devolver Repuestos');
+            $('#label-cantidad-accion').text('Cantidad a Devolver');
+            $('#help-cantidad-accion').text(`Ingrese la cantidad que desea devolver al stock (máximo: ${cantidadDisponible})`);
+            $('#modal-header-uso-repuestos').removeClass('bg-success').addClass('bg-info');
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('usoRepuestosModal'));
+        modal.show();
+    }
+
+    guardarUsoRepuestos() {
+        const solicitudId = $('#uso-solicitud-id').val();
+        const tipo = $('#uso-tipo').val();
+        const cantidad = parseInt($('#cantidad-accion').val()) || 0;
+        const observaciones = $('#observaciones-uso').val().trim();
+        const cantidadDisponible = parseInt($('#info-cantidad-disponible').text()) || 0;
+
+        if (cantidad <= 0) {
+            alert('La cantidad debe ser mayor a 0');
+            return;
+        }
+
+        if (cantidad > cantidadDisponible) {
+            alert(`La cantidad no puede ser mayor a ${cantidadDisponible}`);
+            return;
+        }
+
+        $('#guardar-uso-repuestos').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
+
+        const action = tipo === 'uso' ? 'registrarUsoRepuestos' : 'registrarDevolucionRepuestos';
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('solicitud_id', solicitudId);
+        formData.append('cantidad_' + (tipo === 'uso' ? 'usada' : 'devuelta'), cantidad);
+        formData.append('observaciones', observaciones);
+
+        $.ajax({
+            url: '../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success') {
+                    this.mostrarToast('Éxito', response.message, 'success');
+                    const usoModal = bootstrap.Modal.getInstance(document.getElementById('usoRepuestosModal'));
+                    usoModal.hide();
+                    $('#form-uso-repuestos')[0].reset();
+                    this.cargarRepuestosAprobados();
+                } else {
+                    alert('Error: ' + response.message);
+                    $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+                }
+            },
+            error: (xhr, status, error) => {
+                alert('Error de conexión: ' + error);
+                $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+            }
+        });
     }
 }
 

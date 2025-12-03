@@ -268,11 +268,29 @@ $(document).ready(function () {
     function mostrarModalExito(vehiculoId, mensaje) {
         $('#mensaje-exito').text(mensaje || 'El vehículo ha sido registrado correctamente en el sistema.');
         $('#fecha-registro').text(new Date().toLocaleString('es-CL'));
-        $('#modal-exito').modal('show');
+        
+        // Usar Bootstrap 5 Modal API
+        const modalElement = document.getElementById('modal-exito');
+        if (!modalElement) return;
+        
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal.show();
 
-        $('.btn-another').off('click').on('click', function () {
-            $('#modal-exito').modal('hide');
-            limpiarFormulario();
+        // Limpiar event listeners previos y agregar nuevos
+        $('.btn-continue').off('click.modal').on('click.modal', function () {
+            modal.hide();
+        });
+
+        $('.btn-another').off('click.modal').on('click.modal', function () {
+            modal.hide();
+            setTimeout(function() {
+                limpiarFormulario();
+            }, 300);
+        });
+
+        // El botón X ya funciona con data-bs-dismiss, pero agregamos listener adicional por si acaso
+        $(modalElement).find('.btn-close').off('click.modal').on('click.modal', function () {
+            modal.hide();
         });
     }
 });

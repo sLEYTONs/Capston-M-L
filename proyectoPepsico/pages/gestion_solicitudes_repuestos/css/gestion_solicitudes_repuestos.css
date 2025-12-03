@@ -1,0 +1,146 @@
+.gestion-solicitudes-repuestos-container {
+    padding: 1rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+    padding: 1rem 1.5rem;
+}
+
+.card-header h4 {
+    margin: 0;
+    font-weight: 600;
+}
+
+#tabla-solicitudes {
+    font-size: 0.9rem;
+}
+
+#tabla-solicitudes th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    padding: 12px 15px;
+    border-bottom: 2px solid #dee2e6;
+    vertical-align: middle;
+}
+
+#tabla-solicitudes td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#tabla-solicitudes tbody tr:hover {
+    background-color: #f8f9fa;
+    transition: background-color 0.2s ease;
+}
+
+.badge {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+.badge-urgencia-alta {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-urgencia-media {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-urgencia-baja {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-estado-pendiente {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-estado-aprobada {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.badge-estado-entregada {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-estado-rechazada {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-action {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.85rem;
+    margin: 0 2px;
+}
+
+/* Botón de alerta cuando no hay stock */
+.btn-alerta-stock {
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
+    color: #212529 !important;
+    font-weight: 600;
+    animation: pulse-alert 2s infinite;
+}
+
+.btn-alerta-stock:hover {
+    background-color: #e0a800 !important;
+    border-color: #d39e00 !important;
+    color: #212529 !important;
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(255, 193, 7, 0.4);
+}
+
+.btn-alerta-stock .fa-exclamation-triangle {
+    animation: shake 0.5s infinite;
+}
+
+@keyframes pulse-alert {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-10deg);
+    }
+    75% {
+        transform: rotate(10deg);
+    }
+}
+
+.stock-disponible {
+    font-weight: 600;
+}
+
+.stock-suficiente {
+    color: #28a745;
+}
+
+.stock-insuficiente {
+    color: #dc3545;
+}
+
+.stock-bajo {
+    color: #ffc107;
+}
+

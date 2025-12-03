@@ -11,7 +11,15 @@
                 <div class="card-body">
                     <form id="form-solicitud-repuestos">
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="vehiculo-select" class="form-label">Vehículo Asignado</label>
+                                <select class="form-select" id="vehiculo-select" name="asignacion_id">
+                                    <option value="">Seleccionar vehículo (opcional)...</option>
+                                    <!-- Se cargarán dinámicamente -->
+                                </select>
+                                <small class="form-text text-muted">Seleccione el vehículo al que corresponde este repuesto. Si tiene varios vehículos asignados, elija el correspondiente.</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label for="repuesto-select" class="form-label">Repuesto <span class="text-danger">*</span></label>
                                 <select class="form-select" id="repuesto-select" name="repuesto_id" required>
                                     <option value="">Cargando repuestos...</option>

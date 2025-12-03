@@ -1,10 +1,11 @@
 <!-- Sección de Repuestos -->
 <section id="repuestos-section" class="section">
     <div class="repuestos-container">
-        <div class="row g-3">
-            <!-- Tabla principal - Ocupa aproximadamente 75% -->
-            <div class="col-12 col-lg-9">
+        <div class="repuestos-layout">
+            <!-- Contenido principal con tabla -->
+            <div class="repuestos-main-content">
                 <div class="card h-100">
+                    <?php if ($usuario_rol === 'Asistente de Repuestos' || $usuario_rol === 'Administrador' || $usuario_rol === 'Jefe de Taller'): ?>
                     <div class="card-header">
                         <h4 class="card-title mb-0">
                             <i class="fas fa-boxes me-2"></i>
@@ -16,10 +17,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="card-body" style="padding: 0;">
-                        <!-- Contenedor de tabla - Ocupa todo el espacio -->
-                        <div id="tabla-container" class="tabla-container" style="width: 100%; height: 100%; min-height: 500px;">
-                            <table id="repuestos-table" class="table table-striped table-hover table-bordered" style="width: 100%; margin: 0;">
+                    <?php endif; ?>
+                    <div class="card-body">
+                        <!-- Contenedor de tabla con padding -->
+                        <div id="tabla-container" class="tabla-container">
+                            <table id="repuestos-table" class="table table-striped table-hover table-bordered">
                                 <thead class="table-light">
                                     <tr>
                                         <th class="text-left">Nombre</th>
@@ -41,8 +43,8 @@
                 </div>
             </div>
             
-            <!-- Resumen - Al lado de la tabla, aproximadamente 25% -->
-            <div class="col-12 col-lg-3">
+            <!-- Aside con resumen de inventario -->
+            <aside class="repuestos-aside">
                 <div class="card h-100 mb-3">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
@@ -60,28 +62,7 @@
                         </div>
                     </div>
                 </div>
-                
-                <?php if ($usuario_rol === 'Mecánico'): ?>
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Stock Bajo
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <button class="btn btn-warning btn-sm w-100 mb-3" id="btn-alertar-stock">
-                            <i class="fas fa-bell me-1"></i>Alertar Jefe
-                        </button>
-                        <div id="alertas-stock">
-                            <div class="text-center py-2">
-                                <small class="text-muted">Cargando alertas...</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-            </div>
+            </aside>
         </div>
     </div>
 </section>

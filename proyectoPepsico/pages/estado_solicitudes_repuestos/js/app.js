@@ -88,9 +88,36 @@ class EstadoSolicitudesRepuestos {
             const urgenciaClass = this.getUrgenciaClass(solicitud.Urgencia);
 
             // Verificar si hay vehículo asignado
-            const placaHTML = (solicitud.Placa && solicitud.Placa.trim() !== '') 
+            const tienePlaca = solicitud.Placa && 
+                              solicitud.Placa.trim() !== '' && 
+                              solicitud.Placa !== 'null' && 
+                              solicitud.Placa !== 'undefined' &&
+                              solicitud.Placa !== null;
+            const placaHTML = tienePlaca
                 ? `<span class="badge bg-info">${solicitud.Placa}</span>`
                 : `<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>No asignado</span>`;
+
+            // Botón para asignar vehículo si está aprobada y no tiene vehículo asignado
+            let botonesAccion = `
+                <button class="btn btn-sm btn-info" onclick="estadoSolicitudes.verDetallesSolicitud(${solicitud.ID})" title="Ver detalles">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+            
+            // Mostrar botón de asignar vehículo si está aprobada y no tiene placa asignada
+            const estaAprobada = solicitud.Estado === 'Aprobada' || solicitud.Estado === 'aprobada';
+            const sinVehiculo = !tienePlaca;
+            
+            // Debug: descomentar para verificar condiciones
+            // console.log('Solicitud ID:', solicitud.ID, 'Estado:', solicitud.Estado, 'Placa:', solicitud.Placa, 'EstaAprobada:', estaAprobada, 'SinVehiculo:', sinVehiculo);
+            
+            if (estaAprobada && sinVehiculo) {
+                botonesAccion += `
+                    <button class="btn btn-sm btn-success ms-1" onclick="estadoSolicitudes.mostrarModalAsignarVehiculo(${solicitud.ID})" title="Asignar vehículo">
+                        <i class="fas fa-car me-1"></i>Asignar Vehículo
+                    </button>
+                `;
+            }
 
             row.innerHTML = `
                 <td><strong>#${solicitud.ID}</strong></td>
@@ -101,9 +128,9 @@ class EstadoSolicitudesRepuestos {
                 <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
                 <td>${solicitud.FechaSolicitud}</td>
                 <td>
-                    <button class="btn btn-sm btn-info" onclick="estadoSolicitudes.verDetallesSolicitud(${solicitud.ID})" title="Ver detalles">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="btn-group">
+                        ${botonesAccion}
+                    </div>
                 </td>
             `;
             tbody.appendChild(row);
@@ -337,6 +364,155 @@ class EstadoSolicitudesRepuestos {
                 icon: 'error',
                 title: 'Error',
                 text: mensaje
+            });
+        } else {
+            alert(mensaje);
+        }
+    }
+
+    mostrarModalAsignarVehiculo(solicitudId) {
+        const solicitud = this.solicitudes.find(s => s.ID == solicitudId);
+        if (!solicitud) return;
+
+        // Cargar vehículos asignados al mecánico
+        fetch(this.baseUrl + '?action=obtenerVehiculosAsignados', {
+            method: 'GET',
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data) {
+                this.mostrarModalSeleccionVehiculo(solicitudId, data.data);
+            } else {
+                this.mostrarError('Error al cargar vehículos asignados');
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar vehículos:', error);
+            this.mostrarError('Error de conexión al cargar vehículos');
+        });
+    }
+
+    mostrarModalSeleccionVehiculo(solicitudId, vehiculos) {
+        if (vehiculos.length === 0) {
+            this.mostrarError('No tiene vehículos asignados para asociar a esta solicitud');
+            return;
+        }
+
+        let opcionesHTML = '<option value="">Seleccione un vehículo...</option>';
+        vehiculos.forEach(vehiculo => {
+            const texto = `${vehiculo.Placa} - ${vehiculo.Marca} ${vehiculo.Modelo} (${vehiculo.TipoVehiculo})`;
+            opcionesHTML += `<option value="${vehiculo.AsignacionID}">${texto}</option>`;
+        });
+
+        const modalHTML = `
+            <div class="modal fade" id="modal-asignar-vehiculo" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-car me-2"></i>
+                                Asignar Vehículo a Solicitud
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Seleccione el vehículo al que corresponde esta solicitud de repuestos:</p>
+                            <div class="mb-3">
+                                <label for="select-vehiculo-asignar" class="form-label">Vehículo *</label>
+                                <select class="form-select" id="select-vehiculo-asignar" required>
+                                    ${opcionesHTML}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-success" id="btn-confirmar-asignar-vehiculo" data-solicitud-id="${solicitudId}">
+                                <i class="fas fa-check me-2"></i>Asignar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remover modal anterior si existe
+        const modalAnterior = document.getElementById('modal-asignar-vehiculo');
+        if (modalAnterior) {
+            modalAnterior.remove();
+        }
+
+        // Agregar modal al body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Inicializar modal
+        const modalElement = document.getElementById('modal-asignar-vehiculo');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        // Event listener para el botón de confirmar
+        document.getElementById('btn-confirmar-asignar-vehiculo').addEventListener('click', () => {
+            this.confirmarAsignarVehiculo(solicitudId);
+        });
+
+        // Limpiar modal al cerrar
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+    }
+
+    confirmarAsignarVehiculo(solicitudId) {
+        const asignacionId = document.getElementById('select-vehiculo-asignar').value;
+        
+        if (!asignacionId) {
+            this.mostrarError('Seleccione un vehículo');
+            return;
+        }
+
+        const btn = document.getElementById('btn-confirmar-asignar-vehiculo');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Asignando...';
+
+        const formData = new FormData();
+        formData.append('action', 'asignarVehiculoASolicitud');
+        formData.append('solicitud_id', solicitudId);
+        formData.append('asignacion_id', asignacionId);
+
+        fetch(this.baseUrl, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                this.mostrarExito(data.message);
+                const modalElement = document.getElementById('modal-asignar-vehiculo');
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                modal.hide();
+                this.cargarSolicitudes(); // Recargar solicitudes
+            } else {
+                this.mostrarError('Error: ' + (data.message || 'Error desconocido'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-2"></i>Asignar';
+            }
+        })
+        .catch(error => {
+            console.error('Error al asignar vehículo:', error);
+            this.mostrarError('Error de conexión al asignar vehículo');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-2"></i>Asignar';
+        });
+    }
+
+    mostrarExito(mensaje) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: mensaje,
+                timer: 3000,
+                showConfirmButton: false
             });
         } else {
             alert(mensaje);

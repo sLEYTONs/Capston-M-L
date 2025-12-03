@@ -69,7 +69,7 @@ try {
             break;
 
         case 'obtenerRepuestos':
-            // Solo mostrar repuestos sin stock (stock = 0) para solicitar compra
+            // Mostrar TODOS los repuestos disponibles (no solo sin stock)
             // Excluir repuestos que ya tienen solicitudes pendientes o aprobadas del mismo mecánico
             $mecanico_id = null;
             $asignacion_id = null;
@@ -85,7 +85,8 @@ try {
                 }
             }
             
-            $repuestos = obtenerRepuestosDisponibles(true, $mecanico_id, $asignacion_id);
+            // Cambiar a false para mostrar TODOS los repuestos, no solo sin stock
+            $repuestos = obtenerRepuestosDisponibles(false, $mecanico_id, $asignacion_id);
             echo json_encode(['status' => 'success', 'data' => $repuestos]);
             break;
 
@@ -146,6 +147,64 @@ try {
             echo json_encode(['status' => 'success', 'data' => $repuestos]);
             break;
 
+        case 'obtenerTodasSolicitudesRepuestos':
+            // Solo para Asistente de Repuestos y Administrador
+            if (!in_array($_SESSION['usuario']['rol'], ['Asistente de Repuestos', 'Administrador'])) {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $estado = !empty($_GET['estado']) ? $_GET['estado'] : null;
+            $solicitudes = obtenerTodasSolicitudesRepuestos($estado);
+            echo json_encode(['status' => 'success', 'data' => $solicitudes]);
+            break;
+
+        case 'aprobarSolicitudRepuestos':
+            // Solo para Asistente de Repuestos y Administrador
+            if (!in_array($_SESSION['usuario']['rol'], ['Asistente de Repuestos', 'Administrador'])) {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            $aprobador_id = $_SESSION['usuario']['id'];
+            if ($solicitud_id <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'ID de solicitud inválido']);
+                exit();
+            }
+            $resultado = aprobarSolicitudRepuestos($solicitud_id, $aprobador_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'notificarJefeTallerStock':
+            // Solo para Asistente de Repuestos y Administrador
+            if (!in_array($_SESSION['usuario']['rol'], ['Asistente de Repuestos', 'Administrador'])) {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            if ($solicitud_id <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'ID de solicitud inválido']);
+                exit();
+            }
+            $resultado = notificarJefeTallerStock($solicitud_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'entregarSolicitudRepuestos':
+            // Solo para Asistente de Repuestos y Administrador
+            if (!in_array($_SESSION['usuario']['rol'], ['Asistente de Repuestos', 'Administrador'])) {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            $entregador_id = $_SESSION['usuario']['id'];
+            if ($solicitud_id <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'ID de solicitud inválido']);
+                exit();
+            }
+            $resultado = entregarSolicitudRepuestos($solicitud_id, $entregador_id);
+            echo json_encode($resultado);
+            break;
+
         case 'enviarAlertaStockBajo':
             $usuario_id = $_SESSION['usuario']['id'];
             $resultado = enviarAlertaStockBajo($usuario_id);
@@ -203,6 +262,87 @@ try {
             $asignacion_id = intval($_POST['asignacion_id'] ?? 0);
             $mecanico_id = $_SESSION['usuario']['id'];
             $resultado = reanudarTarea($asignacion_id, $mecanico_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'obtenerVehiculosAsignados':
+            // Solo para mecánicos
+            if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $mecanico_id = $_SESSION['usuario']['id'];
+            $resultado = obtenerVehiculosAsignadosMecanico($mecanico_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'asignarVehiculoASolicitud':
+            // Solo para mecánicos
+            if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            $mecanico_id = $_SESSION['usuario']['id'];
+            $asignacion_id = intval($_POST['asignacion_id'] ?? 0);
+            
+            if ($solicitud_id <= 0 || $asignacion_id <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
+                exit();
+            }
+            
+            $resultado = asignarVehiculoASolicitud($solicitud_id, $mecanico_id, $asignacion_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'obtenerRepuestosAprobados':
+            // Solo para mecánicos
+            if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $mecanico_id = $_SESSION['usuario']['id'];
+            $resultado = obtenerRepuestosAprobadosMecanico($mecanico_id);
+            echo json_encode($resultado);
+            break;
+
+        case 'registrarUsoRepuestos':
+            // Solo para mecánicos
+            if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            $mecanico_id = $_SESSION['usuario']['id'];
+            $cantidad_usada = intval($_POST['cantidad_usada'] ?? 0);
+            $observaciones = trim($_POST['observaciones'] ?? '');
+            
+            if ($solicitud_id <= 0 || $cantidad_usada <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
+                exit();
+            }
+            
+            $resultado = registrarUsoRepuestos($solicitud_id, $mecanico_id, $cantidad_usada, $observaciones);
+            echo json_encode($resultado);
+            break;
+
+        case 'registrarDevolucionRepuestos':
+            // Solo para mecánicos
+            if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
+                echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
+                exit();
+            }
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            $mecanico_id = $_SESSION['usuario']['id'];
+            $cantidad_devuelta = intval($_POST['cantidad_devuelta'] ?? 0);
+            $observaciones = trim($_POST['observaciones'] ?? '');
+            
+            if ($solicitud_id <= 0 || $cantidad_devuelta <= 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
+                exit();
+            }
+            
+            $resultado = registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_devuelta, $observaciones);
             echo json_encode($resultado);
             break;
 

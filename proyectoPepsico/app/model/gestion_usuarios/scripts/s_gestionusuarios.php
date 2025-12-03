@@ -1,18 +1,41 @@
 <?php
 require_once '../functions/f_gestionusuarios.php';
+require_once '../../../config/conexion.php';
 
 header('Content-Type: application/json');
+
+// Iniciar sesión y verificar permisos
+session_start();
+
+// Verificar si el usuario está autenticado
+if (!isset($_SESSION['usuario']) || empty($_SESSION['usuario']['id'])) {
+    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    exit;
+}
+
+$usuario_rol = $_SESSION['usuario']['rol'] ?? '';
+$roles_permitidos = ['Administrador', 'Jefe de Taller'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     switch ($action) {
         case 'listar_usuarios':
+            // Verificar permisos para listar usuarios
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para realizar esta acción']);
+                exit;
+            }
             $usuarios = obtenerTodosUsuarios();
             echo json_encode(['data' => $usuarios]);
             break;
 
         case 'crear_usuario':
+            // Verificar permisos para crear usuarios
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para crear usuarios']);
+                exit;
+            }
             $response = ['success' => false, 'message' => ''];
 
             // Validaciones
@@ -55,12 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'obtener_usuario':
+            // Verificar permisos para obtener usuario
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para realizar esta acción']);
+                exit;
+            }
             $usuario_id = intval($_POST['usuario_id']);
             $usuario = obtenerUsuarioPorId($usuario_id);
             echo json_encode($usuario);
             break;
 
         case 'editar_usuario':
+            // Verificar permisos para editar usuarios
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para editar usuarios']);
+                exit;
+            }
             $response = ['success' => false, 'message' => ''];
 
             if (empty($_POST['nombre_usuario']) || empty($_POST['correo'])) {
@@ -109,6 +142,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'generar_choferes':
+            // Verificar permisos para generar choferes
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para realizar esta acción']);
+                exit;
+            }
             $nombres = ['Juan', 'Carlos', 'Pedro', 'Luis', 'Miguel', 'Jose', 'Antonio', 'Manuel', 'Francisco', 'David'];
             $apellidos = ['Garcia', 'Rodriguez', 'Gonzalez', 'Fernandez', 'Lopez', 'Martinez', 'Sanchez', 'Perez', 'Gomez', 'Martin'];
 
@@ -156,6 +194,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'obtener_choferes_disponibles':
+            // Verificar permisos para obtener choferes disponibles
+            if (!in_array($usuario_rol, $roles_permitidos)) {
+                echo json_encode(['success' => false, 'message' => 'No tiene permisos para realizar esta acción']);
+                exit;
+            }
             // Get choferes who don't have vehicles assigned
             $conn = conectar_Pepsico();
 

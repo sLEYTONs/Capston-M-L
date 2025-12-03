@@ -14,13 +14,12 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recepción de Repuestos - PepsiCo</title>
+    <title>Seguimiento de Ingresos de Repuestos - PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
     
     <?php include 'general/head.php'; ?>
     <link rel="stylesheet" href="../assets/css/repuestos-layout-shared.css">
-    <link rel="stylesheet" href="recepcion_entrega_repuestos/css/recepcion_entrega.css">
+    <link rel="stylesheet" href="seguimiento_ingresos_repuestos/css/seguimiento_ingresos.css">
 </head>
 
 <body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
@@ -34,11 +33,11 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             <div class="page-block">
                 <div class="row align-items-center">
                     <div class="col-md-12">
-                        <h5 class="mb-1">Recepción de Repuestos</h5>
+                        <h5 class="mb-1">Seguimiento de Ingresos de Repuestos</h5>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Recepción de Repuestos</li>
+                                <li class="breadcrumb-item active" aria-current="page">Seguimiento de Ingresos</li>
                             </ol>
                         </nav>
                     </div>
@@ -46,14 +45,14 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
         </div>
         <div class="pc-content">
-            <?php include 'recepcion_entrega_repuestos/components/c_recepcion_entrega.php'; ?>
+            <?php include 'seguimiento_ingresos_repuestos/components/c_seguimiento_ingresos.php'; ?>
         </div>
     </div>
     
     <?php include 'general/footer.php'; ?>
     <?php include 'general/script.php'; ?>
     
-    <script src="recepcion_entrega_repuestos/js/app.js"></script>
+    <script src="seguimiento_ingresos_repuestos/js/app.js"></script>
 </body>
 </html>
 

@@ -1,11 +1,10 @@
 <?php
 include 'general/middle.php';
 
-$roles_permitidos = ['Asistente de Repuestos', 'Administrador', 'Jefe de Taller'];
+// Verificar acceso - Solo Asistente de Repuestos y Administrador
+$roles_permitidos = ['Asistente de Repuestos', 'Administrador'];
 if (!in_array($usuario_rol, $roles_permitidos)) {
-    $pagina_principal = obtener_pagina_principal($usuario_rol);
-    header('Location: ' . $pagina_principal);
-    exit();
+    redirigir_no_autorizado();
 }
 ?>
 
@@ -14,7 +13,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Repuestos con Jefe de Taller - PepsiCo</title>
+    <title>Gestión de Solicitudes de Repuestos - PepsiCo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- DataTables CSS -->
@@ -23,9 +22,8 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     
     <?php include 'general/head.php'; ?>
     <link rel="stylesheet" href="../assets/css/repuestos-layout-shared.css">
-    <link rel="stylesheet" href="gestion_repuestos_jefe/css/gestion_jefe.css">
+    <link rel="stylesheet" href="gestion_solicitudes_repuestos/css/gestion_solicitudes_repuestos.css">
 </head>
-
 <body data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" 
       data-pc-theme_contrast="" data-pc-theme="light">
     
@@ -37,11 +35,11 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             <div class="page-block">
                 <div class="row align-items-center">
                     <div class="col-md-12">
-                        <h5 class="mb-1">Gestión de Repuestos con Jefe de Taller</h5>
+                        <h5 class="mb-1">Gestión de Solicitudes de Repuestos</h5>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
-                                <li class="breadcrumb-item active" aria-current="page">Gestión con Jefe</li>
+                                <li class="breadcrumb-item active" aria-current="page">Gestión de Solicitudes</li>
                             </ol>
                         </nav>
                     </div>
@@ -49,7 +47,7 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
             </div>
         </div>
         <div class="pc-content">
-            <?php include 'gestion_repuestos_jefe/components/c_gestion_jefe.php'; ?>
+            <?php include 'gestion_solicitudes_repuestos/components/c_gestion_solicitudes_repuestos.php'; ?>
         </div>
     </div>
     
@@ -62,7 +60,10 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
     
-    <script src="gestion_repuestos_jefe/js/app.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="gestion_solicitudes_repuestos/js/app.js"></script>
 </body>
 </html>
 

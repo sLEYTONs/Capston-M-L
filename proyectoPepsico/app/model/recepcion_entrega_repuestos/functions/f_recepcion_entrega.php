@@ -191,19 +191,10 @@ function obtenerMecanicosActivos() {
  */
 function obtenerRepuestosDisponibles() {
     try {
-        // Conectar sin usar die() que imprime directamente
-        $mysqli = new mysqli("localhost", "root", "", "Pepsico");
-        
-        if ($mysqli->connect_errno) {
-            return ['status' => 'error', 'message' => 'Error de conexión a la base de datos: ' . $mysqli->connect_error];
+        $conn = conectarPepsicoSeguro();
+        if (!$conn) {
+            return ['status' => 'error', 'message' => 'Error de conexión a la base de datos'];
         }
-        
-        if (!$mysqli->set_charset("utf8mb4")) {
-            $mysqli->close();
-            return ['status' => 'error', 'message' => 'Error cargando el conjunto de caracteres utf8mb4: ' . $mysqli->error];
-        }
-        
-        $conn = $mysqli;
         
         // Verificar si existe la tabla repuestos
         $checkTable = "SHOW TABLES LIKE 'repuestos'";
@@ -219,11 +210,10 @@ function obtenerRepuestosDisponibles() {
             return ['status' => 'success', 'data' => []];
         }
         
-        // Intentar obtener repuestos con ambos campos de precio
-        $query = "SELECT ID, Codigo, Nombre, Categoria, Stock, StockMinimo, 
-                         COALESCE(PrecioUnitario, Precio, 0) as PrecioUnitario 
+        // Obtener todos los repuestos disponibles
+        // Solo obtener las columnas que existen en la tabla
+        $query = "SELECT ID, Codigo, Nombre, Categoria, Stock, StockMinimo 
                   FROM repuestos 
-                  WHERE Stock > 0 
                   ORDER BY Nombre ASC";
         
         $result = mysqli_query($conn, $query);
@@ -231,9 +221,15 @@ function obtenerRepuestosDisponibles() {
         
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
-                // Asegurar que PrecioUnitario sea numérico
-                $row['PrecioUnitario'] = floatval($row['PrecioUnitario'] ?? 0);
-                $repuestos[] = $row;
+                // Asegurar que todos los campos estén presentes
+                $repuestos[] = [
+                    'ID' => intval($row['ID']),
+                    'Codigo' => $row['Codigo'] ?? '',
+                    'Nombre' => $row['Nombre'] ?? '',
+                    'Categoria' => $row['Categoria'] ?? '',
+                    'Stock' => intval($row['Stock'] ?? 0),
+                    'StockMinimo' => intval($row['StockMinimo'] ?? 0)
+                ];
             }
             mysqli_free_result($result);
         } else {

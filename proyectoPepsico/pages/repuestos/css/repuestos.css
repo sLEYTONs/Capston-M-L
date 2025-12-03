@@ -6,6 +6,32 @@
     max-width: 100%;
 }
 
+/* Layout principal con aside */
+.repuestos-layout {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+/* Contenido principal - más ancho */
+.repuestos-main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Aside fijo con resumen */
+.repuestos-aside {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
 .repuestos-container .row {
     margin-left: 0;
     margin-right: 0;
@@ -33,7 +59,7 @@
 }
 
 /* Card de Inventario - usar toda la altura disponible */
-.repuestos-container .col-lg-9 .card {
+.repuestos-main-content .card {
     height: 100%;
     min-height: calc(100vh - 280px);
 }
@@ -86,8 +112,9 @@
     min-height: 0;
 }
 
-.repuestos-container .col-lg-9 .card-body {
-    padding: 1rem 1.5rem;
+/* Card body del contenido principal */
+.repuestos-main-content .card-body {
+    padding: 1.5rem;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -111,7 +138,7 @@
     margin-bottom: 0;
 }
 
-/* Contenedor de tabla - SIMPLE Y VISIBLE */
+/* Contenedor de tabla - con padding para separación */
 #tabla-container {
     width: 100%;
     flex: 1;
@@ -119,9 +146,11 @@
     display: block !important;
     overflow: visible !important;
     margin: 0;
-    padding: 0;
+    padding: 1.5rem;
     visibility: visible !important;
     opacity: 1 !important;
+    background-color: #fff;
+    border-radius: 8px;
 }
 
 /* DataTables Wrapper - VISIBLE */
@@ -214,15 +243,15 @@
     white-space: nowrap;
 }
 
-/* Resumen de Inventario */
-.repuestos-container .col-lg-3 .card {
+/* Resumen de Inventario en Aside */
+.repuestos-aside .card {
     height: 100%;
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-.repuestos-container .col-lg-3 .card-body {
+.repuestos-aside .card-body {
     padding: 1.25rem;
     flex: 1;
     display: flex;
@@ -384,12 +413,19 @@
 
 /* Responsive */
 @media (max-width: 991px) {
-    .repuestos-container .col-lg-9,
-    .repuestos-container .col-lg-3 {
-        margin-bottom: 1rem;
+    .repuestos-layout {
+        flex-direction: column;
+        gap: 1rem;
     }
     
-    .repuestos-container .col-lg-3 .card {
+    .repuestos-aside {
+        width: 100%;
+        position: relative;
+        top: 0;
+        max-height: none;
+    }
+    
+    .repuestos-main-content .card {
         min-height: auto;
     }
 }
@@ -397,6 +433,14 @@
 @media (max-width: 768px) {
     .repuestos-container {
         padding: 0 10px;
+    }
+    
+    .repuestos-layout {
+        gap: 0.75rem;
+    }
+    
+    #tabla-container {
+        padding: 1rem;
     }
     
     .card-header {

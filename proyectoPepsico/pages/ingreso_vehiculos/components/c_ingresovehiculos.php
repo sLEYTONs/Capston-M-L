@@ -126,7 +126,7 @@
                 <div class="icon-box">
                     <i class="fas fa-check"></i>
                 </div>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -150,7 +150,7 @@
             </div>
 
             <div class="modal-footer-confirm">
-                <button type="button" class="btn btn-success btn-continue" data-dismiss="modal">
+                <button type="button" class="btn btn-success btn-continue" data-bs-dismiss="modal">
                     <i class="fas fa-check-circle"></i> Continuar
                 </button>
                 <button type="button" class="btn btn-outline-primary btn-another">

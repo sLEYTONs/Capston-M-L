@@ -1,0 +1,39 @@
+/* Estilos específicos para la página de seguimiento de ingresos */
+#seguimiento-ingresos-section {
+    padding: 0;
+}
+
+/* Asegurar que la tabla no expanda el ancho */
+#tabla-historial_wrapper {
+    width: 100% !important;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+#tabla-historial {
+    width: 100% !important;
+    max-width: 100%;
+    table-layout: auto;
+}
+
+/* Estilos para los filtros */
+#filtro-tipo,
+#filtro-fecha-desde,
+#filtro-fecha-hasta {
+    margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .repuestos-layout {
+        flex-direction: column;
+    }
+    
+    .repuestos-aside {
+        width: 100%;
+        position: relative;
+        top: auto;
+        max-height: none;
+    }
+}
+

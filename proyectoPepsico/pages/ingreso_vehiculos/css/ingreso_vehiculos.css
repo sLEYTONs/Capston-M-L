@@ -324,6 +324,12 @@ hr {
 /* ===== ESTILOS MEJORADOS PARA MODAL DE CONFIRMACIÓN ===== */
 
 /* Contenedor principal del modal */
+.modal-dialog.modal-confirm {
+    max-width: 450px;
+    width: 450px;
+    margin: 1.75rem auto;
+}
+
 .modal-confirm {
     max-width: 450px;
 }
@@ -356,11 +362,11 @@ hr {
     text-align: center;
 }
 
-.modal-header-confirm .close {
+.modal-header-confirm .btn-close {
     position: absolute;
     top: 15px;
     right: 15px;
-    color: white;
+    color: white !important;
     opacity: 0.8;
     font-size: 1.5rem;
     background: none;
@@ -373,15 +379,19 @@ hr {
     justify-content: center;
     border-radius: 50%;
     transition: all 0.3s ease;
+    padding: 0;
+    margin: 0;
+    filter: brightness(0) invert(1);
 }
 
-.modal-header-confirm .close:hover {
+.modal-header-confirm .btn-close:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
+    filter: brightness(0) invert(1);
 }
 
-.modal-header-confirm .close span {
+.modal-header-confirm .btn-close span {
     color: white;
     font-weight: 300;
     font-size: 1.8rem;
@@ -593,6 +603,12 @@ hr {
 
 /* Responsive */
 @media (max-width: 576px) {
+    .modal-dialog.modal-confirm {
+        max-width: calc(100% - 40px);
+        width: calc(100% - 40px);
+        margin: 20px auto;
+    }
+    
     .modal-confirm {
         margin: 20px;
     }

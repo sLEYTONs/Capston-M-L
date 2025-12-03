@@ -1,128 +1,123 @@
 <!-- Sección de Comunicación con Proveedores -->
 <section id="comunicacion-proveedores-section" class="section">
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Lista de Proveedores -->
-            <div class="col-md-12 mb-4">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="repuestos-container">
+        <div class="repuestos-layout">
+            <!-- Contenido principal -->
+            <div class="repuestos-main-content">
+                <div class="card h-100">
+                    <div class="card-header">
                         <h4 class="card-title mb-0">
                             <i class="fas fa-building me-2"></i>
-                            Lista de Proveedores
+                            Comunicación con Proveedores
                         </h4>
-                        <button class="btn btn-primary btn-sm" id="btn-nuevo-proveedor">
-                            <i class="fas fa-plus me-1"></i> Nuevo Proveedor
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="tabla-proveedores" class="table table-striped table-hover" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nombre</th>
-                                        <th>Contacto</th>
-                                        <th>Email</th>
-                                        <th>Teléfono</th>
-                                        <th>RUT</th>
-                                        <th>Dirección</th>
-                                        <th>Estado</th>
-                                        <th>Fecha Creación</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Se cargarán dinámicamente -->
-                                </tbody>
-                            </table>
+                        <div class="card-actions">
+                            <button class="btn btn-outline-light btn-sm" id="btn-nuevo-proveedor" title="Nuevo Proveedor">
+                                <i class="fas fa-plus me-1"></i> Nuevo Proveedor
+                            </button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Área de Comunicación -->
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">
-                            <i class="fas fa-comments me-2"></i>
-                            Comunicación
-                        </h4>
-                    </div>
                     <div class="card-body">
-                        <div id="area-comunicacion" class="comunicacion-container">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Seleccione un proveedor para ver el historial de comunicación
+                        <!-- Lista de Proveedores -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-list me-2"></i>
+                                Lista de Proveedores
+                            </h5>
+                            <div class="tabla-container">
+                                <table id="tabla-proveedores" class="table table-striped table-hover table-bordered" style="width:100%">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Nombre</th>
+                                            <th>Contacto</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>RUT</th>
+                                            <th>Dirección</th>
+                                            <th>Estado</th>
+                                            <th>Fecha Creación</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
-                        <!-- Formulario de Nueva Comunicación -->
-                        <div class="mt-4" id="form-nueva-comunicacion" style="display: none;">
-                            <hr>
-                            <h5>Nueva Comunicación</h5>
-                            <form id="form-comunicacion">
-                                <input type="hidden" id="proveedor-id-comunicacion">
-                                <div class="mb-3">
-                                    <label for="tipo-comunicacion" class="form-label">Tipo de Comunicación *</label>
-                                    <select class="form-select" id="tipo-comunicacion" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="solicitud">Solicitud de Cotización</option>
-                                        <option value="pedido">Realizar Pedido</option>
-                                        <option value="consulta">Consulta General</option>
-                                        <option value="reclamo">Reclamo</option>
-                                        <option value="seguimiento">Seguimiento de Pedido</option>
-                                    </select>
+                        <!-- Área de Comunicación -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-comments me-2"></i>
+                                Comunicación
+                            </h5>
+                            <div id="area-comunicacion" class="comunicacion-container">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Seleccione un proveedor para ver el historial de comunicación
                                 </div>
-                                <div class="mb-3">
-                                    <label for="asunto" class="form-label">Asunto *</label>
-                                    <input type="text" class="form-control" id="asunto" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="mensaje" class="form-label">Mensaje *</label>
-                                    <textarea class="form-control" id="mensaje" rows="5" required></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="archivos" class="form-label">Archivos Adjuntos</label>
-                                    <input type="file" class="form-control" id="archivos" multiple>
-                                </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane me-2"></i>Enviar Comunicación
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                            </div>
 
-        <!-- Historial de Comunicaciones -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">
-                            <i class="fas fa-history me-2"></i>
-                            Historial de Comunicaciones
-                        </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="tabla-comunicaciones" class="table table-striped" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Proveedor</th>
-                                        <th>Tipo</th>
-                                        <th>Asunto</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Se cargarán dinámicamente -->
-                                </tbody>
-                            </table>
+                            <!-- Formulario de Nueva Comunicación -->
+                            <div class="mt-4" id="form-nueva-comunicacion" style="display: none;">
+                                <hr>
+                                <h6>Nueva Comunicación</h6>
+                                <form id="form-comunicacion">
+                                    <input type="hidden" id="proveedor-id-comunicacion">
+                                    <div class="mb-3">
+                                        <label for="tipo-comunicacion" class="form-label">Tipo de Comunicación *</label>
+                                        <select class="form-select" id="tipo-comunicacion" required>
+                                            <option value="">Seleccionar...</option>
+                                            <option value="solicitud">Solicitud de Cotización</option>
+                                            <option value="pedido">Realizar Pedido</option>
+                                            <option value="consulta">Consulta General</option>
+                                            <option value="reclamo">Reclamo</option>
+                                            <option value="seguimiento">Seguimiento de Pedido</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="asunto" class="form-label">Asunto *</label>
+                                        <input type="text" class="form-control" id="asunto" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="mensaje" class="form-label">Mensaje *</label>
+                                        <textarea class="form-control" id="mensaje" rows="5" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="archivos" class="form-label">Archivos Adjuntos</label>
+                                        <input type="file" class="form-control" id="archivos" multiple>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-2"></i>Enviar Comunicación
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Historial de Comunicaciones -->
+                        <div>
+                            <h5 class="mb-3">
+                                <i class="fas fa-history me-2"></i>
+                                Historial de Comunicaciones
+                            </h5>
+                            <div class="tabla-container">
+                                <table id="tabla-comunicaciones" class="table table-striped table-hover table-bordered" style="width:100%">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Proveedor</th>
+                                            <th>Tipo</th>
+                                            <th>Asunto</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Se cargarán dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

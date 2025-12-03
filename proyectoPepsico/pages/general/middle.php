@@ -32,8 +32,8 @@ $paginas_por_rol = [
         'gestion_incidentes_siniestros.php', 'supervisar_politicas_uso.php',
         'vehiculos_asignados.php', 'solicitar_repuestos.php',
         'registro_insumos_vehiculo.php', 'recepcion_entrega_repuestos.php',
-        'comunicacion_proveedores.php', 'gestion_repuestos_jefe.php',
-        'reportes_semanales.php'
+        'seguimiento_ingresos_repuestos.php', 'comunicacion_proveedores.php', 
+        'gestion_repuestos_jefe.php', 'reportes_semanales.php'
         // Nota: El administrador tiene acceso a TODAS las páginas mediante tiene_acceso()
     ],
     'Jefe de Taller' => [
@@ -41,7 +41,8 @@ $paginas_por_rol = [
         'control_ingreso.php', 'repuestos.php', 'calidad.php',
         'ingreso_vehiculos.php', 'recepcion_tecnica.php',
         'tareas.php', 'gestion_pausas_repuestos.php',
-        'coordinacion_jefe_taller.php'
+        'coordinacion_jefe_taller.php', 'gestion_usuarios.php',
+        'recepcion_entrega_repuestos.php', 'seguimiento_ingresos_repuestos.php'
     ],
     'Mecánico' => [
         'tareas.php',
@@ -73,10 +74,11 @@ $paginas_por_rol = [
     'Asistente de Repuestos' => [
         'repuestos.php',
         'recepcion_entrega_repuestos.php',
+        'seguimiento_ingresos_repuestos.php',
         'registro_insumos_vehiculo.php',
         'comunicacion_proveedores.php',
         'gestion_repuestos_jefe.php',
-        'estado_solicitudes_repuestos.php'
+        'gestion_solicitudes_repuestos.php'
     ],
     'Coordinador de Zona' => [
         'inventario_coordinador.php',

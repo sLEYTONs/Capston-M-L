@@ -1,4 +1,4 @@
-/* Estilos mejorados para Recepción y Entrega de Repuestos */
+/* Estilos para Recepción de Repuestos */
 .pc-content {
     padding-bottom: 6rem !important;
 }
@@ -19,43 +19,51 @@
     padding: 0 15px;
 }
 
-.card {
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    margin-bottom: 25px;
-    border: none;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    overflow: hidden;
+/* Estilos para Tabs */
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 1.5rem;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-}
-
-.card-header {
-    background: linear-gradient(135deg, #004B93 0%, #E21C21 100%);
-    color: white;
-    border-radius: 0;
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
-}
-
-.card-header h4 {
-    margin: 0;
+.nav-tabs .nav-link {
+    color: #495057;
     font-weight: 600;
-    font-size: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    background: transparent;
 }
 
-.card-body {
-    padding: 2rem;
-    background: #ffffff;
+.nav-tabs .nav-link:hover {
+    border-color: #dee2e6;
+    color: #004B93;
+}
+
+.nav-tabs .nav-link.active {
+    color: #004B93;
+    background-color: transparent;
+    border-color: transparent transparent #004B93 transparent;
+    border-bottom-width: 3px;
+}
+
+.tab-content {
+    padding: 1.5rem 0;
+}
+
+.tab-pane {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .form-label {
@@ -113,8 +121,43 @@
 
 #tabla-historial {
     width: 100% !important;
+    max-width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    table-layout: auto;
+}
+
+#tabla-historial_wrapper {
+    width: 100% !important;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Contenedor de tabla - limitar ancho y evitar expansión */
+.repuestos-container .tabla-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    position: relative;
+}
+
+.repuestos-container .tabla-container .table-responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Evitar que DataTables expanda el contenedor */
+#tabla-historial_wrapper .dataTables_scrollHead,
+#tabla-historial_wrapper .dataTables_scrollBody {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+#tabla-historial_wrapper .dataTables_scrollHeadInner,
+#tabla-historial_wrapper .dataTables_scrollBodyInner {
+    max-width: 100%;
 }
 
 #tabla-historial thead th {
@@ -160,16 +203,96 @@ textarea.form-control {
     min-height: 100px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .card-body {
-        padding: 1.5rem;
-    }
-    
-    .card-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+/* Modal de selección de repuestos */
+#modal-seleccionar-repuestos .modal-dialog {
+    max-width: 900px;
+    width: 90%;
+    margin: 1.75rem auto;
+}
+
+#modal-seleccionar-repuestos .modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#modal-seleccionar-repuestos .modal-body {
+    padding: 1.5rem;
+}
+
+@media (max-width: 991px) {
+    #modal-seleccionar-repuestos .modal-dialog {
+        max-width: 95%;
+        width: 95%;
     }
 }
 
+@media (max-width: 768px) {
+    .repuestos-container .card-body .card .card-body {
+        padding: 1rem;
+    }
+    
+    #modal-seleccionar-repuestos .modal-dialog {
+        max-width: calc(100% - 2rem);
+        width: calc(100% - 2rem);
+        margin: 1rem;
+    }
+    
+    #modal-seleccionar-repuestos .modal-body {
+        padding: 1rem;
+    }
+}
+
+/* Modal de éxito - Centrado */
+#modal-exito-recepcion {
+    padding-right: 0 !important;
+    text-align: center;
+}
+
+#modal-exito-recepcion .modal-dialog {
+    max-width: 500px !important;
+    margin: 1.75rem auto !important;
+    position: relative;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+#modal-exito-recepcion.modal.show .modal-dialog {
+    margin: 1.75rem auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+#modal-exito-recepcion .modal-dialog.modal-dialog-centered {
+    margin: auto !important;
+    min-height: calc(100% - 3.5rem);
+    display: flex;
+    align-items: center;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+#modal-exito-recepcion.modal.show .modal-dialog.modal-dialog-centered {
+    transform: none !important;
+}
+
+#modal-exito-recepcion .modal-body {
+    padding: 2rem;
+}
+
+#modal-exito-recepcion .fa-check-circle {
+    animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

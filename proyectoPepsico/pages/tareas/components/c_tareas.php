@@ -323,3 +323,94 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Gestionar Repuestos Aprobados -->
+<div class="modal fade" id="repuestosModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-boxes me-2"></i>
+                    Gestionar Repuestos Aprobados - <span id="modal-placa-repuestos"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="repuestos-aprobados-lista">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                        <p class="text-muted mt-2">Cargando repuestos aprobados...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Registrar Uso/Devolución de Repuestos -->
+<div class="modal fade" id="usoRepuestosModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white" id="modal-header-uso-repuestos">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-check me-2"></i>
+                    <span id="modal-titulo-uso-repuestos">Registrar Uso de Repuestos</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-uso-repuestos">
+                    <input type="hidden" id="uso-solicitud-id">
+                    <input type="hidden" id="uso-tipo" value="uso"> <!-- uso o devolucion -->
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Repuesto</label>
+                        <p class="form-control-plaintext fw-bold" id="info-repuesto-nombre"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad Aprobada</label>
+                        <p class="form-control-plaintext" id="info-cantidad-aprobada"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad Usada</label>
+                        <p class="form-control-plaintext text-success" id="info-cantidad-usada"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad Devuelta</label>
+                        <p class="form-control-plaintext text-info" id="info-cantidad-devuelta"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad Disponible</label>
+                        <p class="form-control-plaintext fw-bold text-primary" id="info-cantidad-disponible"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cantidad-accion" class="form-label">
+                            <span id="label-cantidad-accion">Cantidad a Usar</span> *
+                        </label>
+                        <input type="number" class="form-control" id="cantidad-accion" min="1" required>
+                        <small class="form-text text-muted" id="help-cantidad-accion">Ingrese la cantidad que desea usar</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observaciones-uso" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones-uso" rows="3" placeholder="Observaciones sobre el uso/devolución..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="guardar-uso-repuestos">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

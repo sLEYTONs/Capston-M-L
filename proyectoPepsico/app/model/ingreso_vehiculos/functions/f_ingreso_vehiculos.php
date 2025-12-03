@@ -308,7 +308,7 @@ function registrarVehiculoPepsico($datos) {
     $sql = "INSERT INTO ingreso_vehiculos (
         Placa, TipoVehiculo, Marca, Modelo, Anio, 
         ConductorNombre, Kilometraje, UsuarioRegistro, FechaRegistro, Estado
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'Ingresado')";
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), '')";
     
     $stmt = $conn->prepare($sql);
     

@@ -248,6 +248,14 @@
               </a>
             </li>
             <?php endif; ?>
+
+            <?php if (tiene_acceso('gestion_usuarios.php')): ?>
+            <li class="pc-item">
+              <a href="gestion_usuarios.php" class="pc-link">
+                <span class="pc-mtext">Gestión de Usuarios</span>
+              </a>
+            </li>
+            <?php endif; ?>
           </ul>
         </li>
         <?php endif; ?>
@@ -300,7 +308,7 @@
         <?php endif; ?>
 
         <!-- Menú desplegable para Repuestos (separado de Taller) -->
-        <?php if (tiene_acceso('repuestos.php') || tiene_acceso('solicitar_repuestos.php') || tiene_acceso('estado_solicitudes_repuestos.php') || tiene_acceso('recepcion_entrega_repuestos.php') || tiene_acceso('registro_insumos_vehiculo.php') || tiene_acceso('comunicacion_proveedores.php') || tiene_acceso('gestion_repuestos_jefe.php')): ?>
+        <?php if (tiene_acceso('repuestos.php') || tiene_acceso('solicitar_repuestos.php') || tiene_acceso('estado_solicitudes_repuestos.php') || tiene_acceso('registro_insumos_vehiculo.php') || tiene_acceso('comunicacion_proveedores.php') || tiene_acceso('gestion_repuestos_jefe.php') || tiene_acceso('gestion_solicitudes_repuestos.php')): ?>
         <li class="pc-item pc-hasmenu">
           <a href="#!" class="pc-link">
             <span class="pc-micon">
@@ -328,14 +336,6 @@
               </a>
             </li>
             <?php endif; ?>
-            <?php if (tiene_acceso('recepcion_entrega_repuestos.php')): ?>
-            <li class="pc-item">
-              <a href="recepcion_entrega_repuestos.php" class="pc-link">
-                <i class="fas fa-exchange-alt"></i>
-                <span class="pc-mtext">Recepción y Entrega</span>
-              </a>
-            </li>
-            <?php endif; ?>
             <?php if (tiene_acceso('registro_insumos_vehiculo.php')): ?>
             <li class="pc-item">
               <a href="registro_insumos_vehiculo.php" class="pc-link">
@@ -360,11 +360,53 @@
               </a>
             </li>
             <?php endif; ?>
+
+            <?php if (tiene_acceso('gestion_solicitudes_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="gestion_solicitudes_repuestos.php" class="pc-link">
+                <i class="fas fa-clipboard-list"></i>
+                <span class="pc-mtext">Gestión de Solicitudes</span>
+              </a>
+            </li>
+            <?php endif; ?>
             <?php if (tiene_acceso('solicitar_repuestos.php')): ?>
             <li class="pc-item">
               <a href="solicitar_repuestos.php" class="pc-link">
                 <i class="fas fa-shopping-cart"></i>
                 <span class="pc-mtext">Solicitar Repuestos</span>
+              </a>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <!-- Menú desplegable para Proveedores -->
+        <?php if (tiene_acceso('recepcion_entrega_repuestos.php') || tiene_acceso('seguimiento_ingresos_repuestos.php')): ?>
+        <li class="pc-item pc-hasmenu">
+          <a href="#!" class="pc-link">
+            <span class="pc-micon">
+              <i class="fas fa-truck"></i>
+            </span>
+            <span class="pc-mtext">Proveedores</span>
+            <span class="pc-arrow">
+              <i class="fas fa-chevron-down"></i>
+            </span>
+          </a>
+          <ul class="pc-submenu">
+            <?php if (tiene_acceso('recepcion_entrega_repuestos.php')): ?>
+              <li class="pc-item">
+                <a href="recepcion_entrega_repuestos.php" class="pc-link">
+                  <i class="fas fa-box-open"></i>
+                  <span class="pc-mtext">Recepción de Repuestos</span>
+                </a>
+              </li>
+            <?php endif; ?>
+            <?php if (tiene_acceso('seguimiento_ingresos_repuestos.php')): ?>
+            <li class="pc-item">
+              <a href="seguimiento_ingresos_repuestos.php" class="pc-link">
+                <i class="fas fa-chart-line"></i>
+                <span class="pc-mtext">Seguimiento de Ingresos</span>
               </a>
             </li>
             <?php endif; ?>

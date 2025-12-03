@@ -446,7 +446,7 @@ class ConsultaVehiculos {
         const estadoClass = this.getEstadoClass(vehiculo.Estado || vehiculo.EstadoSolicitud || 'Pendiente');
         const modalHtml = `
             <div class="modal fade" id="detallesModal" tabindex="-1">
-                <div class="modal-dialog modal-xl">
+                <div class="modal-dialog modal-lg modal-dialog-detalles">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">

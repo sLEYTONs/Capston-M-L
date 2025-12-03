@@ -1,0 +1,200 @@
+/* CSS Compartido para Layout de Repuestos - Aplicar a todas las páginas de repuestos */
+
+/* Contenedor principal */
+.repuestos-container {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Layout principal con aside */
+.repuestos-layout {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    align-items: flex-start;
+}
+
+/* Contenido principal - más ancho */
+.repuestos-main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Aside fijo con resumen */
+.repuestos-aside {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* Cards - Base */
+.repuestos-container .card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e9ecef;
+    min-height: 0;
+}
+
+/* Card de Inventario - usar toda la altura disponible */
+.repuestos-main-content .card {
+    height: 100%;
+    min-height: calc(100vh - 280px);
+}
+
+.repuestos-container .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+    padding: 0.875rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    border-bottom: none;
+}
+
+.repuestos-container .card-header h4,
+.repuestos-container .card-header h5 {
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+}
+
+.repuestos-container .card-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.repuestos-container .card-actions .btn {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.repuestos-container .card-actions .btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+/* Card Body - Flexbox completo */
+.repuestos-container .card-body {
+    padding: 1rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Card body del contenido principal */
+.repuestos-main-content .card-body {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible !important;
+}
+
+/* Contenedor de tabla - con padding para separación */
+.repuestos-container #tabla-container,
+.repuestos-container .tabla-container {
+    width: 100%;
+    max-width: 100%;
+    flex: 1;
+    min-height: 400px;
+    display: block !important;
+    overflow-x: auto;
+    overflow-y: visible;
+    margin: 0;
+    padding: 1.5rem;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: #fff;
+    border-radius: 8px;
+    position: relative;
+}
+
+/* Evitar que las tablas expandan el contenedor */
+.repuestos-container .tabla-container table,
+.repuestos-container .tabla-container .table-responsive {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Resumen de Inventario en Aside */
+.repuestos-aside .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.repuestos-aside .card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .repuestos-layout {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .repuestos-aside {
+        width: 100%;
+        position: relative;
+        top: 0;
+        max-height: none;
+    }
+    
+    .repuestos-main-content .card {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .repuestos-container {
+        padding: 0 10px;
+    }
+    
+    .repuestos-layout {
+        gap: 0.75rem;
+    }
+    
+    .repuestos-container #tabla-container,
+    .repuestos-container .tabla-container {
+        padding: 1rem;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .card-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
