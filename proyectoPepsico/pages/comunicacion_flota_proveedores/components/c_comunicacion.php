@@ -2,9 +2,11 @@
 // Obtener rol del usuario para controlar visibilidad
 $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
 ?>
-<div class="row">
+<main class="main">
+    <div class="container">
+        <div class="row" style="margin: 0;">
     <!-- Tabs para Flota y Proveedores -->
-    <div class="col-md-12 mb-4">
+    <div class="col-md-12 mb-3">
         <ul class="nav nav-tabs" id="tabsComunicacion" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="tab-flota" data-bs-toggle="tab" data-bs-target="#panel-flota"
@@ -25,7 +27,7 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
         <div class="tab-content" id="tabContentComunicacion">
             <!-- Panel Flota -->
             <div class="tab-pane fade show active" id="panel-flota" role="tabpanel" aria-labelledby="tab-flota">
-                <div class="card mt-3">
+                <div class="card mt-2">
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Gestión de Comunicación con Flota</h5>
@@ -110,7 +112,7 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
             <!-- Panel Proveedores -->
             <div class="tab-pane fade" id="panel-proveedores" role="tabpanel" aria-labelledby="tab-proveedores">
                 <!-- Lista de Proveedores -->
-                <div class="card mt-3">
+                <div class="card mt-2">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-building me-2"></i>
@@ -146,7 +148,7 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                 </div>
 
                 <!-- Área de Comunicación -->
-                <div class="card mt-3">
+                <div class="card mt-2">
                     <div class="card-header">
                         <h5 class="mb-0">
                             <i class="fas fa-comments me-2"></i>
@@ -201,7 +203,7 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
                 </div>
 
                 <!-- Historial de Comunicaciones -->
-                <div class="card mt-3">
+                <div class="card mt-2">
                     <div class="card-header">
                         <h5 class="mb-0">
                             <i class="fas fa-history me-2"></i>
@@ -231,7 +233,8 @@ $usuario_rol = $_SESSION['usuario']['rol'] ?? '';
             </div>
         </div>
     </div>
-</div>
+    </div>
+</main>
 
 <!-- Modal Nueva Comunicación Flota -->
 <div class="modal fade" id="modalNuevaComunicacionFlota" tabindex="-1">

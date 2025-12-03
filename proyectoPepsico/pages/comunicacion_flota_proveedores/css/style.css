@@ -1,51 +1,318 @@
+/* Estilos mejorados para Comunicación Flota y Proveedores */
+.main {
+    padding: 0.5rem 1rem;
+    min-height: calc(100vh - 200px);
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto;
+    margin-top: 0;
+}
+
+.main .container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Tabs mejorados */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 0;
+    background: #f8f9fa;
+    padding: 0.5rem 1rem 0 1rem;
+    border-radius: 8px 8px 0 0;
+}
+
 .nav-tabs .nav-link {
     color: #495057;
     border: 1px solid transparent;
-    border-top-left-radius: 0.25rem;
-    border-top-right-radius: 0.25rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-right: 0.25rem;
 }
 
 .nav-tabs .nav-link:hover {
     border-color: #e9ecef #e9ecef #dee2e6;
-    isolation: isolate;
+    background-color: #ffffff;
+    color: #667eea;
 }
 
 .nav-tabs .nav-link.active {
-    color: #495057;
-    background-color: #fff;
+    color: #667eea;
+    background-color: #ffffff;
     border-color: #dee2e6 #dee2e6 #fff;
+    border-bottom-color: transparent;
+    font-weight: 600;
 }
 
+/* Cards mejoradas */
 .card {
     border: 1px solid rgba(0,0,0,.125);
-    border-radius: 0.25rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    overflow: hidden;
 }
 
 .card-header {
-    background-color: rgba(0,0,0,.03);
-    border-bottom: 1px solid rgba(0,0,0,.125);
-    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+    font-weight: 600;
 }
 
+.card-header h5 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.card-header .btn {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+}
+
+.card-header .btn:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.card-body {
+    padding: 1rem 1.5rem;
+}
+
+/* Formularios */
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Tablas */
 .table-responsive {
     overflow-x: auto;
+    border-radius: 8px;
 }
 
+.table {
+    margin-bottom: 0;
+}
+
+.table thead,
+table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+}
+
+.table thead th,
+table thead th {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border: none;
+    background: transparent !important;
+}
+
+/* Específico para table-dark */
+.table-dark thead,
+table thead.table-dark {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.table-dark thead th,
+table thead.table-dark th {
+    color: #ffffff !important;
+    background: transparent !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.table tbody td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Badges mejorados */
 .badge {
-    padding: 0.35em 0.65em;
-    font-size: 0.75em;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: 0.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.badge.bg-success {
+    background-color: #28a745 !important;
+    color: #fff;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+    color: #fff;
+}
+
+.badge.bg-info {
+    background-color: #17a2b8 !important;
+    color: #fff;
+}
+
+.badge.bg-secondary {
+    background-color: #6c757d !important;
+    color: #fff;
+}
+
+/* Botones mejorados */
+.btn {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .btn-sm {
-    padding: 0.25rem 0.5rem;
+    padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
-    border-radius: 0.2rem;
+    border-radius: 0.25rem;
 }
 
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: #fff;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+}
+
+/* Alerts mejorados */
+.alert {
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+/* Filtros */
+.row.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main {
+        padding: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Espacio para separar del footer */
+.pc-content {
+    padding-bottom: 6rem !important;
+}
+
+@media (max-width: 768px) {
+    .pc-content {
+        padding-bottom: 5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .pc-content {
+        padding-bottom: 4rem !important;
+    }
+}
+
+/* Mejoras adicionales */
+.mt-3 {
+    margin-top: 0.75rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 0.75rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 1rem !important;
+}

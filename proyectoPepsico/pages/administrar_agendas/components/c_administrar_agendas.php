@@ -59,6 +59,52 @@ function obtenerEstadoAgenda($agenda) {
 $agendas_data = obtenerTodasLasAgendas();
 $agendas = ($agendas_data['status'] === 'success') ? $agendas_data['data'] : [];
 
+// Ordenar agendas: primero las disponibles, luego ocupadas, luego vencidas
+if (!empty($agendas)) {
+    usort($agendas, function($a, $b) {
+        // Obtener valor de ordenamiento del estado para agenda A
+        // 3 = Disponible (no vencida y Disponible = 1)
+        // 2 = Ocupado (no vencida y Disponible = 0)
+        // 1 = Vencida
+        $vencidaA = agendaVencida($a['Fecha'] ?? '', $a['HoraFin'] ?? '');
+        $estadoA = 1; // Por defecto vencida
+        if (!$vencidaA) {
+            $disponibleA = isset($a['Disponible']) && ($a['Disponible'] == 1 || $a['Disponible'] === true || $a['Disponible'] === '1');
+            $estadoA = $disponibleA ? 3 : 2; // 3 = Disponible, 2 = Ocupado
+        }
+        
+        // Obtener valor de ordenamiento del estado para agenda B
+        $vencidaB = agendaVencida($b['Fecha'] ?? '', $b['HoraFin'] ?? '');
+        $estadoB = 1; // Por defecto vencida
+        if (!$vencidaB) {
+            $disponibleB = isset($b['Disponible']) && ($b['Disponible'] == 1 || $b['Disponible'] === true || $b['Disponible'] === '1');
+            $estadoB = $disponibleB ? 3 : 2; // 3 = Disponible, 2 = Ocupado
+        }
+        
+        // Primero ordenar por estado (Disponible > Ocupado > Vencida)
+        if ($estadoA != $estadoB) {
+            return $estadoB - $estadoA; // Mayor valor primero (3 > 2 > 1)
+        }
+        
+        // Si tienen el mismo estado, ordenar por fecha
+        if (!empty($a['Fecha']) && !empty($b['Fecha'])) {
+            $fechaA = strtotime($a['Fecha']);
+            $fechaB = strtotime($b['Fecha']);
+            if ($fechaA != $fechaB) {
+                return $fechaA - $fechaB; // Fecha más antigua primero
+            }
+        }
+        
+        // Si tienen la misma fecha, ordenar por hora de inicio
+        if (!empty($a['HoraInicio']) && !empty($b['HoraInicio'])) {
+            return strcmp($a['HoraInicio'], $b['HoraInicio']); // Hora más temprana primero
+        }
+        
+        // Si todo es igual, ordenar por ID descendente
+        return (isset($b['ID']) ? (int)$b['ID'] : 0) - (isset($a['ID']) ? (int)$a['ID'] : 0);
+    });
+}
+
 // Preparar datos para el calendario (formato JSON)
 $eventos_calendario = [];
 foreach ($agendas as $agenda) {
@@ -79,12 +125,16 @@ foreach ($agendas as $agenda) {
         $start = $agenda['Fecha'] . 'T' . $horaInicio;
         $end = $agenda['Fecha'] . 'T' . $horaFin;
         
+        // Verificar si la agenda está vencida
+        $vencida = agendaVencida($agenda['Fecha'], $agenda['HoraFin']);
+        
         $eventos_calendario[] = [
             'id' => $agenda['ID'],
             'title' => substr($agenda['HoraInicio'], 0, 5) . ' - ' . substr($agenda['HoraFin'], 0, 5),
             'start' => $start,
             'end' => $end,
             'disponible' => (int)$agenda['Disponible'],
+            'vencida' => $vencida ? 1 : 0,
             'observaciones' => $agenda['Observaciones'] ?? ''
         ];
     }

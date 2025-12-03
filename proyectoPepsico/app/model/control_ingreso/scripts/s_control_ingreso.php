@@ -149,6 +149,17 @@ try {
             echo json_encode(['success' => true, 'data' => $vehiculos]);
             break;
             
+        case 'marcarSolicitudCompletada':
+            $solicitud_id = intval($_POST['solicitud_id'] ?? 0);
+            if ($solicitud_id <= 0) {
+                echo json_encode(['success' => false, 'message' => 'ID de solicitud inválido']);
+                exit();
+            }
+            
+            $resultado = marcarSolicitudCompletada($solicitud_id);
+            echo json_encode($resultado);
+            break;
+            
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida']);
             break;

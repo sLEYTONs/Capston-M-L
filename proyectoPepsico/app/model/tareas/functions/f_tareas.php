@@ -245,10 +245,11 @@ function obtenerChoferIDDelVehiculo($vehiculo_id, $conn) {
     $vehiculo_id = intval($vehiculo_id);
     
     // Primero intentar obtener el ChoferID desde solicitudes_agendamiento
+    // Incluir más estados para aumentar las posibilidades de encontrar la solicitud
     $queryChofer = "SELECT sa.ChoferID, iv.Placa, iv.ConductorNombre
                     FROM ingreso_vehiculos iv
                     LEFT JOIN solicitudes_agendamiento sa ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
-                        AND sa.Estado IN ('Aprobada', 'Ingresado')
+                        AND sa.Estado IN ('Aprobada', 'Ingresado', 'Atrasado', 'No llegó', 'Completada')
                     WHERE iv.ID = $vehiculo_id
                     ORDER BY sa.FechaCreacion DESC
                     LIMIT 1";
@@ -257,6 +258,7 @@ function obtenerChoferIDDelVehiculo($vehiculo_id, $conn) {
     if ($resultChofer && $row = mysqli_fetch_assoc($resultChofer)) {
         // Si hay ChoferID en la solicitud, usarlo
         if (!empty($row['ChoferID'])) {
+            error_log("Chofer encontrado por ChoferID: " . $row['ChoferID'] . " para vehículo ID: $vehiculo_id");
             return intval($row['ChoferID']);
         }
         
@@ -266,11 +268,28 @@ function obtenerChoferIDDelVehiculo($vehiculo_id, $conn) {
             $queryUsuario = "SELECT UsuarioID FROM usuarios WHERE NombreUsuario = '$conductorNombre' AND Rol = 'Chofer' LIMIT 1";
             $resultUsuario = mysqli_query($conn, $queryUsuario);
             if ($resultUsuario && $usuarioRow = mysqli_fetch_assoc($resultUsuario)) {
+                error_log("Chofer encontrado por nombre: " . $conductorNombre . " (ID: " . $usuarioRow['UsuarioID'] . ") para vehículo ID: $vehiculo_id");
                 return intval($usuarioRow['UsuarioID']);
             }
         }
     }
     
+    // Si no se encontró en solicitudes, intentar buscar directamente por ConductorNombre en ingreso_vehiculos
+    $queryDirecto = "SELECT ConductorNombre FROM ingreso_vehiculos WHERE ID = $vehiculo_id LIMIT 1";
+    $resultDirecto = mysqli_query($conn, $queryDirecto);
+    if ($resultDirecto && $rowDirecto = mysqli_fetch_assoc($resultDirecto)) {
+        if (!empty($rowDirecto['ConductorNombre'])) {
+            $conductorNombre = mysqli_real_escape_string($conn, $rowDirecto['ConductorNombre']);
+            $queryUsuario = "SELECT UsuarioID FROM usuarios WHERE NombreUsuario = '$conductorNombre' AND Rol = 'Chofer' LIMIT 1";
+            $resultUsuario = mysqli_query($conn, $queryUsuario);
+            if ($resultUsuario && $usuarioRow = mysqli_fetch_assoc($resultUsuario)) {
+                error_log("Chofer encontrado directamente por nombre desde ingreso_vehiculos: " . $conductorNombre . " (ID: " . $usuarioRow['UsuarioID'] . ") para vehículo ID: $vehiculo_id");
+                return intval($usuarioRow['UsuarioID']);
+            }
+        }
+    }
+    
+    error_log("No se pudo encontrar chofer para vehículo ID: $vehiculo_id");
     return null;
 }
 
@@ -332,14 +351,27 @@ function registrarAvance($asignacion_id, $descripcion, $estado) {
                 if ($chofer_id && $infoVehiculo) {
                     $placa = $infoVehiculo['Placa'];
                     $conductorNombre = $infoVehiculo['ConductorNombre'] ?? 'el chofer';
-                    $mensaje = "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico.\n\n";
-                    $mensaje .= "Por favor, acuda al taller para retirar el vehículo.\n\n";
-                    $mensaje .= "El guardia procesará la salida cuando llegue.";
-                    $titulo = "Vehículo Listo para Retiro - Placa: $placa";
+                    $mensaje = "¡Tu vehículo está listo! 🚗\n\n";
+                    $mensaje .= "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico y está listo para retirar.\n\n";
+                    $mensaje .= "📋 <strong>Próximos pasos:</strong>\n";
+                    $mensaje .= "1. Acude al taller para retirar tu vehículo\n";
+                    $mensaje .= "2. El guardia procesará la salida cuando llegues\n\n";
+                    $mensaje .= "¡Gracias por tu paciencia!";
+                    $titulo = "🚗 Vehículo Listo - Placa: $placa";
                     $modulo = "control_ingreso";
                     $enlace = "control_ingreso.php";
                     
-                    crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+                    $resultado_notificacion = crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+                    if (!$resultado_notificacion) {
+                        error_log("Error al crear notificación para chofer ID: $chofer_id, Placa: $placa");
+                    } else {
+                        error_log("Notificación enviada exitosamente al chofer ID: $chofer_id, Placa: $placa");
+                    }
+                } else {
+                    error_log("No se pudo obtener chofer_id o infoVehiculo para vehículo ID: $vehiculo_id");
+                    if ($infoVehiculo) {
+                        error_log("Info vehículo disponible - Placa: " . ($infoVehiculo['Placa'] ?? 'N/A') . ", Conductor: " . ($infoVehiculo['ConductorNombre'] ?? 'N/A'));
+                    }
                 }
             }
             mysqli_free_result($resultVehiculo);
@@ -463,14 +495,27 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
                 if ($chofer_id && $infoVehiculo) {
                     $placa = $infoVehiculo['Placa'];
                     $conductorNombre = $infoVehiculo['ConductorNombre'] ?? 'el chofer';
-                    $mensaje = "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico.\n\n";
-                    $mensaje .= "Por favor, acuda al taller para retirar el vehículo.\n\n";
-                    $mensaje .= "El guardia procesará la salida cuando llegue.";
-                    $titulo = "Vehículo Listo para Retiro - Placa: $placa";
+                    $mensaje = "¡Tu vehículo está listo! 🚗\n\n";
+                    $mensaje .= "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico y está listo para retirar.\n\n";
+                    $mensaje .= "📋 <strong>Próximos pasos:</strong>\n";
+                    $mensaje .= "1. Acude al taller para retirar tu vehículo\n";
+                    $mensaje .= "2. El guardia procesará la salida cuando llegues\n\n";
+                    $mensaje .= "¡Gracias por tu paciencia!";
+                    $titulo = "🚗 Vehículo Listo - Placa: $placa";
                     $modulo = "control_ingreso";
                     $enlace = "control_ingreso.php";
                     
-                    crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+                    $resultado_notificacion = crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
+                    if (!$resultado_notificacion) {
+                        error_log("Error al crear notificación para chofer ID: $chofer_id, Placa: $placa");
+                    } else {
+                        error_log("Notificación enviada exitosamente al chofer ID: $chofer_id, Placa: $placa");
+                    }
+                } else {
+                    error_log("No se pudo obtener chofer_id o infoVehiculo para vehículo ID: $vehiculo_id");
+                    if ($infoVehiculo) {
+                        error_log("Info vehículo disponible - Placa: " . ($infoVehiculo['Placa'] ?? 'N/A') . ", Conductor: " . ($infoVehiculo['ConductorNombre'] ?? 'N/A'));
+                    }
                 }
             }
             mysqli_free_result($resultVehiculo);

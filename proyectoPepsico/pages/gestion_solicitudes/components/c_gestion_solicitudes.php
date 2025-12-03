@@ -1,13 +1,12 @@
 <main class="main">
     <div class="container">
         <div class="search-container">
-            <div class="d-flex align-items-center mb-3">
-                <h2 class="mb-0">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="mb-0" style="white-space: nowrap; margin-right: 39rem;">
                     <i class="fas fa-calendar-check me-2"></i>
-                    Gestión de Solicitudes de Agendamiento
+                    Solicitudes de Agendamiento
                 </h2>
-                <div class="ms-auto d-flex gap-2">
-
+                <div class="d-flex gap-2" style="flex-shrink: 0;">
                     <button class="btn btn-success" id="btn-gestionar-agenda" data-bs-toggle="modal"
                         data-bs-target="#agendaModal">
                         <i class="fas fa-calendar-plus me-2"></i>Gestionar Agenda

@@ -5,19 +5,19 @@
             <!-- Contenido principal con tabla -->
             <div class="repuestos-main-content">
                 <div class="card h-100">
-                    <?php if ($usuario_rol === 'Asistente de Repuestos' || $usuario_rol === 'Administrador' || $usuario_rol === 'Jefe de Taller'): ?>
                     <div class="card-header">
                         <h4 class="card-title mb-0">
                             <i class="fas fa-boxes me-2"></i>
                             Inventario de Repuestos
                         </h4>
+                        <?php if ($usuario_rol === 'Asistente de Repuestos' || $usuario_rol === 'Administrador' || $usuario_rol === 'Jefe de Taller'): ?>
                         <div class="card-actions">
                             <button class="btn btn-outline-light btn-sm" id="btn-refresh" title="Actualizar">
                                 <i class="fas fa-sync-alt me-1"></i> Actualizar
                             </button>
                         </div>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                     <div class="card-body">
                         <!-- Contenedor de tabla con padding -->
                         <div id="tabla-container" class="tabla-container">
@@ -45,7 +45,7 @@
             
             <!-- Aside con resumen de inventario -->
             <aside class="repuestos-aside">
-                <div class="card h-100 mb-3">
+                <div class="card h-100">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-chart-pie me-2"></i>

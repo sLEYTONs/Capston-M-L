@@ -2,6 +2,7 @@
 .repuestos-container {
     padding: 0;
     margin: 0;
+    margin-top: 0;
     width: 100%;
     max-width: 100%;
 }
@@ -12,6 +13,8 @@
     gap: 1.5rem;
     width: 100%;
     align-items: flex-start;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 /* Contenido principal - más ancho */
@@ -26,10 +29,8 @@
 .repuestos-aside {
     width: 320px;
     flex-shrink: 0;
-    position: sticky;
-    top: 100px;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .repuestos-container .row {
@@ -62,27 +63,35 @@
 .repuestos-main-content .card {
     height: 100%;
     min-height: calc(100vh - 280px);
+    overflow: visible !important;
 }
 
 .repuestos-container .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
     border-radius: 10px 10px 0 0;
-    padding: 0.875rem 1.5rem;
-    display: flex;
+    padding: 0.75rem 1.25rem !important;
+    display: flex !important;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
     border-bottom: none;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: auto !important;
 }
 
 .repuestos-container .card-header h4,
 .repuestos-container .card-header h5 {
-    margin: 0;
+    margin: 0 !important;
     font-weight: 600;
-    display: flex;
+    display: flex !important;
     align-items: center;
     font-size: 1.1rem;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: white !important;
 }
 
 .repuestos-container .card-actions {
@@ -104,7 +113,7 @@
 
 /* Card Body - Flexbox completo */
 .repuestos-container .card-body {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -114,7 +123,7 @@
 
 /* Card body del contenido principal */
 .repuestos-main-content .card-body {
-    padding: 1.5rem;
+    padding: 1rem;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -245,10 +254,11 @@
 
 /* Resumen de Inventario en Aside */
 .repuestos-aside .card {
-    height: 100%;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    height: auto;
+    max-height: none;
 }
 
 .repuestos-aside .card-body {
@@ -256,16 +266,75 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: visible;
     min-height: 0;
+    height: auto;
 }
 
 #resumen-inventario {
     font-size: 0.9rem;
-    flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 100%;
+    overflow: visible;
+    height: auto;
+}
+
+#resumen-inventario > div {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+#resumen-inventario > div > div:first-child {
+    flex-shrink: 0 !important;
+}
+
+#resumen-inventario > div > div:last-child {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin-top: 0.75rem !important;
+    padding-top: 0.75rem !important;
+    flex: 0 1 auto !important;
+}
+
+#resumen-inventario > div > div:last-child > div {
+    overflow: visible !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0.5rem 0 !important;
+    height: auto !important;
+}
+
+#resumen-inventario .d-flex {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-bottom: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+#resumen-inventario .d-flex strong {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #495057 !important;
+}
+
+#resumen-inventario .d-flex small {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#resumen-inventario .badge {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 #resumen-inventario .d-flex {
@@ -334,19 +403,27 @@
 }
 
 .pc-content {
-    padding-top: 2.5rem !important;
-    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-top: 75px !important;
 }
 
 #repuestos-section {
-    margin-top: 2rem !important;
+    margin-top: 0 !important;
     padding-top: 0 !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
 }
 
+.repuestos-main-content .card .card-header {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
 .repuestos-container {
-    margin-top: 2rem !important;
+    margin-top: 0 !important;
     padding-top: 0 !important;
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
@@ -355,6 +432,9 @@
 .custom-page-header h5 {
     color: #212529 !important;
     font-weight: 600 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .custom-page-header .breadcrumb {

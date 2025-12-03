@@ -668,22 +668,33 @@ function obtenerVehiculosAgendados($fecha = null, $rol = null, $soloPendientes =
                     u.Correo as ChoferCorreo,
                     sup.NombreUsuario as SupervisorNombre,
                     CASE 
-                        WHEN iv.ID IS NOT NULL THEN 'Ingresado'
+                        WHEN iv.ID IS NOT NULL AND iv.Estado = 'Completado' THEN 'Completado'
+                        WHEN iv.ID IS NOT NULL AND iv.Estado = 'Finalizado' THEN 'Completado'
+                        WHEN iv.ID IS NOT NULL AND iv.FechaSalida IS NOT NULL THEN 'Completado'
+                        WHEN iv.ID IS NOT NULL AND iv.Estado = 'Ingresado' THEN 'Ingresado'
+                        WHEN iv.ID IS NOT NULL AND iv.Estado = 'Asignado' THEN 'Ingresado'
+                        WHEN iv.ID IS NOT NULL THEN COALESCE(iv.Estado, 'Ingresado')
+                        WHEN iv.ID IS NULL AND s.Estado = 'Completada' THEN 'Completado'
+                        WHEN iv.ID IS NULL THEN NULL
                         ELSE 'Pendiente Ingreso'
                     END as EstadoIngreso,
-                    iv.FechaIngreso
+                    iv.FechaIngreso,
+                    iv.Estado as EstadoVehiculo
                 FROM solicitudes_agendamiento s
                 INNER JOIN agenda_taller a ON s.AgendaID = a.ID
                 LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
                 LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
-                LEFT JOIN ingreso_vehiculos iv ON s.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci 
-                    AND iv.Estado = 'Ingresado'
+                LEFT JOIN ingreso_vehiculos iv ON s.Placa COLLATE utf8mb4_unicode_ci = iv.Placa COLLATE utf8mb4_unicode_ci
                 WHERE s.AgendaID IS NOT NULL
                     AND s.Estado IN ('Aprobada', 'Atrasado', 'No llegó')";
         
         // Si solo se quieren pendientes, filtrar por EstadoIngreso
+        // Excluir los que están "Ingresado" o "Asignado", pero incluir "Completado" para que el guardia pueda verlos
         if ($soloPendientes) {
-            $sql .= " AND iv.ID IS NULL";
+            $sql .= " AND (iv.ID IS NULL OR iv.Estado = 'Completado')";
+        } else {
+            // Si no es solo pendientes, mostrar todos: pendientes, ingresados y completados
+            // No agregar filtro adicional
         }
         
         // Si no es Guardia, agregar filtro de fecha
@@ -1596,4 +1607,45 @@ function verificarEstadoVehiculo($placa, $fecha = null, $tipoOperacion = 'ingres
         'puede_salir' => false
     ];
 }
+
+/**
+ * Marca una solicitud de agendamiento como completada
+ * Esto oculta el vehículo de la lista principal de vehículos agendados
+ */
+function marcarSolicitudCompletada($solicitud_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return ['success' => false, 'message' => 'Error de conexión'];
+    }
+
+    $solicitud_id = intval($solicitud_id);
+    
+    // Verificar que la solicitud existe y está aprobada
+    $queryCheck = "SELECT ID, Estado, Placa FROM solicitudes_agendamiento WHERE ID = $solicitud_id";
+    $resultCheck = mysqli_query($conn, $queryCheck);
+    
+    if (!$resultCheck || mysqli_num_rows($resultCheck) == 0) {
+        mysqli_close($conn);
+        return ['success' => false, 'message' => 'Solicitud no encontrada'];
+    }
+    
+    $solicitud = mysqli_fetch_assoc($resultCheck);
+    
+    // Actualizar el estado a 'Completada' si no lo está ya
+    if ($solicitud['Estado'] !== 'Completada') {
+        $queryUpdate = "UPDATE solicitudes_agendamiento SET Estado = 'Completada', FechaActualizacion = NOW() WHERE ID = $solicitud_id";
+        $resultUpdate = mysqli_query($conn, $queryUpdate);
+        
+        if (!$resultUpdate) {
+            mysqli_close($conn);
+            return ['success' => false, 'message' => 'Error al actualizar solicitud: ' . mysqli_error($conn)];
+        }
+        
+        error_log("Solicitud $solicitud_id (Placa: {$solicitud['Placa']}) marcada como Completada");
+    }
+    
+    mysqli_close($conn);
+    return ['success' => true, 'message' => 'Solicitud marcada como completada correctamente'];
+}
+
 ?>

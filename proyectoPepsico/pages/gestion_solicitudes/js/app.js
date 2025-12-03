@@ -239,12 +239,16 @@ class GestionSolicitudes {
 
     getEstadoClass(estado) {
         const clases = {
-            'Pendiente': 'bg-warning',
-            'Aprobada': 'bg-success',
-            'Rechazada': 'bg-danger',
-            'Cancelada': 'bg-secondary'
+            'Pendiente': 'bg-warning text-dark',
+            'Aprobada': 'bg-success text-white',
+            'Rechazada': 'bg-danger text-white',
+            'Cancelada': 'bg-secondary text-white',
+            'Completado': 'bg-info text-white',
+            'Completada': 'bg-info text-white',
+            'Atrasado': 'bg-warning text-dark',
+            'No llegó': 'bg-info text-white'
         };
-        return clases[estado] || 'bg-secondary';
+        return clases[estado] || 'bg-secondary text-white';
     }
 
     actualizarFilaSolicitud(solicitudId, nuevoEstado) {

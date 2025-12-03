@@ -118,6 +118,35 @@
     border-left: none;
 }
 
+/* Botones de navegación con flechas visibles usando Font Awesome */
+#calendario-agendas .fc-prev-button,
+#calendario-agendas .fc-next-button {
+    position: relative;
+}
+
+#calendario-agendas .fc-prev-button .fc-icon,
+#calendario-agendas .fc-next-button .fc-icon {
+    display: none;
+}
+
+#calendario-agendas .fc-prev-button::before {
+    content: "\f053";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 14px;
+    display: inline-block;
+    line-height: 1;
+}
+
+#calendario-agendas .fc-next-button::before {
+    content: "\f054";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 14px;
+    display: inline-block;
+    line-height: 1;
+}
+
 /* ============================================
    VISTA MENSUAL
    ============================================ */
@@ -299,6 +328,53 @@
     white-space: normal;
     word-wrap: break-word;
     min-height: 18px;
+}
+
+/* Asegurar que los eventos vencidos tengan prioridad sobre otros colores */
+#calendario-agendas .fc-event[data-vencida="1"],
+#calendario-agendas .fc-event.evento-vencido {
+    background-color: #6c757d !important;
+    border-left-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    color: #ffffff !important;
+    opacity: 0.8 !important;
+}
+
+#calendario-agendas .fc-event[data-vencida="1"]:hover,
+#calendario-agendas .fc-event.evento-vencido:hover {
+    opacity: 0.9 !important;
+    background-color: #6c757d !important;
+    border-left-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+}
+
+#calendario-agendas .fc-event[data-vencida="1"] .fc-event-title,
+#calendario-agendas .fc-event.evento-vencido .fc-event-title {
+    color: #ffffff !important;
+}
+
+/* Eventos vencidos - color oscuro - MÁXIMA PRIORIDAD */
+#calendario-agendas .fc-event[data-vencida="1"],
+#calendario-agendas .fc-event.evento-vencido {
+    background-color: #6c757d !important;
+    border-left-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    color: #ffffff !important;
+    opacity: 0.8 !important;
+}
+
+#calendario-agendas .fc-event[data-vencida="1"]:hover,
+#calendario-agendas .fc-event.evento-vencido:hover {
+    opacity: 0.9 !important;
+    background-color: #6c757d !important;
+    border-left-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+}
+
+/* Asegurar que los eventos vencidos no tengan colores verdes o rojos */
+#calendario-agendas .fc-event[data-vencida="1"] .fc-event-title,
+#calendario-agendas .fc-event.evento-vencido .fc-event-title {
+    color: #ffffff !important;
 }
 
 #calendario-agendas .fc-event-title {

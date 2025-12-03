@@ -131,11 +131,12 @@ function mostrarSolicitudes(solicitudes) {
             });
         }
 
-        // Determinar qué botones mostrar en acciones
+        // Determinar qué botones mostrar en acciones según el estado
         let accionesHTML = '';
+        const estado = solicitud.Estado || 'Pendiente';
         
+        // Rechazada: mostrar motivo de rechazo
         if (solicitud.MotivoRechazo) {
-            // Escapar correctamente el motivo para usar en onclick
             const motivoEscapado = solicitud.MotivoRechazo
                 .replace(/\\/g, '\\\\')
                 .replace(/'/g, "\\'")
@@ -147,14 +148,69 @@ function mostrarSolicitudes(solicitudes) {
                     <i class="fas fa-info-circle"></i> Ver motivo
                 </button>
             `;
-        } else if (solicitud.MecanicoNombre && solicitud.VehiculoID) {
-            // Si hay mecánico asignado, mostrar botón de seguimiento
+        }
+        // Completado: mostrar seguimiento solo si tiene mecánico y vehículo
+        else if (estado === 'Completado' && solicitud.MecanicoNombre && solicitud.VehiculoID) {
             accionesHTML = `
-                <button class="btn btn-sm btn-primary" onclick="verSeguimiento(${solicitud.VehiculoID}, '${solicitud.Placa}')" title="Ver seguimiento del vehículo">
-                    <i class="fas fa-eye"></i> Ver
+                <button class="btn btn-sm btn-primary" onclick="verSeguimiento(${solicitud.VehiculoID}, '${solicitud.Placa}')" title="Ver seguimiento del vehículo completado">
+                    <i class="fas fa-eye"></i> Ver seguimiento
                 </button>
             `;
-        } else {
+        }
+        // Cancelada: mostrar mensaje informativo
+        else if (estado === 'Cancelada') {
+            accionesHTML = `
+                <span class="text-secondary" style="font-size: 0.85rem;" title="Esta solicitud fue cancelada">
+                    <i class="fas fa-ban"></i> Cancelada
+                </span>
+            `;
+        }
+        // Aprobada: mostrar seguimiento si tiene mecánico, sino mensaje
+        else if (estado === 'Aprobada') {
+            if (solicitud.MecanicoNombre && solicitud.VehiculoID) {
+                accionesHTML = `
+                    <button class="btn btn-sm btn-primary" onclick="verSeguimiento(${solicitud.VehiculoID}, '${solicitud.Placa}')" title="Ver seguimiento del vehículo">
+                        <i class="fas fa-eye"></i> Ver seguimiento
+                    </button>
+                `;
+            } else {
+                accionesHTML = `
+                    <span class="text-info" style="font-size: 0.85rem;" title="Solicitud aprobada, esperando asignación de mecánico">
+                        <i class="fas fa-check-circle"></i> Aprobada
+                    </span>
+                `;
+            }
+        }
+        // Pendiente sin fecha/hora
+        else if (fechaHoraAsignada === 'Pendiente' && estado === 'Pendiente') {
+            accionesHTML = `
+                <span class="text-muted" style="font-size: 0.85rem;" title="Esta solicitud está pendiente de asignación de fecha y hora por el supervisor">
+                    <i class="fas fa-clock"></i> Sin asignar
+                </span>
+            `;
+        }
+        // Pendiente pero con otro estado (puede ser que pasó la fecha)
+        else if (fechaHoraAsignada === 'Pendiente' && estado !== 'Pendiente') {
+            const fechaCreacion = solicitud.FechaCreacion ? new Date(solicitud.FechaCreacion) : null;
+            const ahora = new Date();
+            const diasDiferencia = fechaCreacion ? Math.floor((ahora - fechaCreacion) / (1000 * 60 * 60 * 24)) : 0;
+            
+            if (diasDiferencia > 0) {
+                accionesHTML = `
+                    <span class="text-warning" style="font-size: 0.85rem;" title="Esta solicitud quedó sin fecha asignada. Contacte al supervisor.">
+                        <i class="fas fa-exclamation-triangle"></i> Sin fecha
+                    </span>
+                `;
+            } else {
+                accionesHTML = `
+                    <span class="text-muted" style="font-size: 0.85rem;" title="Pendiente de asignación de fecha y hora">
+                        <i class="fas fa-clock"></i> Pendiente
+                    </span>
+                `;
+            }
+        }
+        // Por defecto
+        else {
             accionesHTML = '-';
         }
 
@@ -223,7 +279,8 @@ function getEstadoClass(estado) {
         'Pendiente': 'bg-warning',
         'Aprobada': 'bg-success',
         'Rechazada': 'bg-danger',
-        'Cancelada': 'bg-secondary'
+        'Cancelada': 'bg-secondary',
+        'Completado': 'bg-completado' // Color único para completado (azul/verde azulado)
     };
     return clases[estado] || 'bg-secondary';
 }

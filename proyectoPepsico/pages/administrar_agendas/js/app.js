@@ -79,15 +79,33 @@ $(document).ready(function() {
                     end = end.replace(' ', 'T');
                 }
                 
+                // Verificar si está vencida (primero desde la propiedad, luego dinámicamente)
+                let vencida = evento.vencida === 1 || evento.vencida === true || evento.vencida === '1';
+                
+                // Si no viene la propiedad vencida, verificar dinámicamente usando la fecha de fin
+                if (!vencida && end) {
+                    try {
+                        const fechaFin = new Date(end);
+                        const ahora = new Date();
+                        vencida = fechaFin < ahora;
+                    } catch (e) {
+                        vencida = false;
+                    }
+                }
+                
                 return {
                     id: evento.id.toString(),
                     title: evento.title || 'Agenda',
                     start: start,
                     end: end,
                     allDay: false, // Asegurar que no sea evento de todo el día
+                    backgroundColor: vencida ? '#6c757d' : (evento.disponible === 1 ? '#28a745' : '#dc3545'),
+                    borderColor: vencida ? '#5a6268' : (evento.disponible === 1 ? '#1e7e34' : '#c82333'),
+                    textColor: vencida ? '#ffffff' : '#ffffff',
                     extendedProps: {
                         agendaId: parseInt(evento.id),
                         disponible: evento.disponible !== undefined ? evento.disponible : 1,
+                        vencida: vencida ? 1 : 0,
                         observaciones: evento.observaciones || ''
                     }
                 };
@@ -285,7 +303,17 @@ $(document).ready(function() {
                 const disponible = evento.extendedProps && evento.extendedProps.disponible !== undefined 
                     ? evento.extendedProps.disponible 
                     : 1;
-                    const estado = disponible === 1 ? 'Disponible' : 'Ocupado';
+                const vencida = evento.extendedProps && (evento.extendedProps.vencida === 1 || evento.extendedProps.vencida === true || evento.extendedProps.vencida === '1');
+                
+                // Si no está en extendedProps, verificar dinámicamente usando la fecha de fin
+                let esVencida = vencida;
+                if (!esVencida && evento.end) {
+                    const fechaFin = new Date(evento.end);
+                    const ahora = new Date();
+                    esVencida = fechaFin < ahora;
+                }
+                
+                const estado = esVencida ? 'Vencida' : (disponible === 1 ? 'Disponible' : 'Ocupado');
                     
                 // Construir título - SIEMPRE debe tener un valor
                 let titulo = evento.title || '';
@@ -299,8 +327,12 @@ $(document).ready(function() {
                     titulo = `${horaInicio} - ${horaFin} (${estado})`;
                 }
                 // Si tiene horas pero no tiene estado, agregarlo
-                else if (!titulo.includes(estado) && !titulo.includes('Disponible') && !titulo.includes('Ocupado')) {
+                else if (!titulo.includes(estado) && !titulo.includes('Disponible') && !titulo.includes('Ocupado') && !titulo.includes('Vencida')) {
                     titulo = `${titulo.split('(')[0].trim()} (${estado})`;
+                }
+                // Si está vencida pero el título no lo refleja, actualizarlo
+                else if (esVencida && !titulo.includes('Vencida')) {
+                    titulo = `${horaInicio} - ${horaFin} (Vencida)`;
                 }
                 
                 // Asegurar que el título nunca esté vacío
@@ -319,11 +351,50 @@ $(document).ready(function() {
                 };
             },
             eventDidMount: function(info) {
-                // Obtener estado disponible desde extendedProps
+                // Obtener estado disponible y vencida desde extendedProps
                 const disponible = info.event.extendedProps.disponible !== undefined ? info.event.extendedProps.disponible : 1;
+                let vencida = info.event.extendedProps.vencida === 1 || info.event.extendedProps.vencida === true || info.event.extendedProps.vencida === '1';
                 
-                // Agregar atributo data-disponible para estilos CSS (CRÍTICO para aplicar colores)
+                // Si no está en extendedProps, verificar dinámicamente usando la fecha de fin
+                if (!vencida && info.event.end) {
+                    try {
+                        const fechaFin = new Date(info.event.end);
+                        const ahora = new Date();
+                        vencida = fechaFin < ahora;
+                    } catch (e) {
+                        vencida = false;
+                    }
+                }
+                
+                // Agregar atributos para estilos CSS
                 $(info.el).attr('data-disponible', disponible);
+                $(info.el).attr('data-vencida', vencida ? 1 : 0);
+                
+                // Si está vencida, aplicar color oscuro (prioridad máxima)
+                if (vencida) {
+                    // Actualizar primero los colores del evento para que se mantengan
+                    info.event.setProp('backgroundColor', '#6c757d');
+                    info.event.setProp('borderColor', '#5a6268');
+                    info.event.setProp('textColor', '#ffffff');
+                    
+                    // Aplicar estilos directamente con !important
+                    $(info.el).css({
+                        'background-color': '#6c757d',
+                        'border-left-color': '#5a6268',
+                        'border-color': '#5a6268',
+                        'color': '#ffffff',
+                        'opacity': '0.8'
+                    });
+                    
+                    // Forzar que se mantenga el color oscuro con clase CSS
+                    $(info.el).addClass('evento-vencido');
+                    
+                    // Aplicar estilos inline con !important usando attr style
+                    const estiloActual = $(info.el).attr('style') || '';
+                    $(info.el).attr('style', estiloActual + '; background-color: #6c757d !important; border-left-color: #5a6268 !important; border-color: #5a6268 !important; color: #ffffff !important; opacity: 0.8 !important;');
+                    
+                    return;
+                }
                 
                 // PRIORIDAD 1: Usar colores del objeto evento si están definidos explícitamente
                 // (Esto asegura que eventos nuevos dinámicos tengan los colores correctos)
@@ -364,7 +435,7 @@ $(document).ready(function() {
                                   String(start.getMinutes()).padStart(2, '0');
                 const horaFin = String(end.getHours()).padStart(2, '0') + ':' + 
                                String(end.getMinutes()).padStart(2, '0');
-                const estado = disponible === 1 ? 'Disponible' : 'Ocupado';
+                const estado = vencida ? 'Vencida' : (disponible === 1 ? 'Disponible' : 'Ocupado');
                 
                 // Agregar tooltip
                     let tooltip = `${horaInicio} - ${horaFin}\nEstado: ${estado}`;
@@ -474,6 +545,21 @@ $(document).ready(function() {
     function editarAgendaDesdeCalendario(evento) {
         const agendaId = evento.extendedProps.agendaId;
         
+        // Verificar si el evento está vencido
+        const vencida = evento.extendedProps.vencida === 1 || evento.extendedProps.vencida === true || evento.extendedProps.vencida === '1';
+        
+        // Si no está en extendedProps, verificar dinámicamente usando la fecha de fin
+        let esVencida = vencida;
+        if (!esVencida && evento.end) {
+            try {
+                const fechaFin = new Date(evento.end);
+                const ahora = new Date();
+                esVencida = fechaFin < ahora;
+            } catch (e) {
+                esVencida = false;
+            }
+        }
+        
         $.ajax({
             url: baseUrl,
             type: 'POST',
@@ -491,7 +577,46 @@ $(document).ready(function() {
                     $('#agenda-hora-fin').val(agenda.HoraFin ? agenda.HoraFin.substring(0, 5) : '');
                     $('#agenda-disponible').prop('checked', agenda.Disponible == 1 || agenda.Disponible === true || agenda.Disponible === '1');
                     $('#agenda-observaciones').val(agenda.Observaciones || '');
-                    $('#modalAgendaTitulo').html('<i class="fas fa-edit me-2"></i>Editar Agenda');
+                    
+                    // Si está vencida, mostrar de forma diferente
+                    if (esVencida) {
+                        $('#modalAgendaTitulo').html('<i class="fas fa-clock me-2 text-secondary"></i>Agenda Vencida (Solo Lectura)');
+                        $('#modalAgendaTitulo').addClass('text-secondary');
+                        
+                        // Deshabilitar todos los campos
+                        $('#agenda-fecha').prop('disabled', true).addClass('bg-light');
+                        $('#agenda-hora-inicio').prop('disabled', true).addClass('bg-light');
+                        $('#agenda-hora-fin').prop('disabled', true).addClass('bg-light');
+                        $('#agenda-disponible').prop('disabled', true);
+                        $('#agenda-observaciones').prop('disabled', true).addClass('bg-light');
+                        
+                        // Ocultar botón de guardar
+                        $('#btn-guardar-agenda').hide();
+                        
+                        // Mostrar mensaje de advertencia
+                        if ($('#mensaje-vencida').length === 0) {
+                            $('#form-agenda').prepend('<div id="mensaje-vencida" class="alert alert-warning mb-3"><i class="fas fa-exclamation-triangle me-2"></i><strong>Agenda Vencida:</strong> Esta agenda ya pasó su fecha y hora de fin. Solo se puede visualizar, no se puede editar.</div>');
+                        } else {
+                            $('#mensaje-vencida').show();
+                        }
+                    } else {
+                        $('#modalAgendaTitulo').html('<i class="fas fa-edit me-2"></i>Editar Agenda');
+                        $('#modalAgendaTitulo').removeClass('text-secondary');
+                        
+                        // Habilitar todos los campos
+                        $('#agenda-fecha').prop('disabled', false).removeClass('bg-light');
+                        $('#agenda-hora-inicio').prop('disabled', false).removeClass('bg-light');
+                        $('#agenda-hora-fin').prop('disabled', false).removeClass('bg-light');
+                        $('#agenda-disponible').prop('disabled', false);
+                        $('#agenda-observaciones').prop('disabled', false).removeClass('bg-light');
+                        
+                        // Mostrar botón de guardar
+                        $('#btn-guardar-agenda').show();
+                        
+                        // Ocultar mensaje de advertencia
+                        $('#mensaje-vencida').hide();
+                    }
+                    
                     const modalElement = document.getElementById('modalAgenda');
                     if (modalElement) {
                         const modal = new bootstrap.Modal(modalElement);
@@ -587,14 +712,23 @@ $(document).ready(function() {
         const horaInicioDisplay = horaInicio.substring(0, 5);
         const horaFinDisplay = horaFin.substring(0, 5);
         
+        // Verificar si está vencida
+        const vencida = verificarAgendaVencida(agendaData.Fecha, agendaData.HoraFin);
+        
         // Determinar estado (igual que cuando viene del servidor)
         const disponible = agendaData.Disponible === 1 || agendaData.Disponible === true || agendaData.Disponible === '1';
-        const estado = disponible ? 'Disponible' : 'Ocupado';
+        const estado = vencida ? 'Vencida' : (disponible ? 'Disponible' : 'Ocupado');
         
         // Crear título con el mismo formato que cuando viene del servidor
         const titulo = `${horaInicioDisplay} - ${horaFinDisplay} (${estado})`;
         
         // Colores según el estado (mismos valores que CSS)
+        const coloresVencida = {
+            backgroundColor: '#6c757d',  // Color oscuro para vencidas
+            borderColor: '#5a6268',
+            textColor: '#ffffff'
+        };
+        
         const coloresDisponible = {
             backgroundColor: '#e8f5e9',  // var(--success-bg)
             borderColor: '#34a853',       // var(--success)
@@ -607,7 +741,7 @@ $(document).ready(function() {
             textColor: '#721c24'
         };
         
-        const colores = disponible ? coloresDisponible : coloresOcupado;
+        const colores = vencida ? coloresVencida : (disponible ? coloresDisponible : coloresOcupado);
         
         // Construir objeto evento con la MISMA estructura que cuando viene del servidor
         // Añadir propiedades de color EXPLÍCITAS para garantizar que se muestren correctamente
@@ -623,6 +757,7 @@ $(document).ready(function() {
             extendedProps: {
                 agendaId: parseInt(agendaData.ID),
                 disponible: disponible ? 1 : 0, // 1 = Disponible (verde), 0 = Ocupado (rojo)
+                vencida: vencida ? 1 : 0,
                 observaciones: agendaData.Observaciones || ''
             }
         };
@@ -935,6 +1070,20 @@ $(document).ready(function() {
         $('#agenda-disponible').prop('checked', true);
         $('#agenda-observaciones').val('');
         $('#modalAgendaTitulo').html('<i class="fas fa-calendar-plus me-2"></i>Nueva Agenda');
+        $('#modalAgendaTitulo').removeClass('text-secondary');
+        
+        // Habilitar todos los campos
+        $('#agenda-fecha').prop('disabled', false).removeClass('bg-light');
+        $('#agenda-hora-inicio').prop('disabled', false).removeClass('bg-light');
+        $('#agenda-hora-fin').prop('disabled', false).removeClass('bg-light');
+        $('#agenda-disponible').prop('disabled', false);
+        $('#agenda-observaciones').prop('disabled', false).removeClass('bg-light');
+        
+        // Mostrar botón de guardar
+        $('#btn-guardar-agenda').show();
+        
+        // Ocultar mensaje de advertencia si existe
+        $('#mensaje-vencida').hide();
     }
 
     // Abrir modal para nueva agenda

@@ -138,14 +138,16 @@ class VehiculosAgendados {
     }
 
     cargarVehiculos() {
-        // Cargar solo vehículos pendientes
+        // Cargar vehículos: pendientes para otros roles, todos (incluyendo completados) para guardia
         const esGuardia = window.esGuardia === true;
         const fechaFiltro = document.getElementById('fecha-filtro');
         const fecha = (esGuardia || !fechaFiltro) ? null : fechaFiltro.value;
 
         const formData = new FormData();
         formData.append('action', 'obtenerVehiculosAgendados');
-        formData.append('soloPendientes', 'true'); // Solo pendientes
+        // Para el guardia, mostrar todos (pendientes y completados) para que pueda procesar salidas
+        // Para otros roles, solo pendientes
+        formData.append('soloPendientes', esGuardia ? 'false' : 'true');
         // Solo enviar fecha si no es Guardia
         if (!esGuardia && fecha) {
         formData.append('fecha', fecha);
@@ -234,10 +236,31 @@ class VehiculosAgendados {
             const horaFin = vehiculo.HoraFin ? vehiculo.HoraFin.substring(0, 5) : '';
             const horaFormateada = horaFin ? `${horaInicio} - ${horaFin}` : horaInicio;
 
-            // Estado badge
-            const estadoClass = vehiculo.EstadoIngreso === 'Ingresado' ? 'success' : 'warning';
-            const estadoIcon = vehiculo.EstadoIngreso === 'Ingresado' ? 'fa-check-circle' : 'fa-clock';
-            const estadoTexto = vehiculo.EstadoIngreso === 'Ingresado' ? 'Ingresado' : 'Pendiente';
+            // Estado badge - verificar tanto EstadoIngreso como EstadoVehiculo
+            // Si no hay estado en la base de datos, significa que ya no tiene hora asignada (completado y salió)
+            const estado = vehiculo.EstadoIngreso || vehiculo.EstadoVehiculo;
+            let estadoClass = 'warning';
+            let estadoIcon = 'fa-clock';
+            let estadoTexto = 'Pendiente';
+            
+            // Si no hay estado, significa que el vehículo ya salió (no tiene registro en ingreso_vehiculos)
+            if (!estado || estado === null || estado === '') {
+                estadoClass = 'secondary';
+                estadoIcon = 'fa-check-circle';
+                estadoTexto = 'Sin Hora Asignada';
+            } else if (estado === 'Completado' || estado === 'Finalizado') {
+                estadoClass = 'success';
+                estadoIcon = 'fa-check-double';
+                estadoTexto = 'Completado - Listo para Salir';
+            } else if (estado === 'Ingresado' || estado === 'Asignado') {
+                estadoClass = 'info';
+                estadoIcon = 'fa-check-circle';
+                estadoTexto = 'En Taller';
+            } else if (estado === 'Pendiente Ingreso') {
+                estadoClass = 'warning';
+                estadoIcon = 'fa-clock';
+                estadoTexto = 'Pendiente';
+            }
 
             // Vehículo completo
             const vehiculoCompleto = `${vehiculo.Marca || ''} ${vehiculo.Modelo || ''} ${vehiculo.TipoVehiculo || ''}`.trim() || 'N/A';
@@ -255,9 +278,16 @@ class VehiculosAgendados {
                     </span>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-info" onclick="vehiculosAgendados.verDetalles(${vehiculo.SolicitudID})" title="Ver detalles">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-info" onclick="vehiculosAgendados.verDetalles(${vehiculo.SolicitudID})" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${(estado === 'Completado' || estado === 'Finalizado' || estadoTexto === 'Completado - Listo para Salir') && window.esGuardia ? `
+                        <button class="btn btn-sm btn-success" onclick="vehiculosAgendados.marcarCompletado(${vehiculo.SolicitudID}, '${vehiculo.Placa}')" title="Marcar como completado y ocultar de la lista">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        ` : ''}
+                    </div>
                 </td>
             `;
 
@@ -813,6 +843,55 @@ class VehiculosAgendados {
                 </tr>
             `;
         }
+    }
+
+    marcarCompletado(solicitudId, placa) {
+        if (!confirm(`¿Está seguro de marcar la solicitud del vehículo ${placa} como completada?\n\nEsto ocultará el vehículo de la lista principal.`)) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'marcarSolicitudCompletada');
+        formData.append('solicitud_id', solicitudId);
+
+        fetch(this.baseUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.mostrarMensaje('Vehículo marcado como completado y ocultado de la lista', 'success');
+                this.cargarVehiculos(); // Recargar la lista
+            } else {
+                this.mostrarMensaje(data.message || 'Error al marcar como completado', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error al marcar como completado:', error);
+            this.mostrarMensaje('Error de conexión al marcar como completado', 'error');
+        });
+    }
+
+    mostrarMensaje(mensaje, tipo) {
+        // Crear un toast o alert simple
+        const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+        const alertHTML = `
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert" style="position: fixed; top: 80px; right: 20px; z-index: 9999; min-width: 300px;">
+                <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', alertHTML);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            const alert = document.querySelector('.alert:last-of-type');
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
     }
 }
 

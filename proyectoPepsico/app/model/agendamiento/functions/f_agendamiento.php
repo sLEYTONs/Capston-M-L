@@ -398,6 +398,8 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                          LIMIT 1)
                     ) as HoraFinAgenda,
                     v.ID as VehiculoID,
+                    v.Estado as EstadoVehiculo,
+                    v.FechaSalida,
                     asig.ID as AsignacionID,
                     asig.Estado as EstadoAsignacion,
                     mech.NombreUsuario as MecanicoNombre
@@ -405,8 +407,8 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
                 LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
                 LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
-                LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci AND v.Estado IN ('Ingresado', 'Asignado')
-                LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión')
+                LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci
+                LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
                 LEFT JOIN usuarios mech ON asig.MecanicoID = mech.UsuarioID
                 $whereClause
                 ORDER BY s.FechaCreacion DESC";
@@ -422,6 +424,9 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
             throw new Exception("Error en la consulta SQL: " . $error);
         }
 
+        // Array para rastrear solicitudes únicas por placa + fecha/hora
+        $solicitudesUnicas = [];
+        
         while ($row = $result->fetch_assoc()) {
             // Si no hay FechaAgenda, intentar obtenerla desde la asignación
             $fechaAgenda = $row['FechaAgenda'] ?? null;
@@ -455,6 +460,50 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 }
             }
             
+            // Determinar el estado final: si el vehículo está completado o finalizado, mostrar "Completado"
+            // PERO solo si tiene fecha/hora asignada (no puede estar completado si nunca tuvo hora asignada)
+            $estadoFinal = $row['Estado'] ?? 'Pendiente';
+            $estadoVehiculo = $row['EstadoVehiculo'] ?? null;
+            $fechaSalida = $row['FechaSalida'] ?? null;
+            
+            // Solo marcar como "Completado" si:
+            // 1. El vehículo está completado/finalizado O tiene fecha de salida
+            // 2. Y además tiene fecha/hora asignada (no puede estar completado sin haber tenido hora)
+            $tieneFechaHora = !empty($fechaAgenda) && !empty($horaInicioAgenda);
+            
+            if ($tieneFechaHora && ($estadoVehiculo === 'Completado' || $estadoVehiculo === 'Finalizado' || !empty($fechaSalida))) {
+                $estadoFinal = 'Completado';
+            } else if (!$tieneFechaHora && ($estadoFinal === 'Aprobada' || $estadoFinal === 'Pendiente')) {
+                // Si no tiene fecha/hora y está aprobada o pendiente, mantener como Pendiente
+                // (porque si está aprobada pero sin hora, técnicamente sigue pendiente de asignación de hora)
+                $estadoFinal = 'Pendiente';
+            }
+            
+            // Crear clave única: Placa + FechaAgenda + HoraInicioAgenda
+            // Si no hay fecha/hora, usar solo el ID de la solicitud
+            $claveUnica = '';
+            if ($fechaAgenda && $horaInicioAgenda) {
+                $claveUnica = $row['Placa'] . '|' . $fechaAgenda . '|' . $horaInicioAgenda;
+            } else {
+                // Si no tiene fecha/hora asignada, usar ID de solicitud para que cada una sea única
+                $claveUnica = 'ID_' . ($row['ID'] ?? 0);
+            }
+            
+            // Si ya existe una solicitud con la misma placa + fecha/hora, mantener solo la más reciente
+            if (!empty($claveUnica) && isset($solicitudesUnicas[$claveUnica])) {
+                $solicitudExistente = $solicitudesUnicas[$claveUnica];
+                // Comparar fechas de creación, mantener la más reciente
+                $fechaCreacionActual = $row['FechaCreacion'] ?? '';
+                $fechaCreacionExistente = $solicitudExistente['FechaCreacion'] ?? '';
+                
+                if ($fechaCreacionActual > $fechaCreacionExistente) {
+                    // La actual es más reciente, reemplazar
+                } else {
+                    // La existente es más reciente o igual, saltar esta
+                    continue;
+                }
+            }
+            
             // Asegurar que todos los campos estén presentes
             $solicitud = [
                 'ID' => $row['ID'] ?? 0,
@@ -465,7 +514,10 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 'Modelo' => $row['Modelo'] ?? '',
                 'ConductorNombre' => $row['ConductorNombre'] ?? ($row['ChoferNombre'] ?? ''),
                 'Proposito' => $row['Proposito'] ?? '',
-                'Estado' => $row['Estado'] ?? 'Pendiente',
+                'Estado' => $estadoFinal,
+                'EstadoOriginal' => $row['Estado'] ?? 'Pendiente', // Mantener el estado original para referencia
+                'EstadoVehiculo' => $estadoVehiculo,
+                'FechaSalida' => $fechaSalida,
                 'AgendaID' => $row['AgendaID'] ?? null,
                 'SupervisorID' => $row['SupervisorID'] ?? null,
                 'Observaciones' => $row['Observaciones'] ?? '',
@@ -481,8 +533,26 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 'AsignacionID' => $row['AsignacionID'] ?? null,
                 'EstadoAsignacion' => $row['EstadoAsignacion'] ?? null
             ];
-            $solicitudes[] = $solicitud;
+            
+            // Guardar en el array de únicas usando la clave
+            if (!empty($claveUnica)) {
+                $solicitudesUnicas[$claveUnica] = $solicitud;
+            } else {
+                // Si no hay clave única, usar el ID de la solicitud como clave
+                $clavePorID = 'ID_' . ($row['ID'] ?? 0);
+                $solicitudesUnicas[$clavePorID] = $solicitud;
+            }
         }
+        
+        // Convertir el array asociativo a array indexado y ordenar por fecha de creación descendente
+        $solicitudes = array_values($solicitudesUnicas);
+        
+        // Ordenar por fecha de creación descendente (más recientes primero)
+        usort($solicitudes, function($a, $b) {
+            $fechaA = $a['FechaCreacion'] ?? '';
+            $fechaB = $b['FechaCreacion'] ?? '';
+            return strcmp($fechaB, $fechaA); // Orden descendente
+        });
 
         $conn->close();
         return $solicitudes;

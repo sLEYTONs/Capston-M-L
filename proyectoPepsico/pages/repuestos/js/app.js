@@ -386,6 +386,9 @@ class InventarioRepuestos {
     }
 
     actualizarResumen(repuestos) {
+        console.log('Repuestos recibidos:', repuestos);
+        console.log('Primer repuesto:', repuestos[0]);
+        
         const total = repuestos.length;
         const activos = repuestos.filter(r => (r.Estado || 'Activo') === 'Activo').length;
         const stockBajo = repuestos.filter(r => {
@@ -408,28 +411,39 @@ class InventarioRepuestos {
         // Calcular por categoría
         const porCategoria = {};
         repuestos.forEach(r => {
-            const cat = r.Categoria || 'Sin categoría';
+            // Intentar diferentes nombres de campo para categoría
+            const cat = r.Categoria || r.categoria || r.RepuestoCategoria || 'Sin categoría';
             if (!porCategoria[cat]) {
                 porCategoria[cat] = { total: 0, activos: 0 };
             }
             porCategoria[cat].total++;
-            if ((r.Estado || 'Activo') === 'Activo') {
+            if ((r.Estado || r.estado || 'Activo') === 'Activo') {
                 porCategoria[cat].activos++;
             }
         });
 
+        console.log('Categorías calculadas:', porCategoria);
+        console.log('Claves de categorías:', Object.keys(porCategoria));
+
         let categoriasHtml = '';
-        Object.keys(porCategoria).sort().forEach(cat => {
-            categoriasHtml += `
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                    <div>
-                        <strong class="d-block" style="font-size: 0.85rem;">${this.escapeHtml(cat)}</strong>
-                        <small class="text-muted">${porCategoria[cat].activos} activos</small>
+        const categoriasOrdenadas = Object.keys(porCategoria).sort();
+        console.log('Categorías ordenadas:', categoriasOrdenadas);
+        
+        if (categoriasOrdenadas.length > 0) {
+            categoriasOrdenadas.forEach(cat => {
+                categoriasHtml += `
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom" style="display: flex !important; visibility: visible !important; opacity: 1 !important;">
+                        <div>
+                            <strong class="d-block" style="font-size: 0.85rem; color: #495057;">${this.escapeHtml(cat)}</strong>
+                            <small class="text-muted" style="font-size: 0.8rem;">${porCategoria[cat].activos} activos</small>
+                        </div>
+                        <span class="badge bg-primary" style="font-size: 0.75rem;">${porCategoria[cat].total}</span>
                     </div>
-                    <span class="badge bg-primary">${porCategoria[cat].total}</span>
-                </div>
-            `;
-        });
+                `;
+            });
+        }
+        
+        console.log('HTML de categorías generado:', categoriasHtml);
 
         const html = `
             <div style="display: flex; flex-direction: column; height: 100%; min-height: 0;">
@@ -470,13 +484,13 @@ class InventarioRepuestos {
                         <h5 class="mb-0 text-primary">$${this.formatearPrecioChileno(valorTotal)}</h5>
                     </div>
                 </div>
-                <div class="mt-3 pt-3 border-top" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
-                    <h6 class="mb-2" style="flex-shrink: 0;">
+                <div class="mt-3 pt-3 border-top" style="display: flex; flex-direction: column; min-height: 0;">
+                    <h6 class="mb-2" style="flex-shrink: 0; font-weight: 600; color: #495057;">
                         <i class="fas fa-tags me-1"></i>
                         Por Categoría
                     </h6>
-                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
-                        ${categoriasHtml || '<p class="text-muted small mb-0">No hay categorías</p>'}
+                    <div style="overflow: visible; min-height: 0; max-height: none; padding: 0.5rem 0; height: auto;">
+                        ${categoriasHtml || '<p class="text-muted small mb-0">No hay categorías disponibles</p>'}
                     </div>
                 </div>
             </div>

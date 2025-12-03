@@ -2,6 +2,34 @@
 include 'general/middle.php';
 include 'general/funciones_notificaciones.php';
 
+// Procesar marcar como leída (una notificación individual)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !headers_sent()) {
+    $notificacion_id = intval($_POST['notificacion_id'] ?? 0);
+    if ($notificacion_id > 0) {
+        marcarNotificacionLeida($notificacion_id, $usuario_id);
+        header("Location: " . $_SERVER['REQUEST_URI']);
+        exit();
+    }
+}
+
+// Procesar marcar todas como leídas
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_todas_leidas']) && !headers_sent()) {
+    $conn = conectar_Pepsico();
+    if ($conn) {
+        $sql = "UPDATE notificaciones SET leida = 1, fecha_leida = NOW() 
+                WHERE usuario_id = ? AND leida = 0";
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $usuario_id);
+            $stmt->execute();
+            $stmt->close();
+        }
+        $conn->close();
+    }
+    header("Location: " . $_SERVER['REQUEST_URI']);
+    exit();
+}
+
 $pagina_titulo = "Mis Notificaciones";
 
 // Obtener contador de notificaciones no leídas
@@ -519,33 +547,3 @@ $contador_notificaciones = obtenerContadorNotificaciones($usuario_id);
     </script>
 </body>
 </html>
-
-<?php
-// Procesar marcar como leída
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leida']) && !headers_sent()) {
-    $notificacion_id = intval($_POST['notificacion_id'] ?? 0);
-    if ($notificacion_id > 0) {
-        marcarNotificacionLeida($notificacion_id, $usuario_id);
-        header("Location: " . $_SERVER['REQUEST_URI']);
-        exit();
-    }
-}
-
-// Procesar marcar todas como leídas
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_todas_leidas'])) {
-    $conn = conectar_Pepsico();
-    if ($conn) {
-        $sql = "UPDATE notificaciones SET leida = 1, fecha_leida = NOW() 
-                WHERE usuario_id = ? AND leida = 0";
-        $stmt = $conn->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param("i", $usuario_id);
-            $stmt->execute();
-            $stmt->close();
-        }
-        $conn->close();
-    }
-    header("Location: " . $_SERVER['REQUEST_URI']);
-    exit();
-}
-?>
