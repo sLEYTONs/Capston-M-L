@@ -59,13 +59,10 @@ if (!in_array($usuario_rol, ['Supervisor', 'Administrador'])) {
     <script>
         // Verificar que FullCalendar se cargó
         if (typeof FullCalendar !== 'undefined') {
-            console.log('✅ FullCalendar cargado correctamente desde archivo local');
             // Asegurar que esté disponible globalmente
             if (typeof window.FullCalendar === 'undefined') {
                 window.FullCalendar = FullCalendar;
             }
-        } else {
-            console.error('❌ FullCalendar no se cargó desde el archivo local');
         }
     </script>
     <script src='../assets/js/fullcalendar/es.js'></script>

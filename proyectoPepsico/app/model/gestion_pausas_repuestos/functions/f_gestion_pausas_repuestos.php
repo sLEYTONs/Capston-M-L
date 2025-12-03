@@ -786,11 +786,14 @@ function aprobarSolicitudRepuestos($solicitud_id, $aprobador_id) {
 
         // Obtener información de la solicitud
         $queryInfo = "SELECT sr.MecanicoID, sr.AsignacionID, sr.RepuestoID, sr.Cantidad, 
-                     r.Nombre as RepuestoNombre, v.Placa
+                     r.Nombre as RepuestoNombre, 
+                     COALESCE(v.Placa, sa.Placa, '') as Placa
                      FROM solicitudes_repuestos sr
                      INNER JOIN repuestos r ON sr.RepuestoID = r.ID
                      LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
                      LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                     LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                         AND sa.Estado IN ('Aprobada', 'Ingresado')
                      WHERE sr.ID = $solicitud_id AND sr.Estado = 'Pendiente'";
         
         $resultInfo = mysqli_query($conn, $queryInfo);
@@ -941,12 +944,12 @@ function aprobarSolicitudRepuestos($solicitud_id, $aprobador_id) {
         }
 
         // Notificar al mecánico con el estado actual
-        $placaTexto = !empty($info['Placa']) ? " para el vehículo con placa {$info['Placa']}" : "";
-        $mensaje = "Su solicitud de {$info['Cantidad']} unidad(es) de {$info['RepuestoNombre']}$placaTexto ha sido <strong>APROBADA</strong>.\n\n";
-        $mensaje .= "Estado actual: <strong>Aprobada</strong>\n";
-        $mensaje .= "Los repuestos han sido reservados y están disponibles para su uso.\n\n";
+        $placaTexto = !empty($info['Placa']) ? " para el vehículo con placa <strong>{$info['Placa']}</strong>" : "";
+        $mensaje = "Su solicitud de <strong>{$info['Cantidad']} unidad(es)</strong> de <strong>{$info['RepuestoNombre']}</strong>$placaTexto ha sido <strong>APROBADA</strong>.<br><br>";
+        $mensaje .= "<strong>Estado actual:</strong> <span style='color: #28a745; font-weight: bold;'>Aprobada</span><br>";
+        $mensaje .= "Los repuestos han sido reservados y están disponibles para su uso.<br><br>";
         $mensaje .= "Recuerde registrar el uso o devolver los repuestos no utilizados desde la vista de tareas.";
-        $titulo = "Solicitud de Repuestos Aprobada - Estado: Aprobada";
+        $titulo = "Solicitud de Repuestos Aprobada";
         $modulo = "tareas";
         $enlace = "tareas.php";
         
@@ -1490,7 +1493,7 @@ function obtenerRepuestosAprobadosMecanico($mecanico_id) {
                     sr.AsignacionID,
                     r.Codigo as RepuestoCodigo,
                     r.Nombre as RepuestoNombre,
-                    COALESCE(v.Placa, '') as Placa,
+                    COALESCE(v.Placa, sa.Placa, '') as Placa,
                     DATE_FORMAT(sr.FechaAprobacion, '%d/%m/%Y %H:%i') as FechaAprobacion,
                     COALESCE(SUM(CASE WHEN ru.ID IS NOT NULL THEN ru.CantidadUsada ELSE 0 END), 0) as CantidadUsada,
                     COALESCE(SUM(CASE WHEN rd.ID IS NOT NULL THEN rd.CantidadDevuelta ELSE 0 END), 0) as CantidadDevuelta,
@@ -1500,11 +1503,13 @@ function obtenerRepuestosAprobadosMecanico($mecanico_id) {
                   INNER JOIN repuestos r ON sr.RepuestoID = r.ID
                   LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
                   LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                  LEFT JOIN solicitudes_agendamiento sa ON COALESCE(v.Placa, '') COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                      AND sa.Estado IN ('Aprobada', 'Ingresado')
                   LEFT JOIN registro_uso_repuestos ru ON sr.ID = ru.SolicitudID
                   LEFT JOIN registro_devolucion_repuestos rd ON sr.ID = rd.SolicitudID
                   WHERE sr.MecanicoID = $mecanico_id 
                     AND sr.Estado = 'Aprobada'
-                  GROUP BY sr.ID, sr.RepuestoID, sr.Cantidad, sr.AsignacionID, r.Codigo, r.Nombre, v.Placa, sr.FechaAprobacion
+                  GROUP BY sr.ID, sr.RepuestoID, sr.Cantidad, sr.AsignacionID, r.Codigo, r.Nombre, COALESCE(v.Placa, sa.Placa, ''), sr.FechaAprobacion
                   HAVING CantidadPendiente > 0
                   ORDER BY sr.FechaAprobacion DESC";
 

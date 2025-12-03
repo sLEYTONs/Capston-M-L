@@ -203,10 +203,29 @@ function crearSolicitudAgendamiento($datos) {
             throw new Exception("Ya existe una solicitud pendiente para esta placa. Espere a que sea procesada antes de crear una nueva.");
         }
 
-        // NOTA: Se eliminó la validación que bloqueaba la creación de solicitudes
-        // cuando el vehículo ya está ingresado en ingreso_vehiculos.
-        // Esto permite que los choferes creen nuevas solicitudes de agendamiento
-        // incluso si el vehículo ya está registrado en el sistema con estado 'Ingresado'.
+        // Verificar si el vehículo ya está en taller (estados que indican que está en proceso)
+        $checkVehiculoEnTaller = "SELECT iv.ID, iv.Estado, iv.Placa
+                                  FROM ingreso_vehiculos iv
+                                  WHERE iv.Placa = '$placa'
+                                  AND iv.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                                  ORDER BY iv.FechaRegistro DESC
+                                  LIMIT 1";
+        $resultVehiculoEnTaller = mysqli_query($conn, $checkVehiculoEnTaller);
+        
+        if (mysqli_num_rows($resultVehiculoEnTaller) > 0) {
+            $vehiculoEnTaller = mysqli_fetch_assoc($resultVehiculoEnTaller);
+            // Verificar si tiene asignaciones activas
+            $checkAsignaciones = "SELECT COUNT(*) as total
+                                  FROM asignaciones_mecanico
+                                  WHERE VehiculoID = {$vehiculoEnTaller['ID']}
+                                  AND Estado IN ('Asignado', 'En Proceso', 'En Revisión')";
+            $resultAsignaciones = mysqli_query($conn, $checkAsignaciones);
+            $asignaciones = mysqli_fetch_assoc($resultAsignaciones);
+            
+            if ($asignaciones['total'] > 0 || $vehiculoEnTaller['Estado'] === 'Completado') {
+                throw new Exception("El vehículo ya está en taller. Debe esperar la notificación de retiro antes de crear una nueva solicitud.");
+            }
+        }
         // Los datos del vehículo se obtendrán automáticamente desde ingreso_vehiculos
         // mediante la función obtenerVehiculoPorPatente().
 
@@ -734,7 +753,16 @@ function aprobarSolicitudAgendamiento($solicitud_id, $supervisor_id, $agenda_id 
             // NOTA: No usar asignarMecanico() aquí porque cierra su propia conexión
             // y estamos dentro de una transacción. Hacer la asignación directamente.
             if ($vehiculo_id) {
-                $observaciones = "Asignación automática desde solicitud de agendamiento #$solicitud_id";
+                // Obtener el nombre del supervisor
+                $nombreSupervisor = 'Supervisor';
+                $querySupervisor = "SELECT NombreUsuario FROM usuarios WHERE UsuarioID = $supervisor_id";
+                $resultSupervisor = mysqli_query($conn, $querySupervisor);
+                if ($resultSupervisor && mysqli_num_rows($resultSupervisor) > 0) {
+                    $supervisor = mysqli_fetch_assoc($resultSupervisor);
+                    $nombreSupervisor = $supervisor['NombreUsuario'];
+                }
+                
+                $observaciones = "Asignada por el supervisor: $nombreSupervisor";
                 $observacionesEscapadas = mysqli_real_escape_string($conn, $observaciones);
                 
                 // Crear la asignación directamente dentro de la transacción

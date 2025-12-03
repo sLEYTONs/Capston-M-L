@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '../../../../config/conexion.php';
+require_once __DIR__ . '/../../../../pages/general/funciones_notificaciones.php';
 
 function obtenerTareasMecanico($mecanico_id) {
     error_log("=== obtenerTareasMecanico ===");
@@ -237,6 +238,42 @@ function obtenerHistorialAvances($asignacion_id) {
     ];
 }
 
+/**
+ * Obtiene el ID del chofer asociado a un vehículo
+ */
+function obtenerChoferIDDelVehiculo($vehiculo_id, $conn) {
+    $vehiculo_id = intval($vehiculo_id);
+    
+    // Primero intentar obtener el ChoferID desde solicitudes_agendamiento
+    $queryChofer = "SELECT sa.ChoferID, iv.Placa, iv.ConductorNombre
+                    FROM ingreso_vehiculos iv
+                    LEFT JOIN solicitudes_agendamiento sa ON iv.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                        AND sa.Estado IN ('Aprobada', 'Ingresado')
+                    WHERE iv.ID = $vehiculo_id
+                    ORDER BY sa.FechaCreacion DESC
+                    LIMIT 1";
+    
+    $resultChofer = mysqli_query($conn, $queryChofer);
+    if ($resultChofer && $row = mysqli_fetch_assoc($resultChofer)) {
+        // Si hay ChoferID en la solicitud, usarlo
+        if (!empty($row['ChoferID'])) {
+            return intval($row['ChoferID']);
+        }
+        
+        // Si no hay ChoferID pero hay ConductorNombre, buscar por nombre en usuarios
+        if (!empty($row['ConductorNombre'])) {
+            $conductorNombre = mysqli_real_escape_string($conn, $row['ConductorNombre']);
+            $queryUsuario = "SELECT UsuarioID FROM usuarios WHERE NombreUsuario = '$conductorNombre' AND Rol = 'Chofer' LIMIT 1";
+            $resultUsuario = mysqli_query($conn, $queryUsuario);
+            if ($resultUsuario && $usuarioRow = mysqli_fetch_assoc($resultUsuario)) {
+                return intval($usuarioRow['UsuarioID']);
+            }
+        }
+    }
+    
+    return null;
+}
+
 function registrarAvance($asignacion_id, $descripcion, $estado) {
     $conn = conectar_Pepsico();
     if (!$conn) {
@@ -267,7 +304,7 @@ function registrarAvance($asignacion_id, $descripcion, $estado) {
             throw new Exception('Error al actualizar asignación: ' . mysqli_error($conn));
         }
 
-        // 3. Si el estado es "Completado", actualizar el estado del vehículo
+        // 3. Si el estado es "Completado", actualizar el estado del vehículo y notificar al chofer
         if ($estado === 'Completado') {
             // Primero obtener el VehiculoID
             $queryGetVehiculo = "SELECT VehiculoID FROM asignaciones_mecanico WHERE ID = '$asignacion_id'";
@@ -280,6 +317,29 @@ function registrarAvance($asignacion_id, $descripcion, $estado) {
                 
                 if (!$resultUpdateVehiculo) {
                     throw new Exception('Error al actualizar estado del vehículo: ' . mysqli_error($conn));
+                }
+                
+                // Obtener información del vehículo para la notificación
+                $queryInfoVehiculo = "SELECT Placa, ConductorNombre FROM ingreso_vehiculos WHERE ID = '$vehiculo_id'";
+                $resultInfoVehiculo = mysqli_query($conn, $queryInfoVehiculo);
+                $infoVehiculo = null;
+                if ($resultInfoVehiculo && $infoRow = mysqli_fetch_assoc($resultInfoVehiculo)) {
+                    $infoVehiculo = $infoRow;
+                }
+                
+                // Obtener el ID del chofer y notificar
+                $chofer_id = obtenerChoferIDDelVehiculo($vehiculo_id, $conn);
+                if ($chofer_id && $infoVehiculo) {
+                    $placa = $infoVehiculo['Placa'];
+                    $conductorNombre = $infoVehiculo['ConductorNombre'] ?? 'el chofer';
+                    $mensaje = "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico.\n\n";
+                    $mensaje .= "Por favor, acuda al taller para retirar el vehículo.\n\n";
+                    $mensaje .= "El guardia procesará la salida cuando llegue.";
+                    $titulo = "Vehículo Listo para Retiro - Placa: $placa";
+                    $modulo = "control_ingreso";
+                    $enlace = "control_ingreso.php";
+                    
+                    crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
                 }
             }
             mysqli_free_result($resultVehiculo);
@@ -376,7 +436,7 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
             throw new Exception('Error al actualizar asignación: ' . mysqli_error($conn));
         }
 
-        // 3. Si el estado es "Completado", actualizar el estado del vehículo
+        // 3. Si el estado es "Completado", actualizar el estado del vehículo y notificar al chofer
         if ($estado === 'Completado') {
             $queryGetVehiculo = "SELECT VehiculoID FROM asignaciones_mecanico WHERE ID = '$asignacion_id'";
             $resultVehiculo = mysqli_query($conn, $queryGetVehiculo);
@@ -388,6 +448,29 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
                 
                 if (!$resultUpdateVehiculo) {
                     throw new Exception('Error al actualizar estado del vehículo: ' . mysqli_error($conn));
+                }
+                
+                // Obtener información del vehículo para la notificación
+                $queryInfoVehiculo = "SELECT Placa, ConductorNombre FROM ingreso_vehiculos WHERE ID = '$vehiculo_id'";
+                $resultInfoVehiculo = mysqli_query($conn, $queryInfoVehiculo);
+                $infoVehiculo = null;
+                if ($resultInfoVehiculo && $infoRow = mysqli_fetch_assoc($resultInfoVehiculo)) {
+                    $infoVehiculo = $infoRow;
+                }
+                
+                // Obtener el ID del chofer y notificar
+                $chofer_id = obtenerChoferIDDelVehiculo($vehiculo_id, $conn);
+                if ($chofer_id && $infoVehiculo) {
+                    $placa = $infoVehiculo['Placa'];
+                    $conductorNombre = $infoVehiculo['ConductorNombre'] ?? 'el chofer';
+                    $mensaje = "El vehículo con placa <strong>$placa</strong> ha sido completado por el mecánico.\n\n";
+                    $mensaje .= "Por favor, acuda al taller para retirar el vehículo.\n\n";
+                    $mensaje .= "El guardia procesará la salida cuando llegue.";
+                    $titulo = "Vehículo Listo para Retiro - Placa: $placa";
+                    $modulo = "control_ingreso";
+                    $enlace = "control_ingreso.php";
+                    
+                    crearNotificacion([$chofer_id], $titulo, $mensaje, $modulo, $enlace);
                 }
             }
             mysqli_free_result($resultVehiculo);
@@ -412,12 +495,23 @@ function subirFotoAvance($archivo) {
         ];
     }
     
-    // Ruta relativa desde la raíz del proyecto para guardar el archivo
-    $directorio_base = __DIR__ . '/../../../uploads/avances/';
+    // __DIR__ apunta a: app/model/tareas/functions/
+    // Necesitamos ir 4 niveles arriba para llegar a la raíz del proyecto:
+    // app/model/tareas/functions/ -> ../ -> app/model/tareas/ -> ../ -> app/model/ -> ../ -> app/ -> ../ -> raíz
+    $directorio_base = __DIR__ . '/../../../../uploads/avances/';
+    
+    // Normalizar la ruta (convertir / a \ en Windows si es necesario)
+    $directorio_base = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $directorio_base);
     
     // Crear directorio si no existe
     if (!file_exists($directorio_base)) {
-        mkdir($directorio_base, 0755, true);
+        if (!mkdir($directorio_base, 0755, true)) {
+            error_log("Error: No se pudo crear el directorio: " . $directorio_base);
+            return [
+                'success' => false,
+                'message' => 'Error al crear el directorio de avances'
+            ];
+        }
     }
     
     // Validar tipo de archivo
@@ -444,9 +538,30 @@ function subirFotoAvance($archivo) {
     $nombre_guardado = uniqid() . '_' . time() . '.' . $extension;
     $ruta_completa = $directorio_base . $nombre_guardado;
     
+    // Log para debugging
+    error_log("=== Subir Foto Avance ===");
+    error_log("Directorio base: " . $directorio_base);
+    error_log("Ruta completa: " . $ruta_completa);
+    error_log("Archivo temporal: " . $archivo['tmp_name']);
+    error_log("Directorio existe: " . (file_exists($directorio_base) ? 'Sí' : 'No'));
+    error_log("Directorio escribible: " . (is_writable($directorio_base) ? 'Sí' : 'No'));
+    error_log("Archivo temporal existe: " . (file_exists($archivo['tmp_name']) ? 'Sí' : 'No'));
+    
     if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+        // Verificar que el archivo se guardó correctamente
+        if (!file_exists($ruta_completa)) {
+            error_log("Error: El archivo no existe después de move_uploaded_file");
+            return [
+                'success' => false,
+                'message' => 'El archivo no se guardó correctamente'
+            ];
+        }
+        
         // Guardar la ruta relativa desde la raíz del proyecto para acceso web
         $ruta_web = 'uploads/avances/' . $nombre_guardado;
+        
+        error_log("Archivo guardado exitosamente: " . $ruta_web);
+        error_log("Tamaño del archivo guardado: " . filesize($ruta_completa) . " bytes");
         
         return [
             'success' => true,
@@ -458,9 +573,17 @@ function subirFotoAvance($archivo) {
         ];
     }
     
+    $error_msg = 'Error al mover el archivo subido';
+    if (isset($archivo['error'])) {
+        $error_msg .= ' (Código de error: ' . $archivo['error'] . ')';
+    }
+    
+    error_log("Error al mover archivo: " . $error_msg);
+    error_log("Último error PHP: " . error_get_last()['message'] ?? 'N/A');
+    
     return [
         'success' => false,
-        'message' => 'Error al mover el archivo subido'
+        'message' => $error_msg
     ];
 }
 

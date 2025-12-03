@@ -231,17 +231,8 @@ class GestionSolicitudes {
                 order: [[0, 'desc']],
                 pageLength: 10,
                 responsive: true,
-                autoWidth: false,
-                columnDefs: [
-                    { width: "60px", targets: 0 }, // ID
-                    { width: "100px", targets: 1 }, // Placa
-                    { width: "150px", targets: 2 }, // Vehículo
-                    { width: "120px", targets: 3 }, // Propósito
-                    { width: "100px", targets: 4 }, // Estado
-                    { width: "120px", targets: 5 }, // Chofer
-                    { width: "120px", targets: 6 }, // Hora Solicitud
-                    { width: "120px", targets: 7 }  // Acciones
-                ]
+                autoWidth: true,
+                scrollX: false
             });
         }
     }

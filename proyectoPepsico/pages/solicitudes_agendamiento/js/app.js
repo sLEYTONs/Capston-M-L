@@ -233,7 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         } catch (error) {
-            console.error("Error al buscar vehículo:", error);
             ocultarInfoVehiculo();
         }
     }
@@ -284,19 +283,46 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             if (validateForm()) {
                 formDataCache = new FormData(form);
-                modal.style.display = "block";
+                if (modal) {
+                    // Agregar clase show y remover cualquier clase que lo oculte
+                    modal.classList.add('show');
+                    modal.classList.remove('hide', 'fade');
+                    
+                    // Establecer estilos directamente
+                    modal.style.display = 'block';
+                    modal.style.visibility = 'visible';
+                    modal.style.opacity = '1';
+                    modal.style.zIndex = '10000';
+                    
+                    // También establecer en el body para evitar scroll
+                    document.body.style.overflow = 'hidden';
+                }
             }
         });
     }
 
     if (cancelBtn) {
-        cancelBtn.addEventListener("click", () => modal.style.display = "none");
+        cancelBtn.addEventListener("click", () => {
+            if (modal) {
+                modal.style.display = "none";
+                modal.classList.remove('show');
+                modal.classList.add('hide');
+                document.body.style.overflow = '';
+            }
+        });
     }
 
     if (confirmBtn) {
         confirmBtn.addEventListener("click", async () => {
-            if (!formDataCache) return;
-            modal.style.display = "none";
+            if (!formDataCache) {
+                return;
+            }
+            if (modal) {
+                modal.style.display = "none";
+                modal.classList.remove('show');
+                modal.classList.add('hide');
+                document.body.style.overflow = '';
+            }
 
             try {
                 // Mapear nombres de campos del formulario a los nombres esperados por el backend
@@ -353,15 +379,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Verificar si la respuesta es JSON
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Respuesta no JSON recibida:', text);
                     showNotification("Error: El servidor devolvió una respuesta no válida", "error");
                     return;
                 }
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error HTTP:', response.status, errorText);
                     showNotification("Error del servidor: " + response.status, "error");
                     return;
                 }
@@ -369,22 +391,69 @@ document.addEventListener("DOMContentLoaded", () => {
                 const result = await response.json();
 
                 if (result.status === "success") {
-                    showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará la respuesta.", "success");
+                    // Mostrar modal de éxito
+                    try {
+                        const modalExitoElement = document.getElementById('modalSolicitudEnviada');
+                        if (modalExitoElement) {
+                            // Verificar si Bootstrap está disponible
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                // Obtener o crear instancia del modal
+                                let modalExito = bootstrap.Modal.getInstance(modalExitoElement);
+                                if (!modalExito) {
+                                    modalExito = new bootstrap.Modal(modalExitoElement);
+                                }
+                                modalExito.show();
+                            } else {
+                                // Fallback: mostrar usando el sistema antiguo si Bootstrap no está disponible
+                                showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará la respuesta.", "success");
+                            }
+                        } else {
+                            showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará la respuesta.", "success");
+                        }
+                    } catch (error) {
+                        showNotification("Solicitud de agendamiento enviada correctamente. El supervisor revisará su solicitud y le notificará la respuesta.", "success");
+                    }
+                    
                     form.reset();
                     if (fotosPreview) {
                         fotosPreview.style.display = 'none';
                         fotosPreviewContainer.innerHTML = '';
                     }
+                    ocultarInfoVehiculo();
                 } else {
-                    // Verificar si es el error de solicitud pendiente
-                    if (result.message && result.message.includes("Ya existe una solicitud pendiente")) {
-                        mostrarModalSolicitudPendiente();
-                    } else {
-                        showNotification("Error: " + result.message, "error");
+                    // Verificar el tipo de error y mostrar el modal correspondiente
+                    const mensaje = result.message || '';
+                    try {
+                        if (mensaje.includes("Ya existe una solicitud pendiente") || mensaje.includes("solicitud pendiente")) {
+                            const modalPendienteElement = document.getElementById('modalSolicitudPendiente');
+                            if (modalPendienteElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                let modalPendiente = bootstrap.Modal.getInstance(modalPendienteElement);
+                                if (!modalPendiente) {
+                                    modalPendiente = new bootstrap.Modal(modalPendienteElement);
+                                }
+                                modalPendiente.show();
+                            } else {
+                                showNotification("Ya existe una solicitud pendiente para este vehículo. Espere la respuesta del supervisor.", "warning");
+                            }
+                        } else if (mensaje.includes("ya está en taller") || mensaje.includes("en taller") || mensaje.includes("retiro")) {
+                            const modalEnTallerElement = document.getElementById('modalVehiculoEnTaller');
+                            if (modalEnTallerElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                let modalEnTaller = bootstrap.Modal.getInstance(modalEnTallerElement);
+                                if (!modalEnTaller) {
+                                    modalEnTaller = new bootstrap.Modal(modalEnTallerElement);
+                                }
+                                modalEnTaller.show();
+                            } else {
+                                showNotification("El vehículo ya está en taller. Debe esperar la notificación de retiro antes de crear una nueva solicitud.", "warning");
+                            }
+                        } else {
+                            showNotification("Error: " + mensaje, "error");
+                        }
+                    } catch (error) {
+                        showNotification("Error: " + mensaje, "error");
                     }
                 }
             } catch (error) {
-                console.error("Error:", error);
                 showNotification("Error de conexión con el servidor", "error");
             }
         });
@@ -464,38 +533,5 @@ document.addEventListener("DOMContentLoaded", () => {
         closeBtn.addEventListener("click", () => modal.style.display = "none");
     }
 
-    // Modal de solicitud pendiente
-    const solicitudPendienteModal = document.getElementById("solicitud-pendiente-modal");
-    const closePendienteModal = document.getElementById("close-pendiente-modal");
-    const aceptarPendienteModal = document.getElementById("aceptar-pendiente-modal");
-
-    function mostrarModalSolicitudPendiente() {
-        if (solicitudPendienteModal) {
-            solicitudPendienteModal.style.display = "block";
-        }
-    }
-
-    function cerrarModalSolicitudPendiente() {
-        if (solicitudPendienteModal) {
-            solicitudPendienteModal.style.display = "none";
-        }
-    }
-
-    if (closePendienteModal) {
-        closePendienteModal.addEventListener("click", cerrarModalSolicitudPendiente);
-    }
-
-    if (aceptarPendienteModal) {
-        aceptarPendienteModal.addEventListener("click", cerrarModalSolicitudPendiente);
-    }
-
-    // Cerrar modal al hacer clic fuera de él
-    if (solicitudPendienteModal) {
-        window.addEventListener("click", (event) => {
-            if (event.target === solicitudPendienteModal) {
-                cerrarModalSolicitudPendiente();
-            }
-        });
-    }
 });
 

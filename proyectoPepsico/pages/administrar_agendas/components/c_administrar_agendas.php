@@ -216,7 +216,6 @@ $eventos_json = json_encode($eventos_calendario, JSON_UNESCAPED_UNICODE | JSON_H
 <script type="text/javascript">
     // Pasar eventos del calendario al JavaScript
     window.eventosCalendarioIniciales = <?php echo $eventos_json; ?>;
-    console.log('Eventos del calendario cargados:', window.eventosCalendarioIniciales);
 </script>
 
 <!-- Modal para Crear/Editar Agenda -->

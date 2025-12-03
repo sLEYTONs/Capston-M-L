@@ -48,7 +48,7 @@
 .results-container {
     margin-top: 2rem;
     width: 100%;
-    overflow-x: auto;
+    overflow-x: visible;
     display: flex;
     justify-content: center;
 }
@@ -67,6 +67,7 @@
 #solicitudes-table {
     width: 100% !important;
     margin: 0 auto;
+    table-layout: auto;
 }
 
 #solicitudes-table_wrapper {

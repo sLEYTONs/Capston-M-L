@@ -15,9 +15,20 @@ class TareasMecanico {
         // Si estamos en pages/tareas/, obtener la parte antes de /pages/
         if (currentPath.includes('/pages/')) {
             const basePath = currentPath.substring(0, currentPath.indexOf('/pages/'));
-            return basePath; // Retorna /Capston-M-L/proyectoPepsico
+            return basePath; // Retorna /Capston-M-L/proyectoPepsico o /Capston-M-L/ProyectoPepsico
         }
-        // Fallback: asumir que estamos en la raíz
+        // Fallback: intentar obtener desde la URL completa
+        const host = window.location.host;
+        const protocol = window.location.protocol;
+        const fullUrl = window.location.href;
+        // Si la URL contiene /Capston-M-L/, usar esa parte
+        if (fullUrl.includes('/Capston-M-L/')) {
+            const match = fullUrl.match(/(\/Capston-M-L\/[^\/]+)/);
+            if (match) {
+                return match[1];
+            }
+        }
+        // Fallback final: asumir que estamos en la raíz
         return '';
     }
 
@@ -1063,6 +1074,12 @@ class TareasMecanico {
         document.getElementById('pane-solicitar').classList.remove('show', 'active');
         
         const modal = new bootstrap.Modal(document.getElementById('repuestosModal'));
+        
+        // Recargar repuestos aprobados cada vez que se abre el modal
+        $('#repuestosModal').off('shown.bs.modal').on('shown.bs.modal', () => {
+            this.cargarRepuestosAprobados();
+        });
+        
         modal.show();
         this.cargarRepuestosAprobados();
         this.cargarRepuestosParaSolicitar();
@@ -1073,6 +1090,8 @@ class TareasMecanico {
         });
         $('#tab-aprobados').on('shown.bs.tab', () => {
             $('#btn-solicitar-repuesto-tareas').hide();
+            // Recargar repuestos aprobados cuando se cambia al tab de aprobados
+            this.cargarRepuestosAprobados();
         });
     }
     
@@ -1351,6 +1370,8 @@ class TareasMecanico {
                     // Recargar los repuestos disponibles cuando se cierre el modal de confirmación
                     $('#modalConfirmacionSolicitud').off('hidden.bs.modal').on('hidden.bs.modal', function() {
                         self.cargarRepuestosParaSolicitar();
+                        // Recargar también los repuestos aprobados por si se aprobó alguna solicitud
+                        self.cargarRepuestosAprobados();
                         // Recargar la tabla de tareas usando el método correcto
                         // La tabla no usa AJAX de DataTables, sino que carga datos manualmente
                         self.cargarTareas();

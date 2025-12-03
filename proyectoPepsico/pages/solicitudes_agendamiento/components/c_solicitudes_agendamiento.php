@@ -141,23 +141,74 @@
     </div>
 </div>
 
-<!-- Modal de Solicitud Pendiente -->
-<div id="solicitud-pendiente-modal" class="modal">
-    <div class="modal-content">
-        <span class="close" id="close-pendiente-modal">&times;</span>
-        <div style="text-align: center; padding: 1rem;">
-            <i class="fas fa-clock" style="font-size: 3rem; color: #ff9800; margin-bottom: 1rem;"></i>
-            <h3 style="color: #333; margin-bottom: 1rem;">Solicitud Pendiente</h3>
-            <p style="color: #666; font-size: 1.1rem; line-height: 1.6;">
-                Ya ha realizado una solicitud de agendamiento para este vehículo.<br>
-                Por favor, espere la respuesta del supervisor.
-            </p>
-            <p style="color: #999; font-size: 0.9rem; margin-top: 1rem;">
-                Puede revisar el estado de su solicitud en la sección "Mis Solicitudes".
-            </p>
+<!-- Modal de Solicitud Enviada Exitosamente -->
+<div class="modal fade" id="modalSolicitudEnviada" tabindex="-1" aria-labelledby="modalSolicitudEnviadaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-agendamiento-custom">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-check-circle" style="font-size: 4rem; color: #28a745; margin-bottom: 1.5rem;"></i>
+                <h4 class="modal-title mb-3" id="modalSolicitudEnviadaLabel">Solicitud Enviada Correctamente</h4>
+                <p class="text-muted mb-0" style="font-size: 1.1rem; line-height: 1.6;">
+                    Su solicitud de agendamiento ha sido enviada exitosamente.<br>
+                    El supervisor revisará su solicitud y le notificará la respuesta.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
+            </div>
         </div>
-        <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem;">
-            <button class="btn btn-primary" id="aceptar-pendiente-modal">Entendido</button>
+    </div>
+</div>
+
+<!-- Modal de Solicitud Pendiente -->
+<div class="modal fade" id="modalSolicitudPendiente" tabindex="-1" aria-labelledby="modalSolicitudPendienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-agendamiento-custom">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-clock" style="font-size: 4rem; color: #ff9800; margin-bottom: 1.5rem;"></i>
+                <h4 class="modal-title mb-3" id="modalSolicitudPendienteLabel">Solicitud Pendiente</h4>
+                <p class="text-muted mb-2" style="font-size: 1.1rem; line-height: 1.6;">
+                    Ya ha realizado una solicitud de agendamiento para este vehículo.<br>
+                    Por favor, espere la respuesta del supervisor.
+                </p>
+                <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                    Puede revisar el estado de su solicitud en la sección "Mis Solicitudes".
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Vehículo en Taller -->
+<div class="modal fade" id="modalVehiculoEnTaller" tabindex="-1" aria-labelledby="modalVehiculoEnTallerLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-agendamiento-custom">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-tools" style="font-size: 4rem; color: #17a2b8; margin-bottom: 1.5rem;"></i>
+                <h4 class="modal-title mb-3" id="modalVehiculoEnTallerLabel">Vehículo en Taller</h4>
+                <p class="text-muted mb-2" style="font-size: 1.1rem; line-height: 1.6;">
+                    El vehículo ya está en taller.<br>
+                    Debe esperar la notificación de retiro antes de crear una nueva solicitud.
+                </p>
+                <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                    Se le notificará cuando el vehículo esté listo para retirar.
+                </p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
+            </div>
         </div>
     </div>
 </div>

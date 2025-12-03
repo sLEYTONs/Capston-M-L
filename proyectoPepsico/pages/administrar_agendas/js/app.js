@@ -17,8 +17,6 @@ $(document).ready(function() {
 
     // Inicializar calendario
     function inicializarCalendario() {
-        console.log('🔧 Iniciando inicialización del calendario...');
-        
         // Ocultar mensajes de error/loading
         const loadingEl = document.getElementById('calendario-loading');
         const errorEl = document.getElementById('calendario-error');
@@ -27,15 +25,12 @@ $(document).ready(function() {
         
         const calendarEl = document.getElementById('calendario-agendas');
         if (!calendarEl) {
-            console.error('❌ Elemento calendario-agendas no encontrado');
             if (errorEl) {
                 errorEl.style.display = 'block';
                 errorEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>Elemento del calendario no encontrado en el DOM.</p>';
             }
             return;
         }
-        
-        console.log('✅ Elemento calendario-agendas encontrado');
 
         // Verificar que FullCalendar esté disponible
         // El archivo index.global.min.js expone FullCalendar como objeto global
@@ -51,12 +46,6 @@ $(document).ready(function() {
         }
         
         if (!FullCalendarLib) {
-            console.error('❌ FullCalendar no está disponible');
-            console.log('Variables disponibles:', {
-                'window.FullCalendar': typeof window.FullCalendar,
-                'FullCalendar': typeof FullCalendar,
-                'window.fullCalendar': typeof window.fullCalendar
-            });
             if (errorEl) {
                 errorEl.style.display = 'block';
                 errorEl.innerHTML = '<i class="fas fa-exclamation-triangle fa-3x mb-3"></i><p>FullCalendar no se ha cargado correctamente. Verifica que el archivo main.min.js esté en assets/js/fullcalendar/</p><button class="btn btn-primary mt-2" onclick="location.reload()">Recargar Página</button>';
@@ -65,14 +54,11 @@ $(document).ready(function() {
             return;
         }
         
-        console.log('✅ FullCalendar está disponible:', FullCalendarLib);
-        
         // Mostrar el calendario
         calendarEl.style.display = 'block';
 
         // Destruir calendario existente si existe
         if (calendario) {
-            console.log('🗑️ Destruyendo calendario existente...');
             calendario.destroy();
             calendario = null;
         }
@@ -261,19 +247,6 @@ $(document).ready(function() {
                     }
                     const horaFin = String(horaFinHours).padStart(2, '0') + ':00';
                     
-                    // Debug: mostrar en consola para verificar (puede comentarse después)
-                    console.log('Selección de slot:', {
-                        startOriginal: selectInfo.start,
-                        startLocal: start,
-                        year, month, day,
-                        hoursOriginal: start.getHours(),
-                        minutesOriginal: minutes,
-                        hoursRedondeado: hours,
-                        fecha,
-                        horaInicio,
-                        horaFin
-                    });
-                    
                     // Rellenar formulario
                     $('#agenda-fecha').val(fecha);
                     $('#agenda-hora-inicio').val(horaInicio);
@@ -360,10 +333,6 @@ $(document).ready(function() {
                         'border-left-color': info.event.borderColor,
                         'color': info.event.textColor || (disponible === 1 ? '#155724' : '#721c24')
                     });
-                    console.log('🎨 Colores aplicados desde propiedades del evento:', {
-                        backgroundColor: info.event.backgroundColor,
-                        borderColor: info.event.borderColor
-                    });
                 } 
                 // PRIORIDAD 2: Aplicar colores directamente según estado (fallback)
                 else {
@@ -404,16 +373,6 @@ $(document).ready(function() {
                     }
                     $(info.el).attr('title', tooltip);
                 
-                // Debug: verificar estructura del evento
-                console.log('🎨 EventDidMount - Evento renderizado:', {
-                    id: info.event.id,
-                    title: info.event.title,
-                    start: info.event.start,
-                    end: info.event.end,
-                    allDay: info.event.allDay,
-                    disponible: disponible,
-                    extendedProps: info.event.extendedProps
-                });
             },
             datesSet: function() {
                 // Cargar eventos cuando cambia la vista
@@ -422,28 +381,19 @@ $(document).ready(function() {
                     }, 100);
                 },
                 loading: function(isLoading) {
-                    if (isLoading) {
-                        console.log('Calendario cargando...');
-                    } else {
-                        console.log('Calendario cargado');
-                    }
+                    // Estado de carga del calendario
                 }
             });
 
             calendario.render();
-            console.log('✅ Calendario renderizado correctamente');
-            console.log('📅 Vista inicial:', vistaActual);
             
             // Cargar eventos después de un breve delay para asegurar que el calendario esté completamente renderizado
             setTimeout(function() {
-                console.log('📥 Cargando eventos del calendario...');
                 // Siempre cargar desde el servidor para tener datos actualizados
                 cargarEventosCalendario();
             }, 500);
             
         } catch (error) {
-            console.error('❌ Error al inicializar el calendario:', error);
-            console.error('Stack trace:', error.stack);
             
             const errorEl = document.getElementById('calendario-error');
             const calendarEl = document.getElementById('calendario-agendas');
@@ -463,8 +413,7 @@ $(document).ready(function() {
     function cargarEventosCalendario() {
         return new Promise(function(resolve, reject) {
         if (!calendario) {
-            console.warn('Calendario no inicializado');
-                reject(new Error('Calendario no inicializado'));
+            reject(new Error('Calendario no inicializado'));
             return;
         }
 
@@ -497,29 +446,25 @@ $(document).ready(function() {
                             try {
                     calendario.addEvent(evento);
                             } catch (e) {
-                                console.error('Error al agregar evento:', e, evento);
+                                // Error al agregar evento
                             }
                         });
                         
                             // FORZAR renderizado del calendario para asegurar que los eventos se muestren
                             calendario.render();
                             
-                            console.log(`✅ Eventos cargados en calendario: ${eventos.length} (renderizado forzado)`);
                             resolve(eventos);
                     } else if (data.status === 'error') {
-                        console.error('Error al cargar eventos:', data.message);
                             reject(new Error(data.message || 'Error al cargar eventos'));
                         } else {
                             resolve([]);
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error al cargar eventos del calendario:', error);
                         reject(new Error('Error al cargar eventos del calendario'));
                 }
             });
         } catch (error) {
-            console.error('Error en cargarEventosCalendario:', error);
                 reject(error);
         }
         });
@@ -607,7 +552,6 @@ $(document).ready(function() {
     // INDISTINGUIBLE de los eventos que vienen del servidor
     function construirEventoDesdeAgenda(agendaData) {
         if (!agendaData || !agendaData.Fecha || !agendaData.HoraInicio || !agendaData.HoraFin) {
-            console.error('❌ Datos incompletos para construir evento:', agendaData);
             return null;
         }
         
@@ -626,7 +570,6 @@ $(document).ready(function() {
         // Validar formato de fecha (YYYY-MM-DD)
         const fecha = String(agendaData.Fecha).trim();
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-            console.error('❌ Formato de fecha inválido:', fecha);
             return null;
         }
         
@@ -637,7 +580,6 @@ $(document).ready(function() {
         
         // Validar que las fechas ISO sean válidas
         if (isNaN(new Date(startISO).getTime()) || isNaN(new Date(endISO).getTime())) {
-            console.error('❌ Fechas ISO inválidas:', { startISO, endISO });
             return null;
         }
         
@@ -685,15 +627,6 @@ $(document).ready(function() {
             }
         };
         
-        console.log('🏗️ Evento construido desde agendaData:', {
-            id: evento.id,
-            title: evento.title,
-            start: evento.start,
-            end: evento.end,
-            allDay: evento.allDay,
-            extendedProps: evento.extendedProps
-        });
-        
         return evento;
     }
 
@@ -717,7 +650,6 @@ $(document).ready(function() {
             // Si la fecha/hora de fin ya pasó, está vencida
             return fechaHoraFin < ahora;
         } catch (e) {
-            console.error('Error al verificar agenda vencida:', e);
             return false;
         }
     }
@@ -880,62 +812,45 @@ $(document).ready(function() {
 
     // Función helper para recargar TODO: calendario + tabla de agendas
     function recargarTodo() {
-        console.log('🔄 [recargarTodo] Iniciando recarga completa...');
-        
         try {
             // PASO 1: Actualizar tabla de agendas de forma segura
-            console.log('📊 [recargarTodo] Actualizando tabla de agendas...');
             if (tablaAgendas) {
                 try {
                     if (tablaAgendas.ajax && typeof tablaAgendas.ajax.reload === 'function') {
                         tablaAgendas.ajax.reload(null, false);
-                        console.log('✅ [recargarTodo] Tabla recargada vía AJAX');
                     } else {
                         // Reinicializar tabla de forma segura
                         if (typeof tablaAgendas.destroy === 'function') {
                             tablaAgendas.destroy();
                         }
                         inicializarTabla();
-                        console.log('✅ [recargarTodo] Tabla reinicializada');
                     }
                 } catch (tablaError) {
-                    console.warn('⚠️ Error al actualizar tabla:', tablaError);
                     // Continuar con el calendario aunque falle la tabla
                 }
             } else {
                 try {
                     inicializarTabla();
-                    console.log('✅ [recargarTodo] Tabla inicializada');
                 } catch (tablaError) {
-                    console.warn('⚠️ Error al inicializar tabla:', tablaError);
+                    // Error al inicializar tabla
                 }
             }
             
             // PASO 2: Actualizar calendario de forma segura
-            console.log('📅 [recargarTodo] Actualizando calendario...');
             if (!calendario) {
-                console.warn('⚠️ [recargarTodo] Calendario no disponible');
-                // NO recargar la página automáticamente, solo loguear el warning
                 return;
             }
             
-            console.log('✅ [recargarTodo] Calendario disponible, cargando eventos...');
-            
             cargarEventosCalendario()
                 .then(function(eventos) {
-                    console.log('✅ [recargarTodo] Eventos cargados:', eventos ? eventos.length : 0);
-                    console.log('✅ [recargarTodo] Recarga completa finalizada');
+                    // Eventos cargados
                 })
                 .catch(function(error) {
-                    console.error('❌ [recargarTodo] Error al cargar calendario:', error);
-                    // NO recargar la página automáticamente si falla
-                    // El usuario puede recargar manualmente si es necesario
+                    // Error al cargar calendario
                 });
                 
         } catch (error) {
-            console.error('❌ [recargarTodo] Error crítico:', error);
-            console.error('Stack trace:', error.stack);
-            // NO hacer nada más, solo loguear el error para evitar romper la página
+            // Error crítico en recargarTodo
         }
     }
     
@@ -985,7 +900,6 @@ $(document).ready(function() {
                     document.documentElement.style.paddingRight = '';
                 }
             } catch (e) {
-                console.warn('⚠️ Error al limpiar overlays residuales (no crítico):', e);
                 // No hacer nada más si hay error, para no romper la página
             }
         }, 300);
@@ -1034,11 +948,47 @@ $(document).ready(function() {
         }
     });
 
+    // Función para limpiar backdrop y restaurar estado del body
+    function limpiarBackdropModal() {
+        // Remover TODOS los backdrops que puedan existir (puede haber múltiples)
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(function(backdrop) {
+            backdrop.remove();
+        });
+        
+        // También remover cualquier backdrop que pueda estar oculto pero presente
+        const allBackdrops = document.querySelectorAll('[class*="backdrop"]');
+        allBackdrops.forEach(function(backdrop) {
+            if (backdrop.classList.contains('modal-backdrop') || backdrop.classList.contains('swal2-backdrop')) {
+                backdrop.remove();
+            }
+        });
+        
+        // Restaurar estado del body
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.body.classList.remove('modal-open');
+        
+        // Limpiar cualquier clase residual
+        document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+        document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto', 'modal-open');
+    }
+
+    // Limpiar backdrop cuando se cierra el modal completamente (evento hidden.bs.modal)
+    $('#modalAgenda').on('hidden.bs.modal', function() {
+        limpiarBackdropModal();
+    });
+
+    // También limpiar cuando se intenta cerrar (evento hide.bs.modal) como medida de seguridad
+    $('#modalAgenda').on('hide.bs.modal', function() {
+        // Esto se ejecuta antes de que el modal se oculte completamente
+        // Puede ayudar a prevenir que el backdrop quede atrapado
+    });
+
     // Función simplificada para agregar evento al calendario
     // Usa la función común construirEventoDesdeAgenda para garantizar estructura idéntica
     function agregarEventoAlCalendario(agendaData) {
         if (!calendario || !agendaData) {
-            console.error('❌ Calendario o datos faltantes');
             return Promise.reject(new Error('Calendario o datos faltantes'));
         }
         
@@ -1049,17 +999,13 @@ $(document).ready(function() {
                 const evento = construirEventoDesdeAgenda(agendaData);
                 
                 if (!evento) {
-                    console.error('❌ No se pudo construir el evento desde agendaData:', agendaData);
                     reject(new Error('No se pudo construir el evento'));
                     return;
                 }
                 
-                console.log('📦 Evento construido (estructura estandarizada):', evento);
-                
                 // Remover evento existente si existe (para actualización)
                 const eventoExistente = calendario.getEventById(evento.id);
                 if (eventoExistente) {
-                    console.log('🔄 Removiendo evento existente para re-renderizar:', evento.id);
                     eventoExistente.remove();
                 }
                 
@@ -1067,19 +1013,9 @@ $(document).ready(function() {
                 const eventoAgregado = calendario.addEvent(evento);
                 
                 if (!eventoAgregado) {
-                    console.error('❌ No se pudo agregar el evento al calendario');
                     reject(new Error('No se pudo agregar el evento'));
                     return;
                 }
-                
-                console.log('✅ Evento agregado al calendario con estructura estandarizada:', {
-                    id: evento.id,
-                    title: evento.title,
-                    start: evento.start,
-                    end: evento.end,
-                    allDay: evento.allDay,
-                    extendedProps: evento.extendedProps
-                });
                 
                 // Forzar renderizado inmediato
                 calendario.render();
@@ -1090,16 +1026,13 @@ $(document).ready(function() {
                     // Verificar que el evento se haya renderizado correctamente
                     const eventoRenderizado = calendario.getEventById(evento.id);
                     if (eventoRenderizado) {
-                        console.log('✅ Evento renderizado correctamente en el calendario');
                         resolve(eventoAgregado);
                     } else {
-                        console.warn('⚠️ El evento fue agregado pero no se encontró después del renderizado');
                         resolve(eventoAgregado); // Resolver de todos modos
                     }
                 }, 100);
                 
             } catch (error) {
-                console.error('❌ Error al agregar evento:', error);
                 reject(error);
             }
         });
@@ -1121,8 +1054,6 @@ $(document).ready(function() {
             observaciones: $('#agenda-observaciones').val() || ''
         };
         
-        console.log('📋 Datos capturados del formulario (ANTES de aplicar regla de negocio):', formData);
-        
         // Validaciones ANTES de enviar
         if (!formData.fecha || !formData.horaInicio) {
             mostrarAlerta('Por favor complete todos los campos obligatorios', 'warning');
@@ -1138,14 +1069,10 @@ $(document).ready(function() {
             formData.horaFin = horaFinCalculada;
             // Actualizar el campo en el formulario visualmente (opcional)
             $('#agenda-hora-fin').val(horaFinCalculada);
-            console.log('🔒 REGLA DE NEGOCIO aplicada: Hora fin forzada a', horaFinCalculada, '(1 hora después de inicio)');
         } else {
-            console.error('❌ Error al calcular hora fin');
             mostrarAlerta('Error al calcular la hora de fin. Por favor, verifique la hora de inicio.', 'error');
             return;
         }
-
-        console.log('📋 Datos del formulario (DESPUÉS de aplicar regla de negocio):', formData);
 
         // Preparar datos para enviar al servidor
         const datosEnvio = {
@@ -1158,8 +1085,6 @@ $(document).ready(function() {
             observaciones: formData.observaciones
         };
         
-        console.log('📤 Enviando datos al servidor:', datosEnvio);
-
         // ============================================
         // PASO 2: ENVIAR AL SERVIDOR
         // ============================================
@@ -1169,8 +1094,6 @@ $(document).ready(function() {
             data: datosEnvio,
             dataType: 'json',
             success: function(response) {
-                console.log('📥 Respuesta completa del servidor:', response);
-                
                 if (response.status === 'success') {
                     // ============================================
                     // PASO 3: CONSTRUIR OBJETO DE AGENDA CON DATOS COMPLETOS
@@ -1179,7 +1102,6 @@ $(document).ready(function() {
                     
                     // Prioridad 1: Usar datos del backend si están completos
                     if (response.data && response.data.ID && response.data.Fecha && response.data.HoraInicio) {
-                        console.log('✅ Usando datos completos del servidor');
                         // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos (siempre)
                         const horaFinCalculada = calcularHoraFin(response.data.HoraInicio);
                         agendaCompleta = {
@@ -1190,11 +1112,9 @@ $(document).ready(function() {
                             Disponible: parseInt(response.data.Disponible) || 0,
                             Observaciones: response.data.Observaciones || ''
                         };
-                        console.log('🔒 Hora fin forzada a 1 hora:', agendaCompleta.HoraFin);
                     } 
                     // Prioridad 2: Construir desde datos del formulario + ID del servidor
                     else if (response.agenda_id) {
-                        console.log('⚠️ Construyendo datos desde formulario + ID del servidor');
                         // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos
                         const horaFinCalculada = calcularHoraFin(formData.horaInicio);
                         agendaCompleta = {
@@ -1208,7 +1128,6 @@ $(document).ready(function() {
                     } 
                     // Prioridad 3: Usar solo datos del formulario (último recurso)
                     else {
-                        console.warn('⚠️ Usando solo datos del formulario (sin ID del servidor)');
                         // REGLA DE NEGOCIO: Forzar hora fin = hora inicio + 60 minutos
                         const horaFinCalculada = calcularHoraFin(formData.horaInicio);
                         agendaCompleta = {
@@ -1220,8 +1139,6 @@ $(document).ready(function() {
                             Observaciones: formData.observaciones
                         };
                     }
-                    
-                    console.log('📦 Agenda guardada exitosamente:', agendaCompleta);
                     
                     // ============================================
                     // PASO 4: ACTUALIZAR TABLA INMEDIATAMENTE
@@ -1258,10 +1175,10 @@ $(document).ready(function() {
                     if (calendario) {
                         cargarEventosCalendario()
                             .then(function(eventos) {
-                                console.log('✅ Calendario actualizado:', eventos ? eventos.length : 0);
+                                // Calendario actualizado
                             })
                             .catch(function(error) {
-                                console.warn('⚠️ Error al recargar calendario:', error);
+                                // Error al recargar calendario
                             });
                     }
                     
@@ -1383,14 +1300,11 @@ $(document).ready(function() {
                             const eventoAEliminar = calendario.getEventById(String(id));
                             if (eventoAEliminar) {
                                 eventoAEliminar.remove();
-                                console.log('✅ Evento eliminado del calendario:', id);
                                 // Forzar renderizado para que se vea el cambio
                                 calendario.render();
-                            } else {
-                                console.warn('⚠️ Evento no encontrado en calendario con ID:', id);
                             }
                         } catch (error) {
-                            console.error('❌ Error al eliminar evento del calendario:', error);
+                            // Error al eliminar evento del calendario
                         }
                     }
                     
@@ -1409,10 +1323,10 @@ $(document).ready(function() {
                     if (calendario) {
                         cargarEventosCalendario()
                             .then(function(eventos) {
-                                console.log('✅ Calendario recargado completamente:', eventos ? eventos.length : 0);
+                                // Calendario recargado completamente
                             })
                             .catch(function(error) {
-                                console.warn('⚠️ Error al recargar calendario:', error);
+                                // Error al recargar calendario
                             });
                     }
                     
@@ -1463,7 +1377,6 @@ $(document).ready(function() {
             if (intentosInicializacion < maxIntentos) {
                 setTimeout(verificarYInicializar, 100);
             } else {
-                console.error('❌ jQuery no se cargó después de varios intentos');
                 mostrarErrorCalendario('jQuery no se ha cargado correctamente.');
             }
             return;
@@ -1481,15 +1394,8 @@ $(document).ready(function() {
         
         if (!FullCalendarLib) {
             if (intentosInicializacion < maxIntentos) {
-                console.log(`⏳ Esperando FullCalendar... (intento ${intentosInicializacion}/${maxIntentos})`);
                 setTimeout(verificarYInicializar, 100);
             } else {
-                console.error('❌ FullCalendar no se cargó después de varios intentos');
-                console.log('Debug - Variables disponibles:', {
-                    'window.FullCalendar': typeof window.FullCalendar,
-                    'FullCalendar': typeof FullCalendar,
-                    'window.fullCalendar': typeof window.fullCalendar
-                });
                 mostrarErrorCalendario('FullCalendar no se ha cargado correctamente. Verifica que el archivo main.min.js esté en assets/js/fullcalendar/ y que se esté cargando correctamente.');
             }
             return;
@@ -1501,13 +1407,10 @@ $(document).ready(function() {
             if (intentosInicializacion < maxIntentos) {
                 setTimeout(verificarYInicializar, 100);
             } else {
-                console.error('❌ Elemento calendario-agendas no encontrado en el DOM');
                 mostrarErrorCalendario('El elemento del calendario no se encontró en la página.');
             }
             return;
         }
-        
-        console.log('✅ Todo listo, inicializando calendario y tabla...');
         
         // Ocultar loading
         const loadingEl = document.getElementById('calendario-loading');
@@ -1518,7 +1421,6 @@ $(document).ready(function() {
     inicializarCalendario();
     inicializarTabla();
         } catch (error) {
-            console.error('❌ Error al inicializar:', error);
             mostrarErrorCalendario('Error al inicializar: ' + error.message);
         }
     }

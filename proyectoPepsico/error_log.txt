@@ -1606,3 +1606,6 @@
 [29-Nov-2025 21:18:11 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
 [01-Dec-2025 20:05:51 America/Santiago] Notificaciones enviadas a 10 supervisores
 [01-Dec-2025 20:07:24 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
+[02-Dec-2025 22:25:44 America/Santiago] Notificaciones enviadas a 10 supervisores
+[02-Dec-2025 22:33:57 America/Santiago] Notificaciones enviadas a 10 supervisores
+[02-Dec-2025 22:42:23 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
