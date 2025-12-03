@@ -103,7 +103,8 @@ try {
                 'repuesto_id' => intval($_POST['repuesto_id'] ?? 0),
                 'cantidad' => intval($_POST['cantidad'] ?? 1),
                 'urgencia' => trim($_POST['urgencia'] ?? 'Media'),
-                'motivo' => trim($_POST['motivo'] ?? '')
+                'motivo' => trim($_POST['motivo'] ?? ''),
+                'verificar_stock' => $_POST['verificar_stock'] ?? '0'
             ];
 
             $resultado = crearSolicitudRepuestos($datos);

@@ -194,20 +194,35 @@ function obtenerHistorialAvances($asignacion_id) {
     $vehiculo = mysqli_fetch_assoc($resultVehiculo);
     mysqli_free_result($resultVehiculo);
 
-    // Obtener avances
+    // Verificar si existe la columna Fotos
+    $checkColumnaFotos = "SHOW COLUMNS FROM avances_mecanico LIKE 'Fotos'";
+    $resultCheckFotos = mysqli_query($conn, $checkColumnaFotos);
+    $columnaFotosExiste = ($resultCheckFotos && mysqli_num_rows($resultCheckFotos) > 0);
+    
+    // Obtener avances (incluyendo Fotos si la columna existe)
     $queryAvances = "SELECT 
+                        ID,
                         Descripcion,
                         Estado,
-                        DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance
+                        " . ($columnaFotosExiste ? "Fotos," : "NULL AS Fotos,") . "
+                        DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance,
+                        DATE_FORMAT(FechaAvance, '%Y-%m-%d %H:%i:%s') as FechaAvanceRaw
                     FROM avances_mecanico 
                     WHERE AsignacionID = '$asignacion_id' 
-                    ORDER BY FechaAvance DESC";
+                    ORDER BY FechaAvance ASC";
     
     $resultAvances = mysqli_query($conn, $queryAvances);
     
     $avances = [];
     if ($resultAvances) {
         while ($row = mysqli_fetch_assoc($resultAvances)) {
+            // Decodificar JSON de fotos si existe
+            if (!empty($row['Fotos']) && $row['Fotos'] !== 'NULL' && $row['Fotos'] !== null) {
+                $fotosDecoded = json_decode($row['Fotos'], true);
+                $row['Fotos'] = is_array($fotosDecoded) ? $fotosDecoded : [];
+            } else {
+                $row['Fotos'] = [];
+            }
             $avances[] = $row;
         }
         mysqli_free_result($resultAvances);
@@ -307,20 +322,42 @@ function registrarAvanceConFotos($asignacion_id, $descripcion, $estado, $fotos =
 
         // Convertir array de fotos a JSON
         $fotos_json = !empty($fotos_procesadas) ? json_encode($fotos_procesadas) : null;
+        
+        // Log para debugging
+        if (!empty($fotos)) {
+            error_log("Fotos recibidas: " . count($fotos));
+            error_log("Fotos procesadas: " . count($fotos_procesadas));
+            if ($fotos_json) {
+                error_log("JSON de fotos: " . substr($fotos_json, 0, 200));
+            }
+        }
 
-        // Verificar si la columna Fotos existe en la tabla
+        // Verificar si la columna Fotos existe en la tabla, si no existe, crearla
         $columna_fotos_existe = false;
         $checkColumna = "SHOW COLUMNS FROM avances_mecanico LIKE 'Fotos'";
         $resultColumna = mysqli_query($conn, $checkColumna);
         if ($resultColumna && mysqli_num_rows($resultColumna) > 0) {
             $columna_fotos_existe = true;
+        } else {
+            // Crear la columna Fotos si no existe
+            $crearColumna = "ALTER TABLE avances_mecanico ADD COLUMN Fotos TEXT NULL COMMENT 'JSON con las rutas de las fotos del avance'";
+            if (mysqli_query($conn, $crearColumna)) {
+                $columna_fotos_existe = true;
+            } else {
+                error_log("Error al crear columna Fotos: " . mysqli_error($conn));
+            }
         }
 
         // 1. Insertar el avance (con o sin fotos según si la columna existe)
-        if ($columna_fotos_existe && $fotos_json) {
-            $fotos_json_escaped = mysqli_real_escape_string($conn, $fotos_json);
-            $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado, Fotos) 
-                           VALUES ('$asignacion_id', '$descripcion', '$estado', '$fotos_json_escaped')";
+        if ($columna_fotos_existe) {
+            if ($fotos_json) {
+                $fotos_json_escaped = mysqli_real_escape_string($conn, $fotos_json);
+                $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado, Fotos) 
+                               VALUES ('$asignacion_id', '$descripcion', '$estado', '$fotos_json_escaped')";
+            } else {
+                $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado, Fotos) 
+                               VALUES ('$asignacion_id', '$descripcion', '$estado', NULL)";
+            }
         } else {
             $queryAvance = "INSERT INTO avances_mecanico (AsignacionID, Descripcion, Estado) 
                            VALUES ('$asignacion_id', '$descripcion', '$estado')";
@@ -375,7 +412,8 @@ function subirFotoAvance($archivo) {
         ];
     }
     
-    $directorio_base = '../../uploads/avances/';
+    // Ruta relativa desde la raíz del proyecto para guardar el archivo
+    $directorio_base = __DIR__ . '/../../../uploads/avances/';
     
     // Crear directorio si no existe
     if (!file_exists($directorio_base)) {
@@ -407,9 +445,12 @@ function subirFotoAvance($archivo) {
     $ruta_completa = $directorio_base . $nombre_guardado;
     
     if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+        // Guardar la ruta relativa desde la raíz del proyecto para acceso web
+        $ruta_web = 'uploads/avances/' . $nombre_guardado;
+        
         return [
             'success' => true,
-            'ruta' => $ruta_completa,
+            'ruta' => $ruta_web,
             'nombre_guardado' => $nombre_guardado,
             'nombre_original' => $archivo['name'],
             'tipo' => 'foto_avance',

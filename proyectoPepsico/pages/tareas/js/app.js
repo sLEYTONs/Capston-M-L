@@ -4,6 +4,8 @@ class TareasMecanico {
         this.isLoading = false;
         this.fotosSeleccionadas = [];
         this.basePath = this.getBasePath();
+        this.asignacionIdActual = null; // Guardar asignacion_id actual para solicitar repuestos
+        this.avancesData = null; // Guardar datos de avances para el modal de detalles
         this.init();
     }
 
@@ -31,6 +33,11 @@ class TareasMecanico {
         // Remover cualquier prefijo de dominio o ruta absoluta incorrecta
         ruta = ruta.replace(/^https?:\/\/[^\/]+\//, '');
         
+        // Remover rutas relativas con ../../
+        ruta = ruta.replace(/^\.\.\/\.\.\//, '');
+        ruta = ruta.replace(/^\.\.\//, '');
+        ruta = ruta.replace(/^\.\//, '');
+        
         // Si la ruta ya empieza con /, puede ser una ruta absoluta - verificar si tiene el basePath
         if (ruta.startsWith('/')) {
             // Si ya contiene el basePath, retornarla tal cual
@@ -47,15 +54,16 @@ class TareasMecanico {
             // Extraer solo la parte de uploads/...
             const match = ruta.match(/(uploads\/.+)$/);
             if (match) {
-                // Construir ruta absoluta: /proyectoPepsico/uploads/fotos/...
+                // Construir ruta absoluta: /proyectoPepsico/uploads/...
                 const separator = this.basePath ? '/' : '';
                 return this.basePath + separator + match[1];
             }
         }
         
-        // Si solo tiene el nombre del archivo, construir la ruta completa
+        // Si solo tiene el nombre del archivo, intentar determinar si es de avances o fotos
         if (!ruta.includes('/')) {
             const separator = this.basePath ? '/' : '';
+            // Por defecto, asumir que es de fotos, pero podría ser de avances
             return this.basePath + separator + 'uploads/fotos/' + ruta;
         }
         
@@ -109,6 +117,7 @@ class TareasMecanico {
         $(document).on('click', '.btn-gestionar-repuestos', (e) => {
             const asignacionId = $(e.currentTarget).data('id');
             const placa = $(e.currentTarget).data('placa');
+            this.asignacionIdActual = asignacionId; // Guardar para usar en solicitud de repuestos
             this.mostrarModalRepuestos(asignacionId, placa);
         });
 
@@ -122,6 +131,10 @@ class TareasMecanico {
 
         $('#guardar-uso-repuestos').on('click', () => {
             this.guardarUsoRepuestos();
+        });
+
+        $('#btn-solicitar-repuesto-tareas').on('click', () => {
+            this.enviarSolicitudRepuestoDesdeTareas();
         });
 
         // Manejar selección de fotos
@@ -464,40 +477,64 @@ class TareasMecanico {
         if (data.avances.length === 0) {
             html = '<div class="alert alert-info">No hay avances registrados para este vehículo.</div>';
         } else {
-            data.avances.forEach(avance => {
-                // Mostrar fotos si existen
-                let fotosHtml = '';
+            // Ordenar avances por fecha (más reciente primero) y luego invertir para mostrar el más antiguo primero
+            const avancesOrdenados = [...data.avances].sort((a, b) => {
+                return new Date(a.FechaAvance) - new Date(b.FechaAvance);
+            });
+            
+            avancesOrdenados.forEach((avance, index) => {
+                const numeroAvance = index + 1;
+                const tieneContenido = avance.Descripcion || (avance.Fotos && avance.Fotos.length > 0);
+                
+                // Vista previa de descripción (primeros 100 caracteres)
+                const descripcionPreview = avance.Descripcion 
+                    ? (avance.Descripcion.length > 100 ? avance.Descripcion.substring(0, 100) + '...' : avance.Descripcion)
+                    : 'Sin descripción';
+                
+                // Vista previa de fotos (máximo 3)
+                let fotosPreviewHtml = '';
                 if (avance.Fotos && avance.Fotos.length > 0) {
-                    fotosHtml = `
-                        <div class="mt-2">
-                            <strong>Fotos:</strong>
-                            <div class="row g-2 mt-1">
-                    `;
-                    avance.Fotos.forEach(foto => {
-                        fotosHtml += `
-                            <div class="col-3">
-                                <img src="${foto.ruta}" class="img-thumbnail" style="width: 100px; height: 80px; object-fit: cover;" 
-                                     data-bs-toggle="modal" data-bs-target="#fotoModal" 
-                                     onclick="tareas.mostrarFotoModal('${foto.ruta}')">
+                    const fotosPreview = avance.Fotos.slice(0, 3);
+                    fotosPreviewHtml = '<div class="row g-2 mt-2">';
+                    fotosPreview.forEach(foto => {
+                        const rutaFoto = this.construirRutaImagen(foto.ruta);
+                        fotosPreviewHtml += `
+                            <div class="col-4">
+                                <img src="${rutaFoto}" class="img-thumbnail" style="width: 100%; height: 80px; object-fit: cover;" 
+                                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%2780%27%3E%3Crect fill=%27%23ddd%27 width=%27100%27 height=%2780%27/%3E%3Ctext fill=%27%23999%27 font-family=%27sans-serif%27 font-size=%2712%27 x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27%3EImagen%3C/text%3E%3C/svg%3E'">
                             </div>
                         `;
                     });
-                    fotosHtml += `</div></div>`;
+                    if (avance.Fotos.length > 3) {
+                        fotosPreviewHtml += `<div class="col-12"><small class="text-muted">+${avance.Fotos.length - 3} foto(s) más</small></div>`;
+                    }
+                    fotosPreviewHtml += '</div>';
                 }
                 
                 html += `
-                    <div class="card mb-3">
+                    <div class="card mb-3 avance-card" data-avance-id="${avance.ID || index}" style="cursor: pointer;">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                                <strong>${avance.FechaAvance}</strong>
+                                <div>
+                                    <strong>Avance #${numeroAvance}</strong>
+                                    <small class="text-muted ms-2">${avance.FechaAvance}</small>
+                                </div>
                                 <span class="badge bg-${avance.Estado === 'Completado' ? 'success' : 'info'}">
                                     ${avance.Estado}
                                 </span>
                             </div>
                         </div>
                         <div class="card-body">
-                            <p class="mb-2">${avance.Descripcion}</p>
-                            ${fotosHtml}
+                            ${tieneContenido ? `
+                                <p class="mb-2 text-muted">${descripcionPreview}</p>
+                                ${fotosPreviewHtml}
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-primary btn-ver-detalle-avance" 
+                                            data-avance-index="${index}">
+                                        <i class="fas fa-eye me-1"></i>Ver Detalles
+                                    </button>
+                                </div>
+                            ` : '<p class="text-muted mb-0">Sin contenido registrado</p>'}
                         </div>
                     </div>
                 `;
@@ -506,8 +543,129 @@ class TareasMecanico {
         
         $('#historial-avances').html(html);
         
+        // Guardar datos de avances para el modal de detalles
+        this.avancesData = data.avances;
+        
+        // Event listener para ver detalles
+        $(document).off('click', '.btn-ver-detalle-avance').on('click', '.btn-ver-detalle-avance', (e) => {
+            e.stopPropagation();
+            const index = $(e.currentTarget).data('avance-index');
+            this.mostrarDetalleAvance(index);
+        });
+        
         const historialModal = new bootstrap.Modal(document.getElementById('historialModal'));
         historialModal.show();
+    }
+    
+    mostrarDetalleAvance(index) {
+        if (!this.avancesData || !this.avancesData[index]) {
+            return;
+        }
+        
+        const avance = this.avancesData[index];
+        const numeroAvance = index + 1;
+        const tieneFotos = avance.Fotos && avance.Fotos.length > 0;
+        const cantidadFotos = tieneFotos ? avance.Fotos.length : 0;
+        
+        // Ajustar tamaño del modal según cantidad de fotos
+        const modalDialog = document.querySelector('#detalleAvanceModal .modal-dialog');
+        if (modalDialog) {
+            if (cantidadFotos > 6) {
+                modalDialog.classList.add('modal-xl');
+                modalDialog.classList.remove('modal-lg');
+            } else if (cantidadFotos > 3) {
+                modalDialog.classList.add('modal-xl');
+                modalDialog.classList.remove('modal-lg');
+            } else {
+                modalDialog.classList.add('modal-lg');
+                modalDialog.classList.remove('modal-xl');
+            }
+        }
+        
+        let html = `
+            <div class="mb-3">
+                <h6 class="text-muted">Fecha del Avance</h6>
+                <p><strong>${avance.FechaAvance}</strong></p>
+            </div>
+            
+            <div class="mb-3">
+                <h6 class="text-muted">Estado</h6>
+                <span class="badge bg-${avance.Estado === 'Completado' ? 'success' : 'info'} fs-6">
+                    ${avance.Estado}
+                </span>
+            </div>
+        `;
+        
+        if (avance.Descripcion) {
+            html += `
+                <div class="mb-3">
+                    <h6 class="text-muted">Descripción del Trabajo</h6>
+                    <p class="text-break">${avance.Descripcion}</p>
+                </div>
+            `;
+        }
+        
+        if (tieneFotos) {
+            // Determinar columnas según cantidad de fotos
+            let colClass = 'col-md-4 col-sm-6'; // Por defecto 3 columnas
+            if (cantidadFotos === 1) {
+                colClass = 'col-md-12';
+            } else if (cantidadFotos === 2) {
+                colClass = 'col-md-6 col-sm-6';
+            } else if (cantidadFotos <= 4) {
+                colClass = 'col-md-6 col-sm-6';
+            } else if (cantidadFotos <= 6) {
+                colClass = 'col-md-4 col-sm-6';
+            } else {
+                colClass = 'col-md-3 col-sm-4 col-6'; // 4 columnas para muchas fotos
+            }
+            
+            html += `
+                <div class="mb-3">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-images me-2"></i>Fotos del Trabajo (${cantidadFotos})
+                    </h6>
+                    <div class="galeria-fotos-avance">
+                        <div class="row g-3">
+            `;
+            
+            avance.Fotos.forEach((foto, fotoIndex) => {
+                const rutaFoto = this.construirRutaImagen(foto.ruta);
+                const rutaEscapada = rutaFoto.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                html += `
+                    <div class="${colClass}">
+                        <div class="card foto-card-avance h-100">
+                            <div class="position-relative">
+                                <img src="${rutaEscapada}" 
+                                     class="card-img-top img-foto-avance" 
+                                     alt="Foto ${fotoIndex + 1}"
+                                     style="height: ${cantidadFotos > 6 ? '200px' : '250px'}; object-fit: cover; cursor: pointer;"
+                                     onclick="window.open('${rutaEscapada}', '_blank')"
+                                     onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27250%27 height=%27250%27%3E%3Crect fill=%27%23ddd%27 width=%27250%27 height=%27250%27/%3E%3Ctext fill=%27%23999%27 font-family=%27sans-serif%27 font-size=%2714%27 x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27%3EImagen no encontrada%3C/text%3E%3C/svg%3E'">
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-dark">${fotoIndex + 1}/${cantidadFotos}</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-2">
+                                <small class="text-muted d-block text-center">Foto ${fotoIndex + 1}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        $('#modal-avance-numero').text(`Avance #${numeroAvance}`);
+        $('#detalle-avance-contenido').html(html);
+        
+        const detalleModal = new bootstrap.Modal(document.getElementById('detalleAvanceModal'));
+        detalleModal.show();
     }
 
     mostrarInfoVehiculo(vehiculoId) {
@@ -893,9 +1051,61 @@ class TareasMecanico {
 
     mostrarModalRepuestos(asignacionId, placa) {
         $('#modal-placa-repuestos').text(placa);
+        $('#solicitar-asignacion-id').val(asignacionId);
+        this.asignacionIdActual = asignacionId;
+        
+        // Activar el tab de aprobados por defecto
+        const tabAprobados = document.getElementById('tab-aprobados');
+        const tabSolicitar = document.getElementById('tab-solicitar');
+        tabAprobados.classList.add('active');
+        tabSolicitar.classList.remove('active');
+        document.getElementById('pane-aprobados').classList.add('show', 'active');
+        document.getElementById('pane-solicitar').classList.remove('show', 'active');
+        
         const modal = new bootstrap.Modal(document.getElementById('repuestosModal'));
         modal.show();
         this.cargarRepuestosAprobados();
+        this.cargarRepuestosParaSolicitar();
+        
+        // Event listener para cambio de tabs
+        $('#tab-solicitar').on('shown.bs.tab', () => {
+            $('#btn-solicitar-repuesto-tareas').show();
+        });
+        $('#tab-aprobados').on('shown.bs.tab', () => {
+            $('#btn-solicitar-repuesto-tareas').hide();
+        });
+    }
+    
+    cargarRepuestosParaSolicitar() {
+        const select = $('#solicitar-repuesto-select');
+        select.html('<option value="">Cargando repuestos...</option>');
+        
+        $.ajax({
+            url: '../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php',
+            type: 'GET',
+            data: { 
+                action: 'obtenerRepuestos',
+                asignacion_id: this.asignacionIdActual
+            },
+            dataType: 'json',
+            success: (response) => {
+                if (response.status === 'success' && response.data) {
+                    select.html('<option value="">Seleccione un repuesto</option>');
+                    response.data.forEach(repuesto => {
+                        const option = $('<option></option>')
+                            .attr('value', repuesto.ID)
+                            .text(`${repuesto.Nombre} (${repuesto.Codigo}) - Stock: ${repuesto.Stock}`)
+                            .data('stock', repuesto.Stock);
+                        select.append(option);
+                    });
+                } else {
+                    select.html('<option value="">Error al cargar repuestos</option>');
+                }
+            },
+            error: () => {
+                select.html('<option value="">Error al cargar repuestos</option>');
+            }
+        });
     }
 
     cargarRepuestosAprobados() {
@@ -1069,6 +1279,91 @@ class TareasMecanico {
             error: (xhr, status, error) => {
                 alert('Error de conexión: ' + error);
                 $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+            }
+        });
+    }
+
+    enviarSolicitudRepuestoDesdeTareas() {
+        const asignacionId = $('#solicitar-asignacion-id').val();
+        const repuestoId = $('#solicitar-repuesto-select').val();
+        const cantidad = parseInt($('#solicitar-cantidad').val()) || 0;
+        const urgencia = $('#solicitar-urgencia').val();
+        const motivo = $('#solicitar-motivo').val().trim();
+
+        if (!repuestoId) {
+            alert('Por favor seleccione un repuesto');
+            return;
+        }
+
+        if (cantidad <= 0) {
+            alert('La cantidad debe ser mayor a 0');
+            return;
+        }
+
+        $('#btn-solicitar-repuesto-tareas').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Enviando...');
+
+        const formData = new FormData();
+        formData.append('action', 'crearSolicitudRepuestos');
+        formData.append('asignacion_id', asignacionId);
+        formData.append('repuesto_id', repuestoId);
+        formData.append('cantidad', cantidad);
+        formData.append('urgencia', urgencia);
+        formData.append('motivo', motivo);
+        formData.append('verificar_stock', '1'); // Flag para indicar que debe verificar stock y pausar si no hay
+
+        const self = this; // Guardar referencia al contexto
+        $.ajax({
+            url: '../app/model/gestion_pausas_repuestos/scripts/s_gestion_pausas_repuestos.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                $('#btn-solicitar-repuesto-tareas').prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Enviar Solicitud');
+                
+                if (response.status === 'success') {
+                    // Cerrar el modal de solicitud
+                    const repuestosModal = bootstrap.Modal.getInstance(document.getElementById('repuestosModal'));
+                    if (repuestosModal) {
+                        repuestosModal.hide();
+                    }
+                    
+                    // Mostrar modal de confirmación
+                    $('#modal-confirmacion-titulo').text('Solicitud enviada correctamente');
+                    $('#modal-confirmacion-mensaje').text(response.message);
+                    
+                    // Mostrar advertencia si la tarea fue pausada
+                    if (response.tarea_pausada) {
+                        $('#modal-confirmacion-advertencia').show();
+                    } else {
+                        $('#modal-confirmacion-advertencia').hide();
+                    }
+                    
+                    const confirmacionModal = new bootstrap.Modal(document.getElementById('modalConfirmacionSolicitud'));
+                    confirmacionModal.show();
+                    
+                    // Limpiar formulario
+                    $('#form-solicitar-repuestos-tareas')[0].reset();
+                    $('#solicitar-cantidad').val(1);
+                    $('#solicitar-urgencia').val('Media');
+                    
+                    // Recargar los repuestos disponibles cuando se cierre el modal de confirmación
+                    $('#modalConfirmacionSolicitud').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+                        self.cargarRepuestosParaSolicitar();
+                        // Recargar la tabla de tareas usando el método correcto
+                        // La tabla no usa AJAX de DataTables, sino que carga datos manualmente
+                        self.cargarTareas();
+                    });
+                } else if (response.status === 'duplicado') {
+                    alert(response.message);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#btn-solicitar-repuesto-tareas').prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i>Enviar Solicitud');
+                alert('Error de conexión: ' + error);
             }
         });
     }

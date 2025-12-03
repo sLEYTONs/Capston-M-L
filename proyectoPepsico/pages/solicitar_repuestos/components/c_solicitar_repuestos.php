@@ -18,6 +18,7 @@
                                     <!-- Se cargarán dinámicamente -->
                                 </select>
                                 <small class="form-text text-muted">Seleccione el vehículo al que corresponde este repuesto. Si tiene varios vehículos asignados, elija el correspondiente.</small>
+                                <!-- Mensaje informativo se agregará aquí dinámicamente -->
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="repuesto-select" class="form-label">Repuesto <span class="text-danger">*</span></label>

@@ -117,9 +117,12 @@ function obtenerTareasEnPausa($mecanico_id) {
                 v.Marca,
                 v.Modelo,
                 v.TipoVehiculo,
+                COALESCE(v.ConductorNombre, sa.ConductorNombre, '') as ConductorNombre,
                 DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
             FROM asignaciones_mecanico a
             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+            LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
+                AND sa.Estado IN ('Aprobada', 'Ingresado')
             WHERE a.MecanicoID = '$mecanico_id' 
             AND $wherePausa
             ORDER BY a.FechaAsignacion DESC";
@@ -293,6 +296,83 @@ function crearSolicitudRepuestos($datos) {
             ];
         }
 
+        // Verificar stock disponible antes de crear la solicitud (si se solicita verificación)
+        $verificarStock = isset($datos['verificar_stock']) && $datos['verificar_stock'] == '1';
+        $tareaPausada = false;
+        
+        if ($verificarStock && $asignacion_id !== null) {
+            // Obtener stock actual del repuesto
+            $queryStock = "SELECT Stock FROM repuestos WHERE ID = $repuesto_id";
+            $resultStock = mysqli_query($conn, $queryStock);
+            $stockDisponible = 0;
+            
+            if ($resultStock && mysqli_num_rows($resultStock) > 0) {
+                $stockData = mysqli_fetch_assoc($resultStock);
+                $stockDisponible = intval($stockData['Stock']);
+            }
+            
+            // Si no hay stock suficiente, pausar automáticamente la tarea
+            if ($stockDisponible < $cantidad) {
+                // Verificar si la tarea ya está en pausa
+                $queryEstadoTarea = "SELECT Estado, MotivoPausa FROM asignaciones_mecanico WHERE ID = $asignacion_id";
+                $resultEstadoTarea = mysqli_query($conn, $queryEstadoTarea);
+                $tareaEnPausa = false;
+                
+                if ($resultEstadoTarea && mysqli_num_rows($resultEstadoTarea) > 0) {
+                    $estadoTarea = mysqli_fetch_assoc($resultEstadoTarea);
+                    $tareaEnPausa = ($estadoTarea['Estado'] === 'En Pausa' || 
+                                     (!empty($estadoTarea['MotivoPausa']) && $estadoTarea['MotivoPausa'] !== ''));
+                }
+                
+                // Solo pausar si no está ya en pausa
+                if (!$tareaEnPausa) {
+                    // Verificar si existe la columna MotivoPausa
+                    $checkColumn = "SELECT COUNT(*) as existe 
+                                   FROM information_schema.COLUMNS 
+                                   WHERE TABLE_SCHEMA = DATABASE() 
+                                   AND TABLE_NAME = 'asignaciones_mecanico' 
+                                   AND COLUMN_NAME = 'MotivoPausa'";
+                    $resultCheck = mysqli_query($conn, $checkColumn);
+                    $columnExists = false;
+                    if ($resultCheck) {
+                        $row = mysqli_fetch_assoc($resultCheck);
+                        $columnExists = ($row['existe'] > 0);
+                    }
+                    
+                    // Si la columna no existe, crearla
+                    if (!$columnExists) {
+                        $alterTable = "ALTER TABLE asignaciones_mecanico ADD COLUMN MotivoPausa TEXT NULL COMMENT 'Motivo por el cual la tarea fue pausada'";
+                        if (!mysqli_query($conn, $alterTable)) {
+                            throw new Exception("Error al crear columna MotivoPausa: " . mysqli_error($conn));
+                        }
+                    }
+                    
+                    // Obtener nombre del repuesto para el motivo
+                    $queryRepuestoNombre = "SELECT nombre as Nombre FROM repuestos WHERE id = $repuesto_id";
+                    $resultRepuestoNombre = mysqli_query($conn, $queryRepuestoNombre);
+                    $repuestoNombrePausa = 'Repuesto';
+                    if ($resultRepuestoNombre && mysqli_num_rows($resultRepuestoNombre) > 0) {
+                        $repuestoData = mysqli_fetch_assoc($resultRepuestoNombre);
+                        $repuestoNombrePausa = $repuestoData['Nombre'];
+                    }
+                    
+                    $motivoPausa = "Sin stock de repuesto: $repuestoNombrePausa (Solicitado: $cantidad, Disponible: $stockDisponible)";
+                    $motivoPausaEscapado = mysqli_real_escape_string($conn, $motivoPausa);
+                    
+                    // Pausar la tarea
+                    $queryPausar = "UPDATE asignaciones_mecanico 
+                                  SET Estado = 'En Pausa', MotivoPausa = '$motivoPausaEscapado' 
+                                  WHERE ID = $asignacion_id";
+                    
+                    if (!mysqli_query($conn, $queryPausar)) {
+                        throw new Exception("Error al pausar tarea: " . mysqli_error($conn));
+                    }
+                    
+                    $tareaPausada = true;
+                }
+            }
+        }
+
         // Insertar solicitud (AsignacionID es opcional)
         $asignacionValue = $asignacion_id !== null ? $asignacion_id : 'NULL';
         $query = "INSERT INTO solicitudes_repuestos 
@@ -357,10 +437,16 @@ function crearSolicitudRepuestos($datos) {
 
         mysqli_commit($conn);
 
+        $mensaje = 'Solicitud creada correctamente';
+        if ($tareaPausada) {
+            $mensaje .= '. La tarea se ha pausado automáticamente debido a falta de stock.';
+        }
+
         return [
             'status' => 'success',
-            'message' => 'Solicitud creada correctamente',
-            'solicitud_id' => $solicitud_id
+            'message' => $mensaje,
+            'solicitud_id' => $solicitud_id,
+            'tarea_pausada' => $tareaPausada
         ];
 
     } catch (Exception $e) {

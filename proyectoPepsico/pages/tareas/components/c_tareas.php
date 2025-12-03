@@ -112,7 +112,7 @@
 
 <!-- Modal para Registrar Avance -->
 <div class="modal fade" id="avanceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-tareas-custom">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -201,7 +201,7 @@
 
 <!-- Modal para Ver Historial de Avances -->
 <div class="modal fade" id="historialModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-tareas-custom">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -211,7 +211,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="historial-avances">
+                <div id="historial-avances" class="historial-scroll">
                     <!-- Los avances se cargarán aquí -->
                 </div>
             </div>
@@ -224,7 +224,7 @@
 
 <!-- Modal para Ver Información Completa del Vehículo -->
 <div class="modal fade" id="infoVehiculoModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg modal-tareas-custom">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -247,7 +247,7 @@
 
 <!-- Modal para Ver Fotos del Vehículo -->
 <div class="modal fade" id="fotosVehiculoModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-fotos-custom modal-tareas-custom">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -270,7 +270,7 @@
 
 <!-- Modal para Pausar Tarea -->
 <div class="modal fade" id="pausaModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-tareas-custom modal-tareas-sm">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
                 <h5 class="modal-title">
@@ -324,27 +324,87 @@
     </div>
 </div>
 
-<!-- Modal para Gestionar Repuestos Aprobados -->
+<!-- Modal para Gestionar Repuestos -->
 <div class="modal fade" id="repuestosModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-repuestos-custom">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
                     <i class="fas fa-boxes me-2"></i>
-                    Gestionar Repuestos Aprobados - <span id="modal-placa-repuestos"></span>
+                    Gestión de Repuestos - <span id="modal-placa-repuestos"></span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="repuestos-aprobados-lista">
-                    <div class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
-                        <p class="text-muted mt-2">Cargando repuestos aprobados...</p>
+                <!-- Tabs para navegar entre secciones -->
+                <ul class="nav nav-tabs mb-3" id="repuestos-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-aprobados" data-bs-toggle="tab" data-bs-target="#pane-aprobados" type="button" role="tab">
+                            <i class="fas fa-check-circle me-2"></i>Repuestos Aprobados
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-solicitar" data-bs-toggle="tab" data-bs-target="#pane-solicitar" type="button" role="tab">
+                            <i class="fas fa-tools me-2"></i>Solicitar Nuevos Repuestos
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Contenido de los tabs -->
+                <div class="tab-content" id="repuestos-tab-content">
+                    <!-- Tab: Repuestos Aprobados -->
+                    <div class="tab-pane fade show active" id="pane-aprobados" role="tabpanel">
+                        <div id="repuestos-aprobados-lista">
+                            <div class="text-center py-4">
+                                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                                <p class="text-muted mt-2">Cargando repuestos aprobados...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab: Solicitar Nuevos Repuestos -->
+                    <div class="tab-pane fade" id="pane-solicitar" role="tabpanel">
+                        <form id="form-solicitar-repuestos-tareas">
+                            <input type="hidden" id="solicitar-asignacion-id">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="solicitar-repuesto-select" class="form-label">Repuesto <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="solicitar-repuesto-select" name="repuesto_id" required>
+                                        <option value="">Cargando repuestos...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="solicitar-cantidad" class="form-label">Cantidad <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="solicitar-cantidad" name="cantidad" min="1" value="1" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="solicitar-urgencia" class="form-label">Urgencia <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="solicitar-urgencia" name="urgencia" required>
+                                        <option value="Baja">Baja</option>
+                                        <option value="Media" selected>Media</option>
+                                        <option value="Alta">Alta</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="solicitar-motivo" class="form-label">Motivo</label>
+                                    <input type="text" class="form-control" id="solicitar-motivo" name="motivo" placeholder="Motivo de la solicitud">
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Nota:</strong> Si el repuesto solicitado no tiene stock disponible, la tarea se pausará automáticamente con el motivo "Sin stock de repuesto".
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btn-solicitar-repuesto-tareas" style="display: none;">
+                    <i class="fas fa-paper-plane me-2"></i>Enviar Solicitud
+                </button>
             </div>
         </div>
     </div>
@@ -352,7 +412,7 @@
 
 <!-- Modal para Registrar Uso/Devolución de Repuestos -->
 <div class="modal fade" id="usoRepuestosModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-tareas-custom modal-tareas-sm">
         <div class="modal-content">
             <div class="modal-header bg-success text-white" id="modal-header-uso-repuestos">
                 <h5 class="modal-title">
@@ -410,6 +470,60 @@
                 <button type="button" class="btn btn-primary" id="guardar-uso-repuestos">
                     <i class="fas fa-save me-2"></i>Guardar
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Solicitud de Repuestos -->
+<div class="modal fade" id="modalConfirmacionSolicitud" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-tareas-custom modal-tareas-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Solicitud Enviada
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5 id="modal-confirmacion-titulo">Solicitud enviada correctamente</h5>
+                    <p id="modal-confirmacion-mensaje" class="text-muted"></p>
+                    <div id="modal-confirmacion-advertencia" class="alert alert-warning mt-3" style="display: none;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Nota:</strong> La tarea se ha pausado automáticamente debido a falta de stock.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-2"></i>Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver Detalles de Avance -->
+<div class="modal fade" id="detalleAvanceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-tareas-custom modal-detalle-avance">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    Detalles del Avance - <span id="modal-avance-numero"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detalle-avance-contenido">
+                    <!-- Los detalles se cargarán aquí -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

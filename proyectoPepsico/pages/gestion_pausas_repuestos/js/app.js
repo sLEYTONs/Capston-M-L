@@ -183,12 +183,17 @@ class GestionPausasRepuestos {
                 const solicitudesBadge = tarea.SolicitudesPendientes > 0 
                     ? `<span class="badge bg-warning">${tarea.SolicitudesPendientes} pendiente(s)</span>`
                     : '<span class="badge bg-secondary">Sin solicitudes</span>';
+                
+                // Obtener nombre del conductor (puede venir de ingreso_vehiculos o solicitudes_agendamiento)
+                const conductorNombre = (tarea.ConductorNombre && tarea.ConductorNombre.trim() !== '' && tarea.ConductorNombre !== 'null') 
+                    ? tarea.ConductorNombre 
+                    : 'N/A';
 
                 row.innerHTML = `
                     <td><strong>#${tarea.AsignacionID}</strong></td>
                     <td>${vehiculoCompleto}</td>
                     <td><strong>${tarea.Placa}</strong></td>
-                    <td>${tarea.ConductorNombre || 'N/A'}</td>
+                    <td>${conductorNombre}</td>
                     <td>${tarea.MotivoPausa || 'No especificado'}</td>
                     <td>${tarea.FechaAsignacion}</td>
                     <td>${solicitudesBadge}</td>

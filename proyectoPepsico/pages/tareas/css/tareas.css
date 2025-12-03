@@ -207,6 +207,206 @@
     word-break: break-word;
 }
 
+/* Estilos generales para todos los modales - centrado y tamaño adecuado */
+.modal.show {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Asegurar que los modales ocultos no se muestren */
+.modal:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+.modal-tareas-custom {
+    margin: 1.75rem auto !important;
+    transform: none !important;
+    position: relative;
+}
+
+.modal.show .modal-tareas-custom {
+    transform: none !important;
+}
+
+.modal:not(.show) .modal-tareas-custom {
+    transform: none !important;
+    display: none !important;
+}
+
+/* Asegurar que los modales se oculten correctamente durante las transiciones */
+.modal.fade {
+    transition: opacity 0.15s linear;
+}
+
+.modal.fade:not(.show) {
+    opacity: 0;
+    pointer-events: none;
+    display: none !important;
+}
+
+.modal.fade.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Prevenir que los modales aparezcan fuera de lugar */
+.modal-backdrop {
+    z-index: 1040;
+}
+
+.modal {
+    z-index: 1050;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 0.5rem;
+    pointer-events: none;
+}
+
+.modal.show .modal-dialog {
+    pointer-events: auto;
+}
+
+/* Modal de gestión de repuestos - tamaño personalizado */
+.modal-repuestos-custom {
+    max-width: 900px !important;
+}
+
+/* Modal de fotos - más ancho para mostrar imágenes */
+.modal-fotos-custom {
+    max-width: 1200px !important;
+}
+
+/* Modales grandes (avance, historial, info vehículo) */
+#avanceModal .modal-tareas-custom,
+#historialModal .modal-tareas-custom,
+#infoVehiculoModal .modal-tareas-custom {
+    max-width: 800px !important;
+}
+
+/* Modal de detalle de avance - ajustable según cantidad de fotos */
+.modal-detalle-avance.modal-lg {
+    max-width: 900px !important;
+}
+
+.modal-detalle-avance.modal-xl {
+    max-width: 1200px !important;
+}
+
+/* Galería de fotos en detalle de avance */
+.galeria-fotos-avance {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.galeria-fotos-avance::-webkit-scrollbar {
+    width: 8px;
+}
+
+.galeria-fotos-avance::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.galeria-fotos-avance::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.galeria-fotos-avance::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.foto-card-avance {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #dee2e6;
+}
+
+.foto-card-avance:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.img-foto-avance {
+    transition: transform 0.3s;
+}
+
+.img-foto-avance:hover {
+    transform: scale(1.05);
+}
+
+/* Historial de avances con scroll */
+.historial-scroll {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.historial-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.historial-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.historial-scroll::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.historial-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Modales pequeños (pausa, uso repuestos, confirmación) */
+.modal-tareas-sm {
+    max-width: 500px !important;
+}
+
+/* Responsive para todos los modales */
+@media (max-width: 992px) {
+    .modal-tareas-custom {
+        max-width: 95% !important;
+        margin: 1rem auto !important;
+    }
+    
+    .modal-repuestos-custom {
+        max-width: 95% !important;
+    }
+    
+    .modal-fotos-custom {
+        max-width: 95% !important;
+    }
+    
+    .modal-tareas-sm {
+        max-width: 90% !important;
+    }
+    
+    .historial-scroll {
+        max-height: 400px;
+    }
+    
+    .modal-detalle-avance.modal-xl {
+        max-width: 95% !important;
+    }
+    
+    .galeria-fotos-avance {
+        max-height: 400px;
+    }
+}
+
 /* Anchos específicos para columnas */
 #tareas-table th:nth-child(1), /* Vehículo */
 #tareas-table td:nth-child(1) {

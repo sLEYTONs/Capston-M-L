@@ -2,6 +2,7 @@ class SolicitarRepuestos {
     constructor() {
         this.baseUrl = this.getBaseUrl();
         this.repuestos = [];
+        this.asignacionIdUrl = null; // Guardar asignacion_id de la URL
         this.inicializar();
     }
 
@@ -25,10 +26,13 @@ class SolicitarRepuestos {
         const urlParams = new URLSearchParams(window.location.search);
         const asignacionId = urlParams.get('asignacion_id');
         
+        // Guardar el asignacion_id de la URL para usarlo después si es necesario
+        this.asignacionIdUrl = asignacionId && asignacionId !== '0' && asignacionId !== '' ? asignacionId : null;
+        
         // Si ya hay un asignacion_id en la URL, seleccionarlo automáticamente
-        if (asignacionId && asignacionId !== '0' && asignacionId !== '') {
+        if (this.asignacionIdUrl) {
             // Cargar vehículos para mostrar opciones, pero preseleccionar el de la URL
-            this.cargarVehiculosAsignados(asignacionId);
+            this.cargarVehiculosAsignados(this.asignacionIdUrl);
         } else {
             // Cargar todos los vehículos asignados al mecánico
             this.cargarVehiculosAsignados();
@@ -58,6 +62,8 @@ class SolicitarRepuestos {
         // Mantener la opción "Seleccionar vehículo (opcional)..."
         select.innerHTML = '<option value="">Seleccionar vehículo (opcional)...</option>';
         
+        let vehiculoPreseleccionado = null;
+        
         vehiculos.forEach(vehiculo => {
             const option = document.createElement('option');
             option.value = vehiculo.AsignacionID;
@@ -67,10 +73,30 @@ class SolicitarRepuestos {
             // Preseleccionar si coincide con el asignacion_id de la URL
             if (preseleccionarAsignacionId && parseInt(vehiculo.AsignacionID) === parseInt(preseleccionarAsignacionId)) {
                 option.selected = true;
+                vehiculoPreseleccionado = vehiculo;
             }
             
             select.appendChild(option);
         });
+        
+        // Si se preseleccionó un vehículo, mostrar un mensaje informativo
+        if (vehiculoPreseleccionado && preseleccionarAsignacionId) {
+            // Agregar un mensaje visual debajo del selector
+            const formGroup = select.closest('.mb-3');
+            if (formGroup) {
+                // Remover mensaje anterior si existe
+                const mensajeAnterior = formGroup.querySelector('.vehiculo-preseleccionado-info');
+                if (mensajeAnterior) {
+                    mensajeAnterior.remove();
+                }
+                
+                // Agregar mensaje informativo
+                const mensajeInfo = document.createElement('div');
+                mensajeInfo.className = 'alert alert-info mt-2 vehiculo-preseleccionado-info';
+                mensajeInfo.innerHTML = `<i class="fas fa-info-circle me-2"></i>Vehículo preseleccionado: <strong>${vehiculoPreseleccionado.Placa}</strong> - ${vehiculoPreseleccionado.Marca} ${vehiculoPreseleccionado.Modelo}`;
+                formGroup.appendChild(mensajeInfo);
+            }
+        }
     }
 
     inicializarEventos() {
@@ -129,13 +155,17 @@ class SolicitarRepuestos {
 
         // Obtener asignacion_id del selector de vehículo (prioridad) o de la URL
         const asignacionIdSelect = document.getElementById('vehiculo-select')?.value;
-        const urlParams = new URLSearchParams(window.location.search);
-        const asignacionIdUrl = urlParams.get('asignacion_id');
         
-        // Prioridad: selector > URL
-        const asignacionId = asignacionIdSelect && asignacionIdSelect !== '' 
-            ? asignacionIdSelect 
-            : (asignacionIdUrl && asignacionIdUrl !== '0' && asignacionIdUrl !== '' ? asignacionIdUrl : null);
+        // Prioridad: selector > URL guardada
+        // Si el selector tiene un valor seleccionado, usarlo
+        // Si no, usar el de la URL si existe (para cuando viene desde gestión de pausas)
+        let asignacionId = null;
+        if (asignacionIdSelect && asignacionIdSelect !== '' && asignacionIdSelect !== 'null') {
+            asignacionId = asignacionIdSelect;
+        } else if (this.asignacionIdUrl && this.asignacionIdUrl !== '0' && this.asignacionIdUrl !== '' && this.asignacionIdUrl !== 'null') {
+            // Si no hay selección en el selector pero hay uno en la URL, usarlo automáticamente
+            asignacionId = this.asignacionIdUrl;
+        }
         
         // Si hay asignacion_id, agregarlo al formData
         if (asignacionId) {
