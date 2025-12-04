@@ -24,7 +24,7 @@ $paginas_por_rol = [
         'mantenimiento.php', 'calidad.php', 'repuestos.php', 'recepcion_tecnica.php',
         'gestion_pausas_repuestos.php', 'estado_solicitudes_repuestos.php',
         'administrar_agendas.php', 'coordinacion_taller_fallas.php',
-        'coordinacion_jefe_taller.php', 'comunicacion_flota_proveedores.php',
+        'coordinacion_jefe_taller.php',
         'recepcion_devolucion_vehiculos.php', 'control_gastos_vehiculos.php',
         'inventario_coordinador.php', 'gestion_cambios_perdidas.php',
         'control_duplicados_chapas.php', 'registro_prestamos_temporales.php',
@@ -53,7 +53,7 @@ $paginas_por_rol = [
     ],
     'Recepcionista' => [
         'consulta.php', 'base_datos.php', 'ingreso_vehiculos.php', 'recepcion_tecnica.php',
-        'reportes.php', 'comunicacion_flota_proveedores.php'
+        'reportes.php'
     ],
     'Guardia' => [
         'control_ingreso.php',
@@ -68,8 +68,7 @@ $paginas_por_rol = [
     ],
     'Chofer' => [
         'solicitudes_agendamiento.php',
-        'mis_solicitudes.php',
-        'comunicacion_flota_proveedores.php'
+        'mis_solicitudes.php'
     ],
     'Asistente de Repuestos' => [
         'repuestos.php',

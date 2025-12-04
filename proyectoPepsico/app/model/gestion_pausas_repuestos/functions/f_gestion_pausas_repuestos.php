@@ -106,6 +106,15 @@ function obtenerTareasEnPausa($mecanico_id) {
         $wherePausa = "a.Estado = 'En Pausa'";
     }
 
+    // Subconsulta para contar solicitudes pendientes de repuestos
+    $subquerySolicitudesRepuestos = $tableExists 
+        ? "(SELECT COUNT(*) 
+           FROM solicitudes_repuestos sr
+           WHERE sr.AsignacionID = a.ID 
+           AND sr.Estado IN ('Pendiente', 'Aprobada', 'En Proceso', 'En Tránsito')
+           ) as SolicitudesPendientes"
+        : "0 as SolicitudesPendientes";
+    
     $query = "SELECT 
                 a.ID as AsignacionID,
                 a.VehiculoID,
@@ -117,14 +126,20 @@ function obtenerTareasEnPausa($mecanico_id) {
                 v.Marca,
                 v.Modelo,
                 v.TipoVehiculo,
-                COALESCE(v.ConductorNombre, sa.ConductorNombre, '') as ConductorNombre,
-                DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
+                COALESCE(v.ConductorNombre, 
+                    (SELECT sa1.ConductorNombre
+                     FROM solicitudes_agendamiento sa1
+                     WHERE sa1.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci
+                     AND sa1.Estado IN ('Aprobada', 'Ingresado')
+                     ORDER BY sa1.FechaCreacion DESC
+                     LIMIT 1), '') as ConductorNombre,
+                DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion,
+                $subquerySolicitudesRepuestos
             FROM asignaciones_mecanico a
             INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
-            LEFT JOIN solicitudes_agendamiento sa ON v.Placa COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
-                AND sa.Estado IN ('Aprobada', 'Ingresado')
             WHERE a.MecanicoID = '$mecanico_id' 
             AND $wherePausa
+            GROUP BY a.ID
             ORDER BY a.FechaAsignacion DESC";
 
     $result = mysqli_query($conn, $query);
@@ -484,7 +499,17 @@ function obtenerSolicitudesRepuestos($mecanico_id, $asignacion_id = null) {
                 sr.Cantidad,
                 sr.Urgencia,
                 sr.Motivo,
-                sr.Estado,
+                COALESCE(
+                    NULLIF(sr.Estado, ''),
+                    CASE 
+                        WHEN sr.FechaEntrega IS NOT NULL THEN 'Entregada'
+                        WHEN sr.FechaRecibido IS NOT NULL THEN 'Recibido'
+                        WHEN sr.FechaEnTransito IS NOT NULL THEN 'En Tránsito'
+                        WHEN sr.FechaEnProceso IS NOT NULL THEN 'En Proceso'
+                        WHEN sr.FechaAprobacion IS NOT NULL THEN 'Entregada'
+                        ELSE 'Pendiente'
+                    END
+                ) as Estado,
                 DATE_FORMAT(sr.FechaSolicitud, '%d/%m/%Y %H:%i') as FechaSolicitud,
                 DATE_FORMAT(sr.FechaAprobacion, '%d/%m/%Y %H:%i') as FechaAprobacion,
                 DATE_FORMAT(sr.FechaEnProceso, '%d/%m/%Y %H:%i') as FechaEnProceso,
@@ -1472,7 +1497,9 @@ function obtenerVehiculosAsignadosMecanico($mecanico_id) {
 }
 
 /**
- * Obtiene los repuestos aprobados de un mecánico (pendientes de uso/devolución)
+ * Obtiene los repuestos aprobados/entregados de un mecánico
+ * Usa la misma lógica que la página de estado de solicitudes
+ * No depende de tablas de registro de uso/devolución
  */
 function obtenerRepuestosAprobadosMecanico($mecanico_id) {
     $conn = conectar_Pepsico();
@@ -1486,39 +1513,166 @@ function obtenerRepuestosAprobadosMecanico($mecanico_id) {
     try {
         $mecanico_id = intval($mecanico_id);
         
+        // Verificar y crear las tablas de registro si no existen
+        // Tabla registro_uso_repuestos
+        $checkTableUso = "SHOW TABLES LIKE 'registro_uso_repuestos'";
+        $resultCheckUso = mysqli_query($conn, $checkTableUso);
+        if (!$resultCheckUso || mysqli_num_rows($resultCheckUso) == 0) {
+            $createTableUso = "CREATE TABLE IF NOT EXISTS registro_uso_repuestos (
+                ID INT(11) NOT NULL AUTO_INCREMENT,
+                SolicitudID INT(11) NOT NULL,
+                MecanicoID INT(11) NOT NULL,
+                CantidadUsada INT(11) NOT NULL,
+                Observaciones TEXT DEFAULT NULL,
+                FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ID),
+                KEY SolicitudID (SolicitudID),
+                KEY MecanicoID (MecanicoID)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            mysqli_query($conn, $createTableUso);
+        }
+        if ($resultCheckUso) {
+            mysqli_free_result($resultCheckUso);
+        }
+        
+        // Tabla registro_devolucion_repuestos
+        $checkTableDevolucion = "SHOW TABLES LIKE 'registro_devolucion_repuestos'";
+        $resultCheckDevolucion = mysqli_query($conn, $checkTableDevolucion);
+        if (!$resultCheckDevolucion || mysqli_num_rows($resultCheckDevolucion) == 0) {
+            $createTableDevolucion = "CREATE TABLE IF NOT EXISTS registro_devolucion_repuestos (
+                ID INT(11) NOT NULL AUTO_INCREMENT,
+                SolicitudID INT(11) NOT NULL,
+                MecanicoID INT(11) NOT NULL,
+                CantidadDevuelta INT(11) NOT NULL,
+                Observaciones TEXT DEFAULT NULL,
+                FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ID),
+                KEY SolicitudID (SolicitudID),
+                KEY MecanicoID (MecanicoID)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            mysqli_query($conn, $createTableDevolucion);
+        }
+        if ($resultCheckDevolucion) {
+            mysqli_free_result($resultCheckDevolucion);
+        }
+        
+        // Obtener todas las solicitudes del mecánico usando la misma lógica que obtenerSolicitudesRepuestos
+        // Incluir cálculo de cantidades usadas y devueltas desde las tablas de registro usando subconsultas para evitar duplicación
         $query = "SELECT 
                     sr.ID as SolicitudID,
+                    sr.AsignacionID,
                     sr.RepuestoID,
                     sr.Cantidad,
-                    sr.AsignacionID,
+                    COALESCE(
+                        NULLIF(sr.Estado, ''),
+                        CASE 
+                            WHEN sr.FechaEntrega IS NOT NULL THEN 'Entregada'
+                            WHEN sr.FechaRecibido IS NOT NULL THEN 'Recibido'
+                            WHEN sr.FechaEnTransito IS NOT NULL THEN 'En Tránsito'
+                            WHEN sr.FechaEnProceso IS NOT NULL THEN 'En Proceso'
+                            WHEN sr.FechaAprobacion IS NOT NULL THEN 'Entregada'
+                            ELSE 'Pendiente'
+                        END
+                    ) as EstadoEfectivo,
+                    sr.Estado as EstadoOriginal,
+                    DATE_FORMAT(sr.FechaSolicitud, '%d/%m/%Y %H:%i') as FechaSolicitud,
+                    DATE_FORMAT(sr.FechaAprobacion, '%d/%m/%Y %H:%i') as FechaAprobacion,
+                    DATE_FORMAT(sr.FechaEnProceso, '%d/%m/%Y %H:%i') as FechaEnProceso,
+                    DATE_FORMAT(sr.FechaEnTransito, '%d/%m/%Y %H:%i') as FechaEnTransito,
+                    DATE_FORMAT(sr.FechaRecibido, '%d/%m/%Y %H:%i') as FechaRecibido,
+                    DATE_FORMAT(sr.FechaEntrega, '%d/%m/%Y %H:%i') as FechaEntrega,
                     r.Codigo as RepuestoCodigo,
                     r.Nombre as RepuestoNombre,
+                    r.Categoria as RepuestoCategoria,
                     COALESCE(v.Placa, sa.Placa, '') as Placa,
-                    DATE_FORMAT(sr.FechaAprobacion, '%d/%m/%Y %H:%i') as FechaAprobacion,
-                    COALESCE(SUM(CASE WHEN ru.ID IS NOT NULL THEN ru.CantidadUsada ELSE 0 END), 0) as CantidadUsada,
-                    COALESCE(SUM(CASE WHEN rd.ID IS NOT NULL THEN rd.CantidadDevuelta ELSE 0 END), 0) as CantidadDevuelta,
-                    (sr.Cantidad - COALESCE(SUM(CASE WHEN ru.ID IS NOT NULL THEN ru.CantidadUsada ELSE 0 END), 0) 
-                     - COALESCE(SUM(CASE WHEN rd.ID IS NOT NULL THEN rd.CantidadDevuelta ELSE 0 END), 0)) as CantidadPendiente
+                    sr.Cantidad,
+                    COALESCE((
+                        SELECT SUM(CantidadUsada) 
+                        FROM registro_uso_repuestos 
+                        WHERE SolicitudID = sr.ID
+                    ), 0) as CantidadUsada,
+                    COALESCE((
+                        SELECT SUM(CantidadDevuelta) 
+                        FROM registro_devolucion_repuestos 
+                        WHERE SolicitudID = sr.ID
+                    ), 0) as CantidadDevuelta
                   FROM solicitudes_repuestos sr
                   INNER JOIN repuestos r ON sr.RepuestoID = r.ID
                   LEFT JOIN asignaciones_mecanico a ON sr.AsignacionID = a.ID
                   LEFT JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
                   LEFT JOIN solicitudes_agendamiento sa ON COALESCE(v.Placa, '') COLLATE utf8mb4_unicode_ci = sa.Placa COLLATE utf8mb4_unicode_ci
                       AND sa.Estado IN ('Aprobada', 'Ingresado')
-                  LEFT JOIN registro_uso_repuestos ru ON sr.ID = ru.SolicitudID
-                  LEFT JOIN registro_devolucion_repuestos rd ON sr.ID = rd.SolicitudID
                   WHERE sr.MecanicoID = $mecanico_id 
-                    AND sr.Estado = 'Aprobada'
-                  GROUP BY sr.ID, sr.RepuestoID, sr.Cantidad, sr.AsignacionID, r.Codigo, r.Nombre, COALESCE(v.Placa, sa.Placa, ''), sr.FechaAprobacion
-                  HAVING CantidadPendiente > 0
-                  ORDER BY sr.FechaAprobacion DESC";
+                    AND (
+                        sr.Estado IN ('Aprobada', 'Entregada', 'Recibido', 'En Tránsito', 'En Proceso')
+                        OR sr.FechaEntrega IS NOT NULL
+                        OR sr.FechaAprobacion IS NOT NULL
+                        OR sr.FechaRecibido IS NOT NULL
+                        OR sr.FechaEnTransito IS NOT NULL
+                        OR sr.FechaEnProceso IS NOT NULL
+                    )
+                  ORDER BY 
+                    CASE 
+                        WHEN sr.FechaEntrega IS NOT NULL OR sr.Estado = 'Entregada' THEN 1
+                        WHEN sr.FechaRecibido IS NOT NULL OR sr.Estado = 'Recibido' THEN 2
+                        WHEN sr.FechaEnTransito IS NOT NULL OR sr.Estado = 'En Tránsito' THEN 3
+                        WHEN sr.FechaEnProceso IS NOT NULL OR sr.Estado = 'En Proceso' THEN 4
+                        WHEN sr.FechaAprobacion IS NOT NULL OR sr.Estado = 'Aprobada' THEN 5
+                        ELSE 6
+                    END,
+                    COALESCE(sr.FechaEntrega, sr.FechaAprobacion, sr.FechaSolicitud) DESC";
 
         $result = mysqli_query($conn, $query);
         $repuestos = [];
 
+        if (!$result) {
+            mysqli_close($conn);
+            return [
+                'status' => 'error',
+                'message' => 'Error en la consulta: ' . mysqli_error($conn)
+            ];
+        }
+
         if ($result) {
+            $repuestos = [];
+            $repuestosVistos = []; // Filtro simple para evitar duplicados por RepuestoID + Placa
+            
             while ($row = mysqli_fetch_assoc($result)) {
-                $repuestos[] = $row;
+                // Si el estado está vacío pero hay fechas, calcular el estado efectivo
+                if (empty($row['EstadoEfectivo']) || $row['EstadoEfectivo'] == 'Pendiente') {
+                    if ($row['FechaEntrega']) {
+                        $row['EstadoEfectivo'] = 'Entregada';
+                    } elseif ($row['FechaRecibido']) {
+                        $row['EstadoEfectivo'] = 'Recibido';
+                    } elseif ($row['FechaEnTransito']) {
+                        $row['EstadoEfectivo'] = 'En Tránsito';
+                    } elseif ($row['FechaEnProceso']) {
+                        $row['EstadoEfectivo'] = 'En Proceso';
+                    } elseif ($row['FechaAprobacion']) {
+                        $row['EstadoEfectivo'] = 'Entregada';
+                    }
+                }
+                
+                // Crear clave única para filtrar duplicados: RepuestoID + Placa
+                $placa = $row['Placa'] ?? '';
+                $clave = $row['RepuestoID'] . '_' . $placa;
+                
+                // Solo agregar si no se ha visto antes (filtro de duplicados)
+                if (!isset($repuestosVistos[$clave])) {
+                    // Calcular cantidad disponible para esta solicitud específica
+                    $cantidadUsada = intval($row['CantidadUsada'] ?? 0);
+                    $cantidadDevuelta = intval($row['CantidadDevuelta'] ?? 0);
+                    $cantidadTotal = intval($row['Cantidad']);
+                    $cantidadPendiente = max(0, $cantidadTotal - $cantidadUsada - $cantidadDevuelta);
+                    
+                    // Asegurar que los valores se envíen como enteros
+                    $row['CantidadUsada'] = $cantidadUsada;
+                    $row['CantidadDevuelta'] = $cantidadDevuelta;
+                    $row['CantidadPendiente'] = $cantidadPendiente;
+                    $row['SolicitudIDs'] = [$row['SolicitudID']];
+                    $repuestos[] = $row;
+                    $repuestosVistos[$clave] = true; // Marcar como visto
+                }
             }
             mysqli_free_result($result);
         }
@@ -1561,43 +1715,70 @@ function registrarUsoRepuestos($solicitud_id, $mecanico_id, $cantidad_usada, $ob
         $observaciones = mysqli_real_escape_string($conn, $observaciones);
 
         // Verificar que la solicitud existe y pertenece al mecánico
-        // Permitir tanto 'Aprobada' como 'Entregada' para poder gestionar repuestos incluso si ya se marcó como entregada parcialmente
+        // Solo registro visual, NO se descuenta del stock (ya está descontado al aprobar)
+        // Verificación simple: solo que exista y pertenezca al mecánico
         $queryVerificar = "SELECT sr.ID, sr.Cantidad, sr.RepuestoID, sr.AsignacionID, r.Nombre as RepuestoNombre,
-                           COALESCE(SUM(CASE WHEN ru.ID IS NOT NULL THEN ru.CantidadUsada ELSE 0 END), 0) as CantidadUsadaTotal,
-                           COALESCE(SUM(CASE WHEN rd.ID IS NOT NULL THEN rd.CantidadDevuelta ELSE 0 END), 0) as CantidadDevueltaTotal
+                           COALESCE((
+                               SELECT SUM(CantidadUsada) 
+                               FROM registro_uso_repuestos 
+                               WHERE SolicitudID = sr.ID
+                           ), 0) as CantidadUsadaTotal,
+                           COALESCE((
+                               SELECT SUM(CantidadDevuelta) 
+                               FROM registro_devolucion_repuestos 
+                               WHERE SolicitudID = sr.ID
+                           ), 0) as CantidadDevueltaTotal
                            FROM solicitudes_repuestos sr
                            INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-                           LEFT JOIN registro_uso_repuestos ru ON sr.ID = ru.SolicitudID
-                           LEFT JOIN registro_devolucion_repuestos rd ON sr.ID = rd.SolicitudID
                            WHERE sr.ID = $solicitud_id 
-                             AND sr.MecanicoID = $mecanico_id 
-                             AND sr.Estado IN ('Aprobada', 'Entregada')
-                           GROUP BY sr.ID, sr.Cantidad, sr.RepuestoID, sr.AsignacionID, r.Nombre";
+                             AND sr.MecanicoID = $mecanico_id";
 
         $resultVerificar = mysqli_query($conn, $queryVerificar);
-        if (!$resultVerificar || mysqli_num_rows($resultVerificar) == 0) {
-            throw new Exception('Solicitud no encontrada o no autorizada');
+        if (!$resultVerificar) {
+            throw new Exception('Error al verificar solicitud: ' . mysqli_error($conn));
+        }
+        
+        if (mysqli_num_rows($resultVerificar) == 0) {
+            mysqli_free_result($resultVerificar);
+            throw new Exception("Solicitud no encontrada o no pertenece al mecánico. ID: $solicitud_id, Mecánico: $mecanico_id");
         }
 
         $info = mysqli_fetch_assoc($resultVerificar);
+        mysqli_free_result($resultVerificar);
+        
         $cantidadTotal = intval($info['Cantidad']);
-        $cantidadUsadaTotal = intval($info['CantidadUsadaTotal']);
-        $cantidadDevueltaTotal = intval($info['CantidadDevueltaTotal']);
-        $cantidadDisponible = $cantidadTotal - $cantidadUsadaTotal - $cantidadDevueltaTotal;
+        $cantidadUsadaTotal = intval($info['CantidadUsadaTotal'] ?? 0);
+        $cantidadDevueltaTotal = intval($info['CantidadDevueltaTotal'] ?? 0);
+        $cantidadDisponible = max(0, $cantidadTotal - $cantidadUsadaTotal - $cantidadDevueltaTotal);
 
-        if ($cantidad_usada > $cantidadDisponible) {
-            throw new Exception("La cantidad a usar ($cantidad_usada) excede la cantidad disponible ($cantidadDisponible)");
-        }
-
+        // Validaciones básicas
         if ($cantidad_usada <= 0) {
             throw new Exception("La cantidad a usar debe ser mayor a 0");
+        }
+
+        // Si no hay cantidad disponible, explicar por qué
+        if ($cantidadDisponible <= 0) {
+            $mensaje = "No hay cantidad disponible para usar. ";
+            if ($cantidadDevueltaTotal >= $cantidadTotal) {
+                $mensaje .= "Se han devuelto todas las unidades ($cantidadDevueltaTotal de $cantidadTotal), por lo tanto no hay unidades disponibles para usar.";
+            } elseif ($cantidadUsadaTotal >= $cantidadTotal) {
+                $mensaje .= "Ya se han usado todas las unidades ($cantidadUsadaTotal de $cantidadTotal).";
+            } else {
+                $mensaje .= "Total: $cantidadTotal, Ya usada: $cantidadUsadaTotal, Ya devuelta: $cantidadDevueltaTotal, Disponible: $cantidadDisponible";
+            }
+            throw new Exception($mensaje);
+        }
+        
+        // Validar que la cantidad a usar no exceda lo disponible
+        if ($cantidad_usada > $cantidadDisponible) {
+            throw new Exception("La cantidad a usar ($cantidad_usada) excede la cantidad disponible ($cantidadDisponible). Total: $cantidadTotal, Ya usada: $cantidadUsadaTotal, Ya devuelta: $cantidadDevueltaTotal");
         }
 
         // Verificar si existe la tabla registro_uso_repuestos, si no, crearla
         $checkTable = "SHOW TABLES LIKE 'registro_uso_repuestos'";
         $resultCheck = mysqli_query($conn, $checkTable);
         if (!$resultCheck || mysqli_num_rows($resultCheck) == 0) {
-            // Crear tabla si no existe
+            // Crear tabla si no existe (sin foreign keys para evitar problemas)
             $createTable = "CREATE TABLE IF NOT EXISTS registro_uso_repuestos (
                 ID INT(11) NOT NULL AUTO_INCREMENT,
                 SolicitudID INT(11) NOT NULL,
@@ -1607,13 +1788,14 @@ function registrarUsoRepuestos($solicitud_id, $mecanico_id, $cantidad_usada, $ob
                 FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (ID),
                 KEY SolicitudID (SolicitudID),
-                KEY MecanicoID (MecanicoID),
-                CONSTRAINT fk_registro_uso_solicitud FOREIGN KEY (SolicitudID) 
-                    REFERENCES solicitudes_repuestos(ID) ON DELETE CASCADE,
-                CONSTRAINT fk_registro_uso_mecanico FOREIGN KEY (MecanicoID) 
-                    REFERENCES usuarios(UsuarioID) ON DELETE CASCADE
+                KEY MecanicoID (MecanicoID)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            mysqli_query($conn, $createTable);
+            if (!mysqli_query($conn, $createTable)) {
+                throw new Exception("Error al crear tabla de uso: " . mysqli_error($conn));
+            }
+        }
+        if ($resultCheck) {
+            mysqli_free_result($resultCheck);
         }
 
         // Insertar registro de uso
@@ -1697,44 +1879,65 @@ function registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_dev
         ];
     }
 
+    $conexionCerrada = false;
+
     try {
+        // Desactivar autocommit para transacción
         mysqli_autocommit($conn, false);
 
         $solicitud_id = intval($solicitud_id);
         $mecanico_id = intval($mecanico_id);
         $cantidad_devuelta = intval($cantidad_devuelta);
-        $observaciones = mysqli_real_escape_string($conn, $observaciones);
+        $observaciones = mysqli_real_escape_string($conn, trim($observaciones));
 
         // Verificar que la solicitud existe y pertenece al mecánico
-        // Permitir tanto 'Aprobada' como 'Entregada' para poder gestionar repuestos incluso si ya se marcó como entregada parcialmente
-        $queryVerificar = "SELECT sr.ID, sr.Cantidad, sr.RepuestoID, sr.AsignacionID, r.Nombre as RepuestoNombre,
-                           COALESCE(SUM(CASE WHEN ru.ID IS NOT NULL THEN ru.CantidadUsada ELSE 0 END), 0) as CantidadUsadaTotal,
-                           COALESCE(SUM(CASE WHEN rd.ID IS NOT NULL THEN rd.CantidadDevuelta ELSE 0 END), 0) as CantidadDevueltaTotal
+        // Calcular la cantidad disponible considerando usos y devoluciones previas usando subconsultas para evitar duplicación
+        $queryVerificar = "SELECT sr.ID, sr.Cantidad, sr.RepuestoID, sr.AsignacionID, r.Nombre as RepuestoNombre, r.Stock as StockActual,
+                           COALESCE((
+                               SELECT SUM(CantidadUsada) 
+                               FROM registro_uso_repuestos 
+                               WHERE SolicitudID = sr.ID
+                           ), 0) as CantidadUsadaTotal,
+                           COALESCE((
+                               SELECT SUM(CantidadDevuelta) 
+                               FROM registro_devolucion_repuestos 
+                               WHERE SolicitudID = sr.ID
+                           ), 0) as CantidadDevueltaTotal
                            FROM solicitudes_repuestos sr
                            INNER JOIN repuestos r ON sr.RepuestoID = r.ID
-                           LEFT JOIN registro_uso_repuestos ru ON sr.ID = ru.SolicitudID
-                           LEFT JOIN registro_devolucion_repuestos rd ON sr.ID = rd.SolicitudID
                            WHERE sr.ID = $solicitud_id 
                              AND sr.MecanicoID = $mecanico_id 
-                             AND sr.Estado IN ('Aprobada', 'Entregada')
-                           GROUP BY sr.ID, sr.Cantidad, sr.RepuestoID, sr.AsignacionID, r.Nombre";
+                             AND (sr.Estado IN ('Aprobada', 'Entregada', 'Recibido', 'En Tránsito', 'En Proceso')
+                                  OR sr.FechaAprobacion IS NOT NULL
+                                  OR sr.FechaEntrega IS NOT NULL)";
 
         $resultVerificar = mysqli_query($conn, $queryVerificar);
         if (!$resultVerificar || mysqli_num_rows($resultVerificar) == 0) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
             throw new Exception('Solicitud no encontrada o no autorizada');
         }
 
         $info = mysqli_fetch_assoc($resultVerificar);
+        mysqli_free_result($resultVerificar);
+        
         $cantidadTotal = intval($info['Cantidad']);
         $cantidadUsadaTotal = intval($info['CantidadUsadaTotal']);
         $cantidadDevueltaTotal = intval($info['CantidadDevueltaTotal']);
         $cantidadDisponible = $cantidadTotal - $cantidadUsadaTotal - $cantidadDevueltaTotal;
 
         if ($cantidad_devuelta > $cantidadDisponible) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
             throw new Exception("La cantidad a devolver ($cantidad_devuelta) excede la cantidad disponible ($cantidadDisponible)");
         }
 
         if ($cantidad_devuelta <= 0) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
             throw new Exception("La cantidad a devolver debe ser mayor a 0");
         }
 
@@ -1752,85 +1955,103 @@ function registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_dev
                 FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (ID),
                 KEY SolicitudID (SolicitudID),
-                KEY MecanicoID (MecanicoID),
-                CONSTRAINT fk_registro_devolucion_solicitud FOREIGN KEY (SolicitudID) 
-                    REFERENCES solicitudes_repuestos(ID) ON DELETE CASCADE,
-                CONSTRAINT fk_registro_devolucion_mecanico FOREIGN KEY (MecanicoID) 
-                    REFERENCES usuarios(UsuarioID) ON DELETE CASCADE
+                KEY MecanicoID (MecanicoID)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            mysqli_query($conn, $createTable);
+            if (!mysqli_query($conn, $createTable)) {
+                mysqli_rollback($conn);
+                mysqli_close($conn);
+                $conexionCerrada = true;
+                throw new Exception("Error al crear tabla de devoluciones: " . mysqli_error($conn));
+            }
+        }
+        if ($resultCheck) {
+            mysqli_free_result($resultCheck);
         }
 
-        // Insertar registro de devolución
-        $queryInsert = "INSERT INTO registro_devolucion_repuestos 
-                       (SolicitudID, MecanicoID, CantidadDevuelta, Observaciones) 
-                       VALUES ($solicitud_id, $mecanico_id, $cantidad_devuelta, '$observaciones')";
+        // Insertar registro de devolución (esto reducirá la cantidad disponible del mecánico)
+        $repuesto_id = intval($info['RepuestoID']);
+        $queryInsertDevolucion = "INSERT INTO registro_devolucion_repuestos 
+                                  (SolicitudID, MecanicoID, CantidadDevuelta, Observaciones) 
+                                  VALUES ($solicitud_id, $mecanico_id, $cantidad_devuelta, '$observaciones')";
 
-        if (!mysqli_query($conn, $queryInsert)) {
+        if (!mysqli_query($conn, $queryInsertDevolucion)) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
             throw new Exception("Error al registrar devolución: " . mysqli_error($conn));
         }
 
-        // Devolver el stock al inventario
-        $repuesto_id = intval($info['RepuestoID']);
+        // Actualizar el stock general sumando la cantidad devuelta (SOLO UNA VEZ)
         $queryUpdateStock = "UPDATE repuestos 
-                            SET Stock = Stock + $cantidad_devuelta 
+                            SET Stock = Stock + $cantidad_devuelta
                             WHERE ID = $repuesto_id";
 
         if (!mysqli_query($conn, $queryUpdateStock)) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
             throw new Exception("Error al actualizar stock: " . mysqli_error($conn));
         }
 
-        // Verificar si se debe marcar la solicitud como "Entregada" (si se devolvió/usó todo)
-        $nuevaCantidadDevueltaTotal = $cantidadDevueltaTotal + $cantidad_devuelta;
-        $marcarComoEntregada = false;
-        if ($nuevaCantidadDevueltaTotal + $cantidadUsadaTotal >= $cantidadTotal) {
-            $queryUpdateEstado = "UPDATE solicitudes_repuestos 
-                                 SET Estado = 'Entregada', 
-                                     FechaEntrega = NOW()
-                                 WHERE ID = $solicitud_id";
-            mysqli_query($conn, $queryUpdateEstado);
-            $marcarComoEntregada = true;
+        // Actualizar observaciones en la solicitud (opcional)
+        $observacionesTexto = "Devolución: " . date('d/m/Y H:i') . " - $cantidad_devuelta unidad(es) devueltas";
+        if (!empty($observaciones)) {
+            $observacionesTexto .= ". " . $observaciones;
+        }
+        
+        $observacionesActuales = '';
+        $queryObs = "SELECT Observaciones FROM solicitudes_repuestos WHERE ID = $solicitud_id";
+        $resultObs = mysqli_query($conn, $queryObs);
+        if ($resultObs && mysqli_num_rows($resultObs) > 0) {
+            $rowObs = mysqli_fetch_assoc($resultObs);
+            $observacionesActuales = $rowObs['Observaciones'] ?? '';
+            mysqli_free_result($resultObs);
+        }
+        
+        $nuevasObservaciones = !empty($observacionesActuales) 
+            ? $observacionesActuales . "\n\n" . $observacionesTexto
+            : $observacionesTexto;
+        
+        $nuevasObservacionesEscapadas = mysqli_real_escape_string($conn, $nuevasObservaciones);
+        $queryUpdateObs = "UPDATE solicitudes_repuestos 
+                          SET Observaciones = '$nuevasObservacionesEscapadas'
+                          WHERE ID = $solicitud_id";
+        
+        if (!mysqli_query($conn, $queryUpdateObs)) {
+            mysqli_rollback($conn);
+            mysqli_close($conn);
+            $conexionCerrada = true;
+            throw new Exception("Error al actualizar observaciones: " . mysqli_error($conn));
         }
 
-        // Notificar al mecánico si se marcó como entregada
-        if ($marcarComoEntregada) {
-            // Obtener información de la asignación para la placa
-            $placa = null;
-            $queryInfoSolicitud = "SELECT AsignacionID FROM solicitudes_repuestos WHERE ID = $solicitud_id";
-            $resultInfoSolicitud = mysqli_query($conn, $queryInfoSolicitud);
-            if ($resultInfoSolicitud && mysqli_num_rows($resultInfoSolicitud) > 0) {
-                $rowInfoSolicitud = mysqli_fetch_assoc($resultInfoSolicitud);
-                $asignacionId = intval($rowInfoSolicitud['AsignacionID'] ?? 0);
-                if ($asignacionId > 0) {
-                    $queryPlaca = "SELECT v.Placa 
-                                  FROM asignaciones_mecanico a
-                                  INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
-                                  WHERE a.ID = $asignacionId";
-                    $resultPlaca = mysqli_query($conn, $queryPlaca);
-                    if ($resultPlaca && mysqli_num_rows($resultPlaca) > 0) {
-                        $rowPlaca = mysqli_fetch_assoc($resultPlaca);
-                        $placa = $rowPlaca['Placa'];
-                    }
-                }
+        // Obtener información de la asignación para el mensaje
+        $placa = null;
+        if (!empty($info['AsignacionID'])) {
+            $asignacionId = intval($info['AsignacionID']);
+            $queryPlaca = "SELECT v.Placa 
+                          FROM asignaciones_mecanico a
+                          INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                          WHERE a.ID = $asignacionId";
+            $resultPlaca = mysqli_query($conn, $queryPlaca);
+            if ($resultPlaca && mysqli_num_rows($resultPlaca) > 0) {
+                $rowPlaca = mysqli_fetch_assoc($resultPlaca);
+                $placa = $rowPlaca['Placa'];
+                mysqli_free_result($resultPlaca);
             }
-            $placaTexto = !empty($placa) ? " para el vehículo con placa $placa" : "";
-            $mensaje = "Los repuestos solicitados ({$info['Cantidad']} unidad(es) de {$info['RepuestoNombre']})$placaTexto han sido completamente gestionados (usados y/o devueltos).\n\n";
-            $mensaje .= "Estado actual: <strong>Entregada</strong>\n";
-            $mensaje .= "Cantidad devuelta: $nuevaCantidadDevueltaTotal unidad(es)\n";
-            $mensaje .= "El stock ha sido actualizado.";
-            $titulo = "Repuestos Completamente Gestionados - Estado: Entregada";
-            $modulo = "estado_solicitudes_repuestos";
-            $enlace = "estado_solicitudes_repuestos.php";
-            crearNotificacion([$mecanico_id], $titulo, $mensaje, $modulo, $enlace);
         }
 
-        mysqli_commit($conn);
+        // Confirmar transacción
+        if (!mysqli_commit($conn)) {
+            mysqli_close($conn);
+            $conexionCerrada = true;
+            throw new Exception("Error al confirmar transacción: " . mysqli_error($conn));
+        }
+
+        $placaTexto = !empty($placa) ? " para el vehículo con placa $placa" : "";
+        $mensajeRespuesta = "Devolución de $cantidad_devuelta unidad(es) de {$info['RepuestoNombre']}$placaTexto registrada correctamente. El stock ha sido actualizado.";
+
         mysqli_close($conn);
-
-        $mensajeRespuesta = "Devolución de $cantidad_devuelta unidad(es) de {$info['RepuestoNombre']} registrada correctamente. El stock ha sido actualizado.";
-        if ($marcarComoEntregada) {
-            $mensajeRespuesta .= " La solicitud ha sido marcada como Entregada.";
-        }
+        $conexionCerrada = true;
 
         return [
             'status' => 'success',
@@ -1838,11 +2059,22 @@ function registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_dev
         ];
 
     } catch (Exception $e) {
-        mysqli_rollback($conn);
-        mysqli_close($conn);
+        if (isset($conn) && !$conexionCerrada) {
+            @mysqli_rollback($conn);
+            @mysqli_close($conn);
+        }
         return [
             'status' => 'error',
             'message' => $e->getMessage()
+        ];
+    } catch (Error $e) {
+        if (isset($conn) && !$conexionCerrada) {
+            @mysqli_rollback($conn);
+            @mysqli_close($conn);
+        }
+        return [
+            'status' => 'error',
+            'message' => 'Error fatal: ' . $e->getMessage()
         ];
     }
 }

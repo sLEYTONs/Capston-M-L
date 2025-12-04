@@ -31,13 +31,13 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
     <?php include 'general/header.php'; ?>
     
     <div class="pc-container">
-        <div class="custom-page-header" style="top: 75px;">
-            <div class="page-block">
+        <div class="custom-page-header" style="top: 60px; min-height: 60px !important; padding: 0.75rem 1rem !important; overflow: visible !important;">
+            <div class="page-block" style="padding: 0 !important;">
                 <div class="row align-items-center">
                     <div class="col-md-12">
-                        <h5 class="mb-1">Gestión de Usuarios</h5>
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb">
+                        <h5 class="mb-1" style="margin-bottom: 0.25rem !important; line-height: 1.2 !important;">Gestión de Usuarios</h5>
+                        <nav aria-label="breadcrumb" style="margin: 0 !important;">
+                            <ol class="breadcrumb mb-0" style="margin: 0 !important; padding: 0 !important;">
                                 <li class="breadcrumb-item"><a href="../index.php">Inicio</a></li>
                                 <li class="breadcrumb-item active" aria-current="page">Gestión de Usuarios</li>
                             </ol>
@@ -46,9 +46,10 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
                 </div>
             </div>
         </div>
-        <div class="pc-content">
-            
+        <div class="pc-content" style="margin-top: 75px !important; padding-top: 0 !important;">
             <?php include 'gestion_usuarios/components/c_gestion_usuarios.php'; ?>
+            
+            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

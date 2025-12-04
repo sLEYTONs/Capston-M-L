@@ -75,6 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode($resultado);
             break;
             
+        case 'generar_reporte_excel':
+            generarReporteExcelCompleto();
+            exit; // No retornar JSON, se envía el Excel directamente
+            break;
+            
         default:
             echo json_encode(['status' => 'error', 'message' => 'Acción no válida']);
             break;
@@ -102,6 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $resultado = obtenerEstadisticasJefe();
             echo json_encode($resultado);
             exit;
+            
+        case 'generar_reporte_excel':
+            generarReporteExcelCompleto();
+            exit; // No retornar JSON, se envía el Excel directamente
     }
 }
 

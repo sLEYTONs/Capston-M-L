@@ -1609,3 +1609,19 @@
 [02-Dec-2025 22:25:44 America/Santiago] Notificaciones enviadas a 10 supervisores
 [02-Dec-2025 22:33:57 America/Santiago] Notificaciones enviadas a 10 supervisores
 [02-Dec-2025 22:42:23 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
+[03-Dec-2025 18:59:38 America/Santiago] Notificaciones enviadas a 10 supervisores
+[03-Dec-2025 19:00:16 America/Santiago] Notificación de aprobación enviada al chofer ID: 51
+[03-Dec-2025 20:22:40 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:41 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 20:22:41 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:41 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 20:22:42 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:42 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 20:22:46 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:46 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 20:22:46 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:46 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 20:22:47 America/Santiago] PHP Warning:  Undefined variable $estadoVehiculo in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 524
+[03-Dec-2025 20:22:47 America/Santiago] PHP Warning:  Undefined variable $fechaSalida in C:\xampp\htdocs\Capston-M-L\proyectoPepsico\app\model\agendamiento\functions\f_agendamiento.php on line 525
+[03-Dec-2025 21:08:25 America/Santiago] Notificaciones enviadas a 10 supervisores
+[03-Dec-2025 21:17:42 America/Santiago] Notificación de aprobación enviada al chofer ID: 51

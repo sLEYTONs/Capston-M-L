@@ -125,7 +125,38 @@
     color: #fff !important;
 }
 
-/* Modal mejorado */
+/* Modal mejorado y centrado */
+#detalles-solicitud-modal .modal-dialog {
+    max-width: 1200px;
+    margin: 1.75rem auto;
+}
+
+#detalles-solicitud-modal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+}
+
+#detalles-solicitud-modal .modal-body {
+    overflow-y: auto;
+    max-height: calc(90vh - 180px);
+    flex: 1;
+    padding: 2rem;
+}
+
+/* Asegurar que el backdrop funcione correctamente */
+.modal-backdrop {
+    z-index: 1050;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#detalles-solicitud-modal {
+    z-index: 1055;
+}
+
 .modal-xl {
     max-width: 1200px;
 }
@@ -332,6 +363,21 @@
     .modal-body {
         padding: 1rem;
     }
+
+    #detalles-solicitud-modal .modal-dialog {
+        width: 95%;
+        margin: 0.5rem auto;
+        max-height: 95vh;
+    }
+
+    #detalles-solicitud-modal .modal-content {
+        max-height: 95vh;
+    }
+
+    #detalles-solicitud-modal .modal-body {
+        max-height: calc(95vh - 100px);
+        padding: 1rem;
+    }
 }
 
 /* Estilos para el header de la página */
@@ -372,6 +418,47 @@
 /* Espacio para separar el contenido del footer */
 .pc-content {
     padding-bottom: 6rem !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+}
+
+/* Asegurar que el contenedor principal pueda hacer scroll */
+.estado-solicitudes-container {
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    position: relative !important;
+}
+
+/* Asegurar que la página pueda hacer scroll vertical */
+body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh !important;
+}
+
+html {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+}
+
+/* Asegurar que pc-content pueda hacer scroll */
+.pc-content {
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    position: relative !important;
+}
+
+/* Asegurar que pc-container pueda hacer scroll */
+.pc-container {
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: auto !important;
 }
 
 @media (max-width: 768px) {

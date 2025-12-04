@@ -175,8 +175,10 @@ function crearSolicitudAgendamiento($datos) {
         // Fecha y hora se asignarán cuando el supervisor apruebe
 
         // Verificar que no exista una solicitud aprobada activa para la misma placa
-        // Si hay una solicitud aprobada, no se puede crear otra (sin importar la fecha)
-        $checkQuery = "SELECT sa.ID, sa.Estado, a.Fecha as FechaAgenda
+        // PERMITIR nueva solicitud si:
+        // 1. Es el mismo día
+        // 2. El vehículo ya salió del taller (tiene FechaSalida o estado Finalizado/Retirado)
+        $checkQuery = "SELECT sa.ID, sa.Estado, a.Fecha as FechaAgenda, sa.FechaCreacion
                        FROM solicitudes_agendamiento sa
                        LEFT JOIN agenda_taller a ON sa.AgendaID = a.ID
                        WHERE sa.Placa = '$placa' 
@@ -187,7 +189,58 @@ function crearSolicitudAgendamiento($datos) {
         
         if (mysqli_num_rows($checkResult) > 0) {
             $solicitudExistente = mysqli_fetch_assoc($checkResult);
+            
+            // Verificar si es el mismo día
+            $fechaSolicitudExistente = !empty($solicitudExistente['FechaCreacion']) 
+                ? date('Y-m-d', strtotime($solicitudExistente['FechaCreacion'])) 
+                : null;
+            $fechaHoy = date('Y-m-d');
+            $esMismoDia = ($fechaSolicitudExistente === $fechaHoy);
+            
+            // Verificar si el vehículo ya salió del taller (obtener el registro más reciente)
+            $checkVehiculo = "SELECT ID, Estado, 
+                              COALESCE(fechasalida, FechaSalida) as FechaSalidaReal
+                              FROM ingreso_vehiculos
+                              WHERE Placa = '$placa'
+                              ORDER BY FechaRegistro DESC, ID DESC
+                              LIMIT 1";
+            $resultVehiculo = mysqli_query($conn, $checkVehiculo);
+            
+            $estaRetirado = false;
+            if ($resultVehiculo && mysqli_num_rows($resultVehiculo) > 0) {
+                $vehiculo = mysqli_fetch_assoc($resultVehiculo);
+                $fechaSalida = $vehiculo['FechaSalidaReal'] ?? null;
+                $estadoVehiculo = $vehiculo['Estado'] ?? '';
+                
+                // Verificar si tiene FechaSalida o estado que indica que salió
+                $estaRetirado = ($fechaSalida !== null && $fechaSalida !== '') ||
+                               ($estadoVehiculo === 'Finalizado') ||
+                               ($estadoVehiculo === 'Retirado') ||
+                               ($estadoVehiculo === 'Disponible');
+                
+                // También verificar si no tiene asignaciones activas
+                if (!$estaRetirado && !empty($vehiculo['ID'])) {
+                    $vehiculoId = intval($vehiculo['ID']);
+                    $checkAsignaciones = "SELECT COUNT(*) as total
+                                          FROM asignaciones_mecanico
+                                          WHERE VehiculoID = $vehiculoId
+                                          AND Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'En Pausa')";
+                    $resultAsignaciones = mysqli_query($conn, $checkAsignaciones);
+                    if ($resultAsignaciones) {
+                        $asignaciones = mysqli_fetch_assoc($resultAsignaciones);
+                        // Si no tiene asignaciones activas, considerar que salió
+                        if ($asignaciones['total'] == 0) {
+                            $estaRetirado = true;
+                        }
+                    }
+                }
+            }
+            
+            // Si NO es el mismo día O el vehículo NO ha salido, bloquear
+            if (!$esMismoDia || !$estaRetirado) {
             throw new Exception("Ya existe una solicitud aprobada para esta placa. No se puede crear una nueva solicitud mientras la solicitud aprobada esté activa.");
+            }
+            // Si es el mismo día Y el vehículo ya salió, permitir crear nueva solicitud
         }
         
         // Verificar que no exista una solicitud pendiente para la misma placa
@@ -399,17 +452,126 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                     ) as HoraFinAgenda,
                     v.ID as VehiculoID,
                     v.Estado as EstadoVehiculo,
-                    v.FechaSalida,
-                    asig.ID as AsignacionID,
-                    asig.Estado as EstadoAsignacion,
-                    mech.NombreUsuario as MecanicoNombre
+                    COALESCE(v.fechasalida, v.FechaSalida) as FechaSalida,
+                    (SELECT v2.FechaSalida 
+                     FROM ingreso_vehiculos v2
+                     LEFT JOIN asignaciones_mecanico asig2 ON v2.ID = asig2.VehiculoID
+                     INNER JOIN solicitudes_agendamiento s2 ON v2.Placa COLLATE utf8mb4_unicode_ci = s2.Placa COLLATE utf8mb4_unicode_ci
+                     WHERE s2.ID = s.ID
+                       AND v2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                       AND (
+                           (asig2.ID IS NOT NULL AND asig2.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado'))
+                           OR
+                           (asig2.ID IS NULL AND v2.FechaRegistro >= s.FechaCreacion
+                            AND NOT EXISTS (
+                                SELECT 1 FROM solicitudes_agendamiento s3 
+                                WHERE s3.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                                  AND s3.ID != s.ID
+                                  AND s3.FechaCreacion > s.FechaCreacion
+                                  AND s3.FechaCreacion <= v2.FechaRegistro
+                            ))
+                       )
+                     ORDER BY 
+                       CASE WHEN asig2.ID IS NOT NULL THEN 1 ELSE 2 END,
+                       v2.FechaRegistro DESC
+                     LIMIT 1) as FechaSalidaRelacionada,
+                    (SELECT asig2.ID
+                     FROM asignaciones_mecanico asig2
+                     INNER JOIN ingreso_vehiculos v2 ON asig2.VehiculoID = v2.ID
+                     WHERE v2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                       AND asig2.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                       AND asig2.FechaAsignacion >= s.FechaCreacion
+                       AND (
+                           -- Si hay agenda, la asignación debe estar relacionada con esa fecha
+                           (s.AgendaID IS NOT NULL AND EXISTS (
+                               SELECT 1 FROM agenda_taller a2 
+                               WHERE a2.ID = s.AgendaID 
+                                 AND asig2.FechaAsignacion <= DATE_ADD(a2.Fecha, INTERVAL 1 DAY)
+                           ))
+                           OR
+                           -- Si no hay agenda, la asignación debe estar dentro de un rango razonable
+                           (s.AgendaID IS NULL AND asig2.FechaAsignacion <= DATE_ADD(s.FechaCreacion, INTERVAL 7 DAY))
+                       )
+                       -- Priorizar asignaciones que no tengan otra solicitud más reciente entre esta y la asignación
+                       AND NOT EXISTS (
+                           SELECT 1 FROM solicitudes_agendamiento s3
+                           INNER JOIN ingreso_vehiculos v3 ON s3.Placa COLLATE utf8mb4_unicode_ci = v3.Placa COLLATE utf8mb4_unicode_ci
+                           WHERE s3.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                             AND s3.ID != s.ID
+                             AND s3.FechaCreacion > s.FechaCreacion
+                             AND s3.FechaCreacion < asig2.FechaAsignacion
+                             AND v3.ID = v2.ID
+                       )
+                     ORDER BY 
+                       -- Priorizar asignaciones más cercanas a la fecha de creación de esta solicitud
+                       ABS(TIMESTAMPDIFF(HOUR, asig2.FechaAsignacion, s.FechaCreacion)) ASC,
+                       asig2.FechaAsignacion ASC
+                     LIMIT 1
+                    ) as AsignacionID,
+                    (SELECT asig3.Estado
+                     FROM asignaciones_mecanico asig3
+                     INNER JOIN ingreso_vehiculos v3 ON asig3.VehiculoID = v3.ID
+                     WHERE v3.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                       AND asig3.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                       AND asig3.FechaAsignacion >= s.FechaCreacion
+                       AND (
+                           (s.AgendaID IS NOT NULL AND EXISTS (
+                               SELECT 1 FROM agenda_taller a3 
+                               WHERE a3.ID = s.AgendaID 
+                                 AND asig3.FechaAsignacion <= DATE_ADD(a3.Fecha, INTERVAL 1 DAY)
+                           ))
+                           OR
+                           (s.AgendaID IS NULL AND asig3.FechaAsignacion <= DATE_ADD(s.FechaCreacion, INTERVAL 7 DAY))
+                       )
+                       AND NOT EXISTS (
+                           SELECT 1 FROM solicitudes_agendamiento s4
+                           INNER JOIN ingreso_vehiculos v4 ON s4.Placa COLLATE utf8mb4_unicode_ci = v4.Placa COLLATE utf8mb4_unicode_ci
+                           WHERE s4.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                             AND s4.ID != s.ID
+                             AND s4.FechaCreacion > s.FechaCreacion
+                             AND s4.FechaCreacion < asig3.FechaAsignacion
+                             AND v4.ID = v3.ID
+                       )
+                     ORDER BY 
+                       ABS(TIMESTAMPDIFF(HOUR, asig3.FechaAsignacion, s.FechaCreacion)) ASC,
+                       asig3.FechaAsignacion ASC
+                     LIMIT 1
+                    ) as EstadoAsignacion,
+                    (SELECT mech2.NombreUsuario
+                     FROM asignaciones_mecanico asig4
+                     INNER JOIN ingreso_vehiculos v5 ON asig4.VehiculoID = v5.ID
+                     INNER JOIN usuarios mech2 ON asig4.MecanicoID = mech2.UsuarioID
+                     WHERE v5.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                       AND asig4.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                       AND asig4.FechaAsignacion >= s.FechaCreacion
+                       AND (
+                           (s.AgendaID IS NOT NULL AND EXISTS (
+                               SELECT 1 FROM agenda_taller a4 
+                               WHERE a4.ID = s.AgendaID 
+                                 AND asig4.FechaAsignacion <= DATE_ADD(a4.Fecha, INTERVAL 1 DAY)
+                           ))
+                           OR
+                           (s.AgendaID IS NULL AND asig4.FechaAsignacion <= DATE_ADD(s.FechaCreacion, INTERVAL 7 DAY))
+                       )
+                       AND NOT EXISTS (
+                           SELECT 1 FROM solicitudes_agendamiento s5
+                           INNER JOIN ingreso_vehiculos v6 ON s5.Placa COLLATE utf8mb4_unicode_ci = v6.Placa COLLATE utf8mb4_unicode_ci
+                           WHERE s5.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                             AND s5.ID != s.ID
+                             AND s5.FechaCreacion > s.FechaCreacion
+                             AND s5.FechaCreacion < asig4.FechaAsignacion
+                             AND v6.ID = v5.ID
+                       )
+                     ORDER BY 
+                       ABS(TIMESTAMPDIFF(HOUR, asig4.FechaAsignacion, s.FechaCreacion)) ASC,
+                       asig4.FechaAsignacion ASC
+                     LIMIT 1
+                    ) as MecanicoNombre
                 FROM solicitudes_agendamiento s
                 LEFT JOIN usuarios u ON s.ChoferID = u.UsuarioID
                 LEFT JOIN usuarios sup ON s.SupervisorID = sup.UsuarioID
                 LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
                 LEFT JOIN ingreso_vehiculos v ON s.Placa COLLATE utf8mb4_unicode_ci = v.Placa COLLATE utf8mb4_unicode_ci
-                LEFT JOIN asignaciones_mecanico asig ON v.ID = asig.VehiculoID AND asig.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
-                LEFT JOIN usuarios mech ON asig.MecanicoID = mech.UsuarioID
                 $whereClause
                 ORDER BY s.FechaCreacion DESC";
 
@@ -426,8 +588,15 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
 
         // Array para rastrear solicitudes únicas por placa + fecha/hora
         $solicitudesUnicas = [];
+        // Array para rastrear IDs de solicitudes ya procesadas (evitar duplicados por ID)
+        $idsProcesados = [];
         
         while ($row = $result->fetch_assoc()) {
+            // Verificar si este ID ya fue procesado (evitar duplicados)
+            $solicitudId = intval($row['ID'] ?? 0);
+            if (isset($idsProcesados[$solicitudId])) {
+                continue; // Ya procesamos esta solicitud, saltar
+            }
             // Si no hay FechaAgenda, intentar obtenerla desde la asignación
             $fechaAgenda = $row['FechaAgenda'] ?? null;
             $horaInicioAgenda = $row['HoraInicioAgenda'] ?? null;
@@ -435,7 +604,7 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
             
             // Si no hay agenda directa, buscar desde asignación
             if (!$fechaAgenda && !empty($row['Placa'])) {
-                $placa = $row['Placa'];
+                $placa = mysqli_real_escape_string($conn, $row['Placa']);
                 $queryAgendaAsignacion = "SELECT 
                     a.Fecha as FechaAgenda,
                     a.HoraInicio as HoraInicioAgenda,
@@ -458,25 +627,9 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                     $horaInicioAgenda = $agendaRow['HoraInicioAgenda'] ?? null;
                     $horaFinAgenda = $agendaRow['HoraFinAgenda'] ?? null;
                 }
-            }
-            
-            // Determinar el estado final: si el vehículo está completado o finalizado, mostrar "Completado"
-            // PERO solo si tiene fecha/hora asignada (no puede estar completado si nunca tuvo hora asignada)
-            $estadoFinal = $row['Estado'] ?? 'Pendiente';
-            $estadoVehiculo = $row['EstadoVehiculo'] ?? null;
-            $fechaSalida = $row['FechaSalida'] ?? null;
-            
-            // Solo marcar como "Completado" si:
-            // 1. El vehículo está completado/finalizado O tiene fecha de salida
-            // 2. Y además tiene fecha/hora asignada (no puede estar completado sin haber tenido hora)
-            $tieneFechaHora = !empty($fechaAgenda) && !empty($horaInicioAgenda);
-            
-            if ($tieneFechaHora && ($estadoVehiculo === 'Completado' || $estadoVehiculo === 'Finalizado' || !empty($fechaSalida))) {
-                $estadoFinal = 'Completado';
-            } else if (!$tieneFechaHora && ($estadoFinal === 'Aprobada' || $estadoFinal === 'Pendiente')) {
-                // Si no tiene fecha/hora y está aprobada o pendiente, mantener como Pendiente
-                // (porque si está aprobada pero sin hora, técnicamente sigue pendiente de asignación de hora)
-                $estadoFinal = 'Pendiente';
+                if ($resultAgendaAsignacion) {
+                    mysqli_free_result($resultAgendaAsignacion);
+                }
             }
             
             // Crear clave única: Placa + FechaAgenda + HoraInicioAgenda
@@ -489,18 +642,117 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 $claveUnica = 'ID_' . ($row['ID'] ?? 0);
             }
             
-            // Si ya existe una solicitud con la misma placa + fecha/hora, mantener solo la más reciente
+            // Si ya existe una solicitud con la misma placa + fecha/hora, verificar si se debe mantener ambas
             if (!empty($claveUnica) && isset($solicitudesUnicas[$claveUnica])) {
                 $solicitudExistente = $solicitudesUnicas[$claveUnica];
-                // Comparar fechas de creación, mantener la más reciente
+                
+                // Verificar si es el mismo día
                 $fechaCreacionActual = $row['FechaCreacion'] ?? '';
                 $fechaCreacionExistente = $solicitudExistente['FechaCreacion'] ?? '';
                 
+                $fechaActualObj = !empty($fechaCreacionActual) ? date('Y-m-d', strtotime($fechaCreacionActual)) : null;
+                $fechaExistenteObj = !empty($fechaCreacionExistente) ? date('Y-m-d', strtotime($fechaCreacionExistente)) : null;
+                $fechaHoy = date('Y-m-d');
+                
+                $esMismoDia = ($fechaActualObj === $fechaHoy) && ($fechaExistenteObj === $fechaHoy);
+                
+                // Verificar si el vehículo ya salió del taller (consultar directamente la BD)
+                // IMPORTANTE: Solo considerar retirado si la FechaSalida es posterior a la solicitud existente
+                // para evitar marcar solicitudes nuevas como retiradas
+                $placaEscapada = mysqli_real_escape_string($conn, $row['Placa'] ?? '');
+                $fechaCreacionExistenteParaVerificar = !empty($solicitudExistente['FechaCreacion']) 
+                    ? date('Y-m-d H:i:s', strtotime($solicitudExistente['FechaCreacion'])) 
+                    : null;
+                
+                $checkVehiculo = "SELECT iv.ID, iv.Estado, 
+                                  COALESCE(iv.fechasalida, iv.FechaSalida) as FechaSalidaReal,
+                                  iv.FechaRegistro
+                                  FROM ingreso_vehiculos iv
+                                  WHERE iv.Placa = '$placaEscapada'
+                                  ORDER BY iv.FechaRegistro DESC, iv.ID DESC
+                                  LIMIT 1";
+                $resultVehiculo = mysqli_query($conn, $checkVehiculo);
+                
+                $estaRetirado = false;
+                if ($resultVehiculo && mysqli_num_rows($resultVehiculo) > 0) {
+                    $vehiculo = mysqli_fetch_assoc($resultVehiculo);
+                    $fechaSalida = $vehiculo['FechaSalidaReal'] ?? null;
+                    $estadoVehiculo = $vehiculo['Estado'] ?? '';
+                    $fechaRegistroVehiculo = $vehiculo['FechaRegistro'] ?? null;
+                    
+                    // Verificar si tiene FechaSalida Y que sea posterior a la solicitud existente
+                    if ($fechaSalida !== null && $fechaSalida !== '') {
+                        // Si hay fecha de creación de solicitud existente, verificar que la salida sea posterior
+                        if ($fechaCreacionExistenteParaVerificar) {
+                            $fechaSalidaObj = new DateTime($fechaSalida);
+                            $fechaCreacionObj = new DateTime($fechaCreacionExistenteParaVerificar);
+                            // Solo considerar retirado si la salida es posterior a la creación de la solicitud existente
+                            if ($fechaSalidaObj >= $fechaCreacionObj) {
+                                $estaRetirado = true;
+                            }
+                        } else {
+                            // Si no hay fecha de solicitud existente, considerar retirado si tiene FechaSalida
+                            $estaRetirado = true;
+                        }
+                    }
+                    
+                    // También verificar estados que indican que salió (solo si no es una solicitud nueva)
+                    if (!$estaRetirado && $fechaCreacionExistenteParaVerificar) {
+                        if ($estadoVehiculo === 'Finalizado' || 
+                            $estadoVehiculo === 'Retirado' || 
+                            $estadoVehiculo === 'Disponible') {
+                            // Verificar que el registro del vehículo sea posterior a la solicitud existente
+                            if ($fechaRegistroVehiculo) {
+                                $fechaRegistroObj = new DateTime($fechaRegistroVehiculo);
+                                $fechaCreacionObj = new DateTime($fechaCreacionExistenteParaVerificar);
+                                if ($fechaRegistroObj >= $fechaCreacionObj) {
+                                    $estaRetirado = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // También verificar si no tiene asignaciones activas relacionadas con la solicitud existente
+                    if (!$estaRetirado && !empty($vehiculo['ID'])) {
+                        $vehiculoId = intval($vehiculo['ID']);
+                        $solicitudExistenteId = intval($solicitudExistente['ID'] ?? 0);
+                        
+                        // Verificar si hay asignaciones activas relacionadas con la solicitud existente
+                        $checkAsignaciones = "SELECT COUNT(*) as total
+                                              FROM asignaciones_mecanico am
+                                              INNER JOIN ingreso_vehiculos iv2 ON am.VehiculoID = iv2.ID
+                                              INNER JOIN solicitudes_agendamiento sa2 ON iv2.Placa COLLATE utf8mb4_unicode_ci = sa2.Placa COLLATE utf8mb4_unicode_ci
+                                              WHERE am.VehiculoID = $vehiculoId
+                                              AND sa2.ID = $solicitudExistenteId
+                                              AND am.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'En Pausa')";
+                        $resultAsignaciones = mysqli_query($conn, $checkAsignaciones);
+                        if ($resultAsignaciones) {
+                            $asignaciones = mysqli_fetch_assoc($resultAsignaciones);
+                            // Si no tiene asignaciones activas relacionadas con la solicitud existente, considerar que salió
+                            if ($asignaciones['total'] == 0) {
+                                // Pero solo si la solicitud existente fue aprobada (tiene agenda)
+                                if (!empty($solicitudExistente['AgendaID']) || 
+                                    ($solicitudExistente['Estado'] ?? '') === 'Aprobada') {
+                                    $estaRetirado = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Si es el mismo día Y el vehículo ya salió del taller, 
+                // permitir ambas solicitudes usando una clave única diferente
+                if ($esMismoDia && $estaRetirado) {
+                    // Usar ID de solicitud como parte de la clave para permitir ambas
+                    $claveUnica = $row['Placa'] . '|' . ($fechaAgenda ?? 'sin_fecha') . '|' . ($horaInicioAgenda ?? 'sin_hora') . '|ID_' . ($row['ID'] ?? 0);
+                } else {
+                    // Comparar fechas de creación, mantener solo la más reciente
                 if ($fechaCreacionActual > $fechaCreacionExistente) {
                     // La actual es más reciente, reemplazar
                 } else {
                     // La existente es más reciente o igual, saltar esta
                     continue;
+                    }
                 }
             }
             
@@ -514,10 +766,7 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 'Modelo' => $row['Modelo'] ?? '',
                 'ConductorNombre' => $row['ConductorNombre'] ?? ($row['ChoferNombre'] ?? ''),
                 'Proposito' => $row['Proposito'] ?? '',
-                'Estado' => $estadoFinal,
-                'EstadoOriginal' => $row['Estado'] ?? 'Pendiente', // Mantener el estado original para referencia
-                'EstadoVehiculo' => $estadoVehiculo,
-                'FechaSalida' => $fechaSalida,
+                'Estado' => $row['Estado'] ?? 'Pendiente',
                 'AgendaID' => $row['AgendaID'] ?? null,
                 'SupervisorID' => $row['SupervisorID'] ?? null,
                 'Observaciones' => $row['Observaciones'] ?? '',
@@ -531,8 +780,173 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
                 'MecanicoNombre' => $row['MecanicoNombre'] ?? '',
                 'VehiculoID' => $row['VehiculoID'] ?? null,
                 'AsignacionID' => $row['AsignacionID'] ?? null,
-                'EstadoAsignacion' => $row['EstadoAsignacion'] ?? null
+                'EstadoAsignacion' => $row['EstadoAsignacion'] ?? null,
+                'MotivoRechazo' => $row['MotivoRechazo'] ?? null,
+                'EstadoVehiculo' => $row['EstadoVehiculo'] ?? null,
+                'FechaSalida' => $row['FechaSalida'] ?? ($row['FechaSalidaRelacionada'] ?? null)
             ];
+            
+            // Guardar el estado original antes de cualquier modificación
+            $estadoOriginal = $solicitud['Estado'] ?? 'Pendiente';
+            $solicitud['EstadoOriginal'] = $estadoOriginal;
+            
+            // NUEVO SISTEMA: Determinar estado basado en el estado real del vehículo y múltiples solicitudes del mismo día
+            $placaEscapada = mysqli_real_escape_string($conn, $solicitud['Placa'] ?? '');
+            $solicitudId = intval($solicitud['ID'] ?? 0);
+            $fechaCreacionSolicitud = $solicitud['FechaCreacion'] ?? '';
+            $fechaActualizacionSolicitud = $solicitud['FechaActualizacion'] ?? $fechaCreacionSolicitud;
+            
+            // 1. Verificar si hay múltiples solicitudes del mismo día para esta placa
+            $fechaHoy = date('Y-m-d');
+            $fechaCreacionObj = !empty($fechaCreacionSolicitud) ? date('Y-m-d', strtotime($fechaCreacionSolicitud)) : null;
+            $esMismoDia = ($fechaCreacionObj === $fechaHoy);
+            
+            $esSolicitudMasTemprana = false;
+            $hayOtrasSolicitudesHoy = false;
+            
+            if ($esMismoDia && !empty($placaEscapada)) {
+                // Obtener todas las solicitudes del mismo día para esta placa
+                $queryOtrasSolicitudes = "SELECT ID, FechaCreacion, Estado, AgendaID
+                                         FROM solicitudes_agendamiento
+                                         WHERE Placa = '$placaEscapada'
+                                         AND DATE(FechaCreacion) = '$fechaHoy'
+                                         ORDER BY ID ASC, FechaCreacion ASC";
+                $resultOtras = mysqli_query($conn, $queryOtrasSolicitudes);
+                
+                if ($resultOtras && mysqli_num_rows($resultOtras) > 1) {
+                    $hayOtrasSolicitudesHoy = true;
+                    $solicitudesDelDia = [];
+                    while ($otra = mysqli_fetch_assoc($resultOtras)) {
+                        $solicitudesDelDia[] = $otra;
+                    }
+                    
+                    // Encontrar la solicitud más temprana (menor ID o fecha más temprana)
+                    $solicitudMasTemprana = $solicitudesDelDia[0];
+                    $esSolicitudMasTemprana = ($solicitudMasTemprana['ID'] == $solicitudId);
+                }
+            }
+            
+            // 2. Obtener el estado real del vehículo (usar el que ya viene en la consulta principal)
+            $estadoRealVehiculo = $solicitud['EstadoVehiculo'] ?? null;
+            $fechaSalidaReal = $solicitud['FechaSalida'] ?? ($row['FechaSalidaRelacionada'] ?? null);
+            $asignacionEstadoReal = $solicitud['EstadoAsignacion'] ?? null;
+            
+            // Si no viene el estado del vehículo en la consulta principal, obtenerlo directamente
+            if (empty($estadoRealVehiculo) && !empty($placaEscapada)) {
+                $queryEstadoVehiculo = "SELECT iv.ID, iv.Estado 
+                                       FROM ingreso_vehiculos iv
+                                       WHERE iv.Placa = '$placaEscapada'
+                                       ORDER BY iv.FechaRegistro DESC, iv.ID DESC
+                                       LIMIT 1";
+                $resultEstadoVehiculo = mysqli_query($conn, $queryEstadoVehiculo);
+                
+                if ($resultEstadoVehiculo && mysqli_num_rows($resultEstadoVehiculo) > 0) {
+                    $vehiculoInfo = mysqli_fetch_assoc($resultEstadoVehiculo);
+                    $estadoRealVehiculo = $vehiculoInfo['Estado'] ?? '';
+                }
+            }
+            
+            // 3. Determinar el estado a mostrar según las reglas
+            $tieneAgenda = !empty($solicitud['AgendaID']) || ($estadoOriginal === 'Aprobada');
+            $estaRetirado = false;
+            $estadoAMostrar = $estadoOriginal; // Por defecto, mantener el estado original
+            
+            if ($tieneAgenda) {
+                // Verificar si el vehículo salió del taller (solo si tiene FechaSalida posterior a la aprobación)
+                if ($fechaSalidaReal !== null && $fechaSalidaReal !== '' && !empty($fechaActualizacionSolicitud)) {
+                    try {
+                        $fechaSalidaObj = new DateTime($fechaSalidaReal);
+                        $fechaAprobacionObj = new DateTime($fechaActualizacionSolicitud);
+                        // Solo considerar retirado si la salida es POSTERIOR a cuando se aprobó la solicitud
+                        if ($fechaSalidaObj > $fechaAprobacionObj) {
+                            $estaRetirado = true;
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error al parsear fechas: " . $e->getMessage());
+                    }
+                }
+                
+                // Si está retirado, mostrar "Completado"
+                if ($estaRetirado) {
+                    $estadoAMostrar = 'Completado';
+                } 
+                // Si NO está retirado, mostrar el estado real del vehículo (exactamente como está en EstadoVehiculo)
+                else {
+                    // Usar el estado real del vehículo directamente, tal como está en la base de datos
+                    // Este es el mismo estado que se muestra en "Estado vehículo" en los detalles
+                    if (!empty($estadoRealVehiculo)) {
+                        // Usar el estado real del vehículo tal como está en ingreso_vehiculos
+                        // Este debe coincidir exactamente con el que se muestra en los detalles
+                        $estadoAMostrar = $estadoRealVehiculo;
+                    } elseif (!empty($asignacionEstadoReal)) {
+                        // Si no hay estado del vehículo pero hay asignación, usar el estado de la asignación
+                        // Pero solo si no hay estado del vehículo (caso raro)
+                        $estadoAMostrar = $asignacionEstadoReal;
+                    } else {
+                        // Si no tiene estado pero tiene agenda, está en espera de asignación
+                        // Solo mostrar "Completado" si realmente salió (tiene FechaSalida)
+                        if ($estaRetirado) {
+                            $estadoAMostrar = 'Completado';
+                        } else {
+                            // Si no tiene estado y no salió, está en espera
+                            $estadoAMostrar = 'En Espera';
+                        }
+                    }
+                }
+                
+                // 4. LÓGICA ESPECIAL: Si hay múltiples solicitudes del mismo día
+                if ($hayOtrasSolicitudesHoy) {
+                    if ($esSolicitudMasTemprana) {
+                        // Si es la solicitud más temprana, verificar si ya se completó y salió
+                        if ($estaRetirado) {
+                            // La más temprana ya se completó, mostrar "Completado"
+                            $estadoAMostrar = 'Completado';
+                        }
+                        // Si no está retirado, mantener el estado real que ya se determinó arriba
+                    } else {
+                        // Si NO es la más temprana, esta es una solicitud nueva del mismo día
+                        // Verificar si la más temprana ya se completó
+                        // Si la más temprana ya salió, esta nueva debe mostrar su estado real
+                        // (que puede ser "Ingresado", "En Espera", "Asignado", "En Progreso", "Completo" si está en taller)
+                        // Solo mostrar "Completado" si esta solicitud específica también salió
+                        if (!$estaRetirado) {
+                            // No está retirado, mantener el estado real que ya se determinó arriba
+                            // (Ingresado, En Espera, Asignado, En Progreso, Completo)
+                        }
+                        // Si está retirado, ya se estableció como "Completado" arriba
+                    }
+                }
+            }
+            
+            // Aplicar el estado determinado
+            $solicitud['Estado'] = $estadoAMostrar;
+            
+            // LÓGICA 2: Si la fecha de agenda ya pasó y el estado ORIGINAL es "Pendiente", 
+            // mostrar como "Cancelada" (solo si no está retirado)
+            if (!$estaRetirado) {
+                $fechaAgenda = $solicitud['FechaAgenda'] ?? null;
+                
+                if ($fechaAgenda && $estadoOriginal === 'Pendiente') {
+                    // Comparar fecha de agenda con fecha actual
+                    try {
+                        $fechaAgendaObj = new DateTime($fechaAgenda);
+                        $fechaActual = new DateTime();
+                        $fechaActual->setTime(0, 0, 0); // Solo comparar fechas, no horas
+                        $fechaAgendaObj->setTime(0, 0, 0);
+                        
+                        // Si la fecha de agenda es anterior a hoy, está en el pasado
+                        if ($fechaAgendaObj < $fechaActual) {
+                            $solicitud['Estado'] = 'Cancelada';
+                        }
+                    } catch (Exception $e) {
+                        // Si hay error al parsear la fecha, mantener el estado original
+                        error_log("Error al parsear fecha de agenda en obtenerSolicitudesAgendamiento: " . $e->getMessage());
+                    }
+                }
+            }
+            
+            // Marcar este ID como procesado
+            $idsProcesados[$solicitudId] = true;
             
             // Guardar en el array de únicas usando la clave
             if (!empty($claveUnica)) {
@@ -548,10 +962,20 @@ function obtenerSolicitudesAgendamiento($filtros = []) {
         $solicitudes = array_values($solicitudesUnicas);
         
         // Ordenar por fecha de creación descendente (más recientes primero)
+        // Si hay empate en fecha, usar el ID más alto (más reciente)
         usort($solicitudes, function($a, $b) {
             $fechaA = $a['FechaCreacion'] ?? '';
             $fechaB = $b['FechaCreacion'] ?? '';
-            return strcmp($fechaB, $fechaA); // Orden descendente
+            $comparacionFecha = strcmp($fechaB, $fechaA);
+            
+            // Si las fechas son iguales, comparar por ID (más alto = más reciente)
+            if ($comparacionFecha === 0) {
+                $idA = intval($a['ID'] ?? 0);
+                $idB = intval($b['ID'] ?? 0);
+                return $idB - $idA; // Orden descendente por ID
+            }
+            
+            return $comparacionFecha; // Orden descendente por fecha
         });
 
         $conn->close();

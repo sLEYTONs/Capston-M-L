@@ -326,7 +326,7 @@
 
 <!-- Modal para Gestionar Repuestos -->
 <div class="modal fade" id="repuestosModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-repuestos-custom">
+    <div class="modal-dialog modal-xl modal-repuestos-custom">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
@@ -335,7 +335,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 1.5rem; width: 100%; overflow-x: auto;">
                 <!-- Tabs para navegar entre secciones -->
                 <ul class="nav nav-tabs mb-3" id="repuestos-tabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -412,63 +412,68 @@
 
 <!-- Modal para Registrar Uso/Devolución de Repuestos -->
 <div class="modal fade" id="usoRepuestosModal" tabindex="-1">
-    <div class="modal-dialog modal-tareas-custom modal-tareas-sm">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="max-width: 500px; margin: 0 auto;">
             <div class="modal-header bg-success text-white" id="modal-header-uso-repuestos">
-                <h5 class="modal-title">
+                <h5 class="modal-title" style="font-size: 1rem;">
                     <i class="fas fa-clipboard-check me-2"></i>
                     <span id="modal-titulo-uso-repuestos">Registrar Uso de Repuestos</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 1.25rem;">
                 <form id="form-uso-repuestos">
                     <input type="hidden" id="uso-solicitud-id">
                     <input type="hidden" id="uso-tipo" value="uso"> <!-- uso o devolucion -->
                     
-                    <div class="mb-3">
-                        <label class="form-label">Repuesto</label>
-                        <p class="form-control-plaintext fw-bold" id="info-repuesto-nombre"></p>
+                    <!-- Información del repuesto en card compacto -->
+                    <div class="card mb-3" style="border: 1px solid #dee2e6;">
+                        <div class="card-body p-3">
+                            <div class="mb-2">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Repuesto</small>
+                                <strong id="info-repuesto-nombre" style="font-size: 0.95rem;"></strong>
+                            </div>
+                            <div class="row g-2 mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Aprobada</small>
+                                    <span id="info-cantidad-aprobada" style="font-size: 0.9rem; font-weight: 600;"></span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Disponible</small>
+                                    <span id="info-cantidad-disponible" class="text-primary" style="font-size: 0.9rem; font-weight: 600;"></span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Usada</small>
+                                    <span id="info-cantidad-usada" class="text-success" style="font-size: 0.9rem; font-weight: 600;"></span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Devuelta</small>
+                                    <span id="info-cantidad-devuelta" class="text-info" style="font-size: 0.9rem; font-weight: 600;"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
+                    <!-- Campo de cantidad -->
                     <div class="mb-3">
-                        <label class="form-label">Cantidad Aprobada</label>
-                        <p class="form-control-plaintext" id="info-cantidad-aprobada"></p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Cantidad Usada</label>
-                        <p class="form-control-plaintext text-success" id="info-cantidad-usada"></p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Cantidad Devuelta</label>
-                        <p class="form-control-plaintext text-info" id="info-cantidad-devuelta"></p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Cantidad Disponible</label>
-                        <p class="form-control-plaintext fw-bold text-primary" id="info-cantidad-disponible"></p>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="cantidad-accion" class="form-label">
-                            <span id="label-cantidad-accion">Cantidad a Usar</span> *
+                        <label for="cantidad-accion" class="form-label" style="font-size: 0.9rem; font-weight: 600;">
+                            <span id="label-cantidad-accion">Cantidad a Usar</span> <span class="text-danger">*</span>
                         </label>
-                        <input type="number" class="form-control" id="cantidad-accion" min="1" required>
-                        <small class="form-text text-muted" id="help-cantidad-accion">Ingrese la cantidad que desea usar</small>
+                        <input type="number" class="form-control form-control-sm" id="cantidad-accion" min="1" required style="font-size: 0.9rem;">
+                        <small class="form-text text-muted" id="help-cantidad-accion" style="font-size: 0.8rem;">Ingrese la cantidad</small>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="observaciones-uso" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones-uso" rows="3" placeholder="Observaciones sobre el uso/devolución..."></textarea>
+                    <!-- Observaciones -->
+                    <div class="mb-2">
+                        <label for="observaciones-uso" class="form-label" style="font-size: 0.9rem;">Observaciones</label>
+                        <textarea class="form-control form-control-sm" id="observaciones-uso" rows="2" placeholder="Observaciones (opcional)" style="font-size: 0.9rem;"></textarea>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="guardar-uso-repuestos">
-                    <i class="fas fa-save me-2"></i>Guardar
+            <div class="modal-footer" style="padding: 0.75rem 1.25rem;">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" style="font-size: 0.85rem;">Cancelar</button>
+                <button type="button" class="btn btn-sm btn-primary" id="guardar-uso-repuestos" style="font-size: 0.85rem;">
+                    <i class="fas fa-save me-1"></i>Guardar
                 </button>
             </div>
         </div>

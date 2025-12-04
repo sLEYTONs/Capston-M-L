@@ -107,14 +107,25 @@
     display: inline-block;
 }
 
-.bg-warning {
+/* Colores únicos para cada estado */
+.bg-pendiente {
     background-color: #ffc107 !important;
-    color: #000;
+    color: #000 !important;
 }
 
-.bg-success {
+.bg-aprobada {
     background-color: #28a745 !important;
-    color: #fff;
+    color: #fff !important;
+}
+
+.bg-rechazada {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.bg-cancelada {
+    background-color: #6c757d !important;
+    color: #fff !important;
 }
 
 /* Color único para estado Completado - azul/verde azulado distintivo */
@@ -126,6 +137,43 @@
     border: none;
 }
 
+/* Estados del vehículo en taller - cada uno con su color único */
+.bg-ingresado {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.bg-espera {
+    background-color: #fd7e14 !important;
+    color: #fff !important;
+}
+
+.bg-asignado {
+    background-color: #6610f2 !important;
+    color: #fff !important;
+}
+
+.bg-progreso {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+}
+
+.bg-completo {
+    background-color: #20c997 !important;
+    color: #fff !important;
+}
+
+/* Mantener compatibilidad con clases Bootstrap estándar */
+.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+    color: #fff;
+}
+
 .bg-danger {
     background-color: #dc3545 !important;
     color: #fff;
@@ -133,6 +181,16 @@
 
 .bg-secondary {
     background-color: #6c757d !important;
+    color: #fff;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+    color: #fff;
+}
+
+.bg-primary {
+    background-color: #0d6efd !important;
     color: #fff;
 }
 

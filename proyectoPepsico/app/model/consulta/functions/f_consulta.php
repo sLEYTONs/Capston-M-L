@@ -584,6 +584,299 @@ function notificarAsignacionMecanico($mecanico_id, $vehiculo, $observaciones, $a
     return $resultado;
 }
 
+/**
+ * Obtiene una asignación específica por su ID
+ */
+function obtenerAsignacionPorID($asignacion_id) {
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null;
+    }
+
+    // Verificar si la columna MotivoPausa existe
+    $checkColumn = "SELECT COUNT(*) as existe 
+                   FROM information_schema.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'asignaciones_mecanico' 
+                   AND COLUMN_NAME = 'MotivoPausa'";
+    $resultCheck = mysqli_query($conn, $checkColumn);
+    $columnExists = false;
+    if ($resultCheck) {
+        $row = mysqli_fetch_assoc($resultCheck);
+        $columnExists = ($row['existe'] > 0);
+    }
+
+    $motivoPausaField = $columnExists ? "a.MotivoPausa," : "NULL as MotivoPausa,";
+
+    // Construir la lógica del Estado según si existe la columna MotivoPausa
+    $estadoLogic = $columnExists 
+        ? "COALESCE(NULLIF(a.Estado, ''), CASE WHEN a.MotivoPausa IS NOT NULL AND a.MotivoPausa != '' THEN 'En Pausa' ELSE 'Asignado' END)"
+        : "COALESCE(NULLIF(a.Estado, ''), 'Asignado')";
+
+    $query = "SELECT 
+                a.ID,
+                a.VehiculoID,
+                a.MecanicoID,
+                u.NombreUsuario as MecanicoNombre,
+                a.Observaciones,
+                $estadoLogic AS Estado,
+                $motivoPausaField
+                DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion
+            FROM asignaciones_mecanico a
+            INNER JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+            WHERE a.ID = ? 
+            LIMIT 1";
+
+    $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        error_log("Error preparando consulta en obtenerAsignacionPorID: " . mysqli_error($conn));
+        mysqli_close($conn);
+        return null;
+    }
+    
+    mysqli_stmt_bind_param($stmt, 'i', $asignacion_id);
+    
+    if (!mysqli_stmt_execute($stmt)) {
+        error_log("Error ejecutando consulta en obtenerAsignacionPorID: " . mysqli_stmt_error($stmt));
+        mysqli_stmt_close($stmt);
+        mysqli_close($conn);
+        return null;
+    }
+    
+    $result = mysqli_stmt_get_result($stmt);
+    $asignacion = mysqli_fetch_assoc($result);
+    
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+    
+    return $asignacion;
+}
+
+/**
+ * Obtiene una asignación activa para un vehículo basada en la fecha de agenda de la solicitud
+ * Mejorado para buscar la asignación relacionada con una solicitud específica
+ */
+function obtenerAsignacionPorFechaAgenda($vehiculo_id, $fecha_agenda, $solicitud_id = null) {
+    if (!$vehiculo_id || !$fecha_agenda) {
+        return null;
+    }
+    
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null;
+    }
+    
+    // Verificar si la columna MotivoPausa existe
+    $checkColumn = "SELECT COUNT(*) as existe 
+                   FROM information_schema.COLUMNS 
+                   WHERE TABLE_SCHEMA = DATABASE() 
+                   AND TABLE_NAME = 'asignaciones_mecanico' 
+                   AND COLUMN_NAME = 'MotivoPausa'";
+    $resultCheck = mysqli_query($conn, $checkColumn);
+    $columnExists = false;
+    if ($resultCheck) {
+        $row = mysqli_fetch_assoc($resultCheck);
+        $columnExists = ($row['existe'] > 0);
+    }
+    
+    $motivoPausaField = $columnExists ? "a.MotivoPausa," : "NULL as MotivoPausa,";
+    
+    // Construir la lógica del Estado según si existe la columna MotivoPausa
+    $estadoLogic = $columnExists 
+        ? "COALESCE(NULLIF(a.Estado, ''), CASE WHEN a.MotivoPausa IS NOT NULL AND a.MotivoPausa != '' THEN 'En Pausa' ELSE 'Asignado' END)"
+        : "COALESCE(NULLIF(a.Estado, ''), 'Asignado')";
+    
+    // Convertir fecha_agenda a formato YYYY-MM-DD si viene en otro formato
+    $timestamp = strtotime($fecha_agenda);
+    if ($timestamp === false) {
+        // Si strtotime falla, intentar parsear manualmente formatos comunes
+        // Formato DD/MM/YYYY
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $fecha_agenda, $matches)) {
+            $fecha_agenda_formatted = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+        }
+        // Formato YYYY-MM-DD
+        elseif (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fecha_agenda, $matches)) {
+            $fecha_agenda_formatted = $fecha_agenda;
+        }
+        // Si no se puede parsear, retornar null
+        else {
+            error_log("Error: No se pudo parsear la fecha de agenda: " . $fecha_agenda);
+            mysqli_close($conn);
+            return null;
+        }
+    } else {
+        $fecha_agenda_formatted = date('Y-m-d', $timestamp);
+    }
+    
+    // Si se proporciona solicitud_id, buscar la asignación relacionada específicamente con esa solicitud
+    // La relación se hace a través del ingreso del vehículo que corresponde a esa solicitud
+    if ($solicitud_id) {
+        $solicitud_id = intval($solicitud_id);
+        
+        // Buscar asignación relacionada específicamente con esta solicitud por su ID
+        // La relación debe ser: solicitud (ID específico) -> agenda -> ingreso vehículo -> asignación
+        // Esto asegura que cada solicitud obtenga su propia asignación
+        $query = "SELECT 
+                    a.ID,
+                    a.VehiculoID,
+                    a.MecanicoID,
+                    u.NombreUsuario as MecanicoNombre,
+                    a.Observaciones,
+                    $estadoLogic AS Estado,
+                    $motivoPausaField
+                    DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion,
+                    TIME_FORMAT(a.FechaAsignacion, '%H:%i') as HoraAsignacion
+                FROM asignaciones_mecanico a
+                INNER JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+                INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                INNER JOIN solicitudes_agendamiento s ON v.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                INNER JOIN agenda_taller ag ON s.AgendaID = ag.ID
+                WHERE a.VehiculoID = ? 
+                  AND s.ID = ?
+                  AND DATE(ag.Fecha) = ?
+                  AND a.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                  -- La asignación debe ser posterior o igual a la creación de esta solicitud específica
+                  AND a.FechaAsignacion >= s.FechaCreacion
+                  -- El ingreso del vehículo debe estar relacionado con esta solicitud específica
+                  -- Debe estar entre la creación de la solicitud y la fecha de agenda
+                  AND v.FechaRegistro >= DATE_SUB(s.FechaCreacion, INTERVAL 1 DAY)
+                  AND v.FechaRegistro <= DATE_ADD(ag.Fecha, INTERVAL 1 DAY)
+                  -- Asegurar que no haya otra solicitud más reciente entre la creación de esta y el ingreso del vehículo
+                  AND NOT EXISTS (
+                      SELECT 1 FROM solicitudes_agendamiento s2
+                      WHERE s2.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                        AND s2.ID != s.ID
+                        AND s2.FechaCreacion > s.FechaCreacion
+                        AND s2.FechaCreacion < v.FechaRegistro
+                  )
+                ORDER BY 
+                    -- Priorizar asignaciones donde:
+                    -- 1. El ingreso del vehículo sea más cercano a la fecha de creación de esta solicitud
+                    -- 2. La fecha de asignación sea más cercana a la fecha de creación de esta solicitud
+                    ABS(TIMESTAMPDIFF(HOUR, v.FechaRegistro, s.FechaCreacion)) ASC,
+                    ABS(TIMESTAMPDIFF(HOUR, a.FechaAsignacion, s.FechaCreacion)) ASC,
+                    a.FechaAsignacion ASC 
+                LIMIT 1";
+        
+        $stmt = mysqli_prepare($conn, $query);
+        if (!$stmt) {
+            error_log("Error preparando consulta en obtenerAsignacionPorFechaAgenda: " . mysqli_error($conn));
+            mysqli_close($conn);
+            return null;
+        }
+        
+        mysqli_stmt_bind_param($stmt, 'iis', $vehiculo_id, $solicitud_id, $fecha_agenda_formatted);
+    } else {
+        // Buscar asignación que esté relacionada con una solicitud que tenga esta fecha de agenda
+        $query = "SELECT 
+                    a.ID,
+                    a.VehiculoID,
+                    a.MecanicoID,
+                    u.NombreUsuario as MecanicoNombre,
+                    a.Observaciones,
+                    $estadoLogic AS Estado,
+                    $motivoPausaField
+                    DATE_FORMAT(a.FechaAsignacion, '%d/%m/%Y %H:%i') as FechaAsignacion,
+                    TIME_FORMAT(a.FechaAsignacion, '%H:%i') as HoraAsignacion
+                FROM asignaciones_mecanico a
+                INNER JOIN usuarios u ON a.MecanicoID = u.UsuarioID
+                INNER JOIN ingreso_vehiculos v ON a.VehiculoID = v.ID
+                INNER JOIN solicitudes_agendamiento s ON v.Placa COLLATE utf8mb4_unicode_ci = s.Placa COLLATE utf8mb4_unicode_ci
+                INNER JOIN agenda_taller ag ON s.AgendaID = ag.ID
+                WHERE a.VehiculoID = ? 
+                  AND DATE(ag.Fecha) = ?
+                  AND a.Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado')
+                ORDER BY a.FechaAsignacion DESC 
+                LIMIT 1";
+        
+        $stmt = mysqli_prepare($conn, $query);
+        if (!$stmt) {
+            error_log("Error preparando consulta en obtenerAsignacionPorFechaAgenda: " . mysqli_error($conn));
+            mysqli_close($conn);
+            return null;
+        }
+        
+        mysqli_stmt_bind_param($stmt, 'is', $vehiculo_id, $fecha_agenda_formatted);
+    }
+    
+    if (!mysqli_stmt_execute($stmt)) {
+        error_log("Error ejecutando consulta en obtenerAsignacionPorFechaAgenda: " . mysqli_stmt_error($stmt));
+        mysqli_stmt_close($stmt);
+        mysqli_close($conn);
+        return null;
+    }
+    
+    $result = mysqli_stmt_get_result($stmt);
+    $asignacion = mysqli_fetch_assoc($result);
+    
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+    
+    return $asignacion;
+}
+
+/**
+ * Obtiene una solicitud de agendamiento por su ID
+ */
+function obtenerSolicitudAgendamientoPorID($solicitud_id) {
+    if (!$solicitud_id) {
+        return null;
+    }
+    
+    $conn = conectar_Pepsico();
+    if (!$conn) {
+        return null;
+    }
+    
+    $solicitud_id = intval($solicitud_id);
+    $query = "SELECT 
+                s.ID,
+                s.Placa,
+                s.TipoVehiculo,
+                s.Marca,
+                s.Modelo,
+                s.Anio,
+                s.ConductorNombre,
+                s.Proposito,
+                s.Observaciones,
+                s.Estado,
+                DATE_FORMAT(a.Fecha, '%d/%m/%Y') as FechaAgenda,
+                a.Fecha as FechaAgendaRaw,
+                TIME_FORMAT(a.HoraInicio, '%H:%i') as HoraInicioAgenda,
+                a.HoraInicio as HoraInicioAgendaRaw,
+                TIME_FORMAT(a.HoraFin, '%H:%i') as HoraFinAgenda,
+                a.HoraFin as HoraFinAgendaRaw,
+                DATE_FORMAT(s.FechaCreacion, '%d/%m/%Y %H:%i') as FechaCreacion
+            FROM solicitudes_agendamiento s
+            LEFT JOIN agenda_taller a ON s.AgendaID = a.ID
+            WHERE s.ID = ? 
+            LIMIT 1";
+    
+    $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        error_log("Error preparando consulta en obtenerSolicitudAgendamientoPorID: " . mysqli_error($conn));
+        mysqli_close($conn);
+        return null;
+    }
+    
+    mysqli_stmt_bind_param($stmt, 'i', $solicitud_id);
+    
+    if (!mysqli_stmt_execute($stmt)) {
+        error_log("Error ejecutando consulta en obtenerSolicitudAgendamientoPorID: " . mysqli_stmt_error($stmt));
+        mysqli_stmt_close($stmt);
+        mysqli_close($conn);
+        return null;
+    }
+    
+    $result = mysqli_stmt_get_result($stmt);
+    $solicitud = mysqli_fetch_assoc($result);
+    
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+    
+    return $solicitud;
+}
+
 function obtenerAvancesMecanico($asignacion_id) {
     if (!$asignacion_id) return [];
 
@@ -603,7 +896,8 @@ function obtenerAvancesMecanico($asignacion_id) {
                 Estado,
                 " . ($columnaFotosExiste ? "Fotos," : "NULL AS Fotos,") . "
                 DATE_FORMAT(FechaAvance, '%d/%m/%Y %H:%i') as FechaAvance,
-                DATE_FORMAT(FechaAvance, '%Y-%m-%d %H:%i:%s') as FechaAvanceRaw
+                DATE_FORMAT(FechaAvance, '%Y-%m-%d %H:%i:%s') as FechaAvanceRaw,
+                TIME_FORMAT(FechaAvance, '%H:%i') as HoraAvance
             FROM avances_mecanico 
             WHERE AsignacionID = ? 
             ORDER BY FechaAvance DESC";

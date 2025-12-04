@@ -19,13 +19,13 @@
                     <div class="card-body">
                         <!-- Solicitudes Pendientes -->
                         <div class="mb-4">
-                            <h5 class="mb-3">
-                                <i class="fas fa-exclamation-circle me-2"></i>
+                            <h5>
+                                <i class="fas fa-exclamation-circle"></i>
                                 Solicitudes Pendientes de Aprobación
                             </h5>
                             <div class="tabla-container">
-                                <table id="tabla-solicitudes-pendientes" class="table table-striped table-hover table-bordered" style="width:100%">
-                                    <thead class="table-light">
+                                <table id="tabla-solicitudes-pendientes" class="table table-striped table-hover" style="width:100%">
+                                    <thead>
                                         <tr>
                                             <th>Fecha</th>
                                             <th>Tipo</th>
@@ -43,8 +43,8 @@
 
                         <!-- Formulario de Nueva Solicitud al Jefe -->
                         <div class="mb-4">
-                            <h5 class="mb-3">
-                                <i class="fas fa-paper-plane me-2"></i>
+                            <h5>
+                                <i class="fas fa-paper-plane"></i>
                                 Nueva Solicitud al Jefe de Taller
                             </h5>
                             <form id="form-solicitud-jefe">
@@ -94,13 +94,13 @@
 
                         <!-- Historial de Comunicaciones con Jefe -->
                         <div>
-                            <h5 class="mb-3">
-                                <i class="fas fa-history me-2"></i>
+                            <h5>
+                                <i class="fas fa-history"></i>
                                 Historial de Comunicaciones
                             </h5>
                             <div class="tabla-container">
-                                <table id="tabla-comunicaciones-jefe" class="table table-striped table-hover table-bordered" style="width:100%">
-                                    <thead class="table-light">
+                                <table id="tabla-comunicaciones-jefe" class="table table-striped table-hover" style="width:100%">
+                                    <thead>
                                         <tr>
                                             <th>Fecha</th>
                                             <th>Tipo</th>
@@ -123,7 +123,7 @@
             
             <!-- Aside con reportes y estadísticas -->
             <aside class="repuestos-aside">
-                <div class="card h-100 mb-3">
+                <div class="card h-100">
                     <div class="card-header">
                         <h5 class="card-title mb-0">
                             <i class="fas fa-chart-bar me-2"></i>
@@ -131,8 +131,8 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                        <div class="row g-2">
+                            <div class="col-6">
                                 <div class="card bg-primary text-white">
                                     <div class="card-body text-center">
                                         <h3 id="total-repuestos">0</h3>
@@ -140,7 +140,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-6">
                                 <div class="card bg-warning text-white">
                                     <div class="card-body text-center">
                                         <h3 id="stock-bajo">0</h3>
@@ -148,7 +148,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-6">
                                 <div class="card bg-info text-white">
                                     <div class="card-body text-center">
                                         <h3 id="solicitudes-pendientes">0</h3>
@@ -156,7 +156,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-6">
                                 <div class="card bg-success text-white">
                                     <div class="card-body text-center">
                                         <h3 id="entregas-mes">0</h3>
@@ -165,7 +165,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="btn btn-primary w-100" id="btn-generar-reporte">
+                        <button class="btn btn-primary w-100 mt-3" id="btn-generar-reporte">
                             <i class="fas fa-file-pdf me-2"></i>Generar Reporte Completo
                         </button>
                     </div>

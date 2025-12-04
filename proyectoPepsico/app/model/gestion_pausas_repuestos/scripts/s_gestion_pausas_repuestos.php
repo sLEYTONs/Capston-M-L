@@ -328,6 +328,7 @@ try {
             break;
 
         case 'registrarDevolucionRepuestos':
+            ob_clean();
             // Solo para mecánicos
             if ($_SESSION['usuario']['rol'] !== 'Mecánico') {
                 echo json_encode(['status' => 'error', 'message' => 'No autorizado']);
@@ -339,12 +340,22 @@ try {
             $observaciones = trim($_POST['observaciones'] ?? '');
             
             if ($solicitud_id <= 0 || $cantidad_devuelta <= 0) {
+                ob_clean();
                 echo json_encode(['status' => 'error', 'message' => 'Datos inválidos']);
                 exit();
             }
             
-            $resultado = registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_devuelta, $observaciones);
-            echo json_encode($resultado);
+            try {
+                $resultado = registrarDevolucionRepuestos($solicitud_id, $mecanico_id, $cantidad_devuelta, $observaciones);
+                ob_clean();
+                echo json_encode($resultado);
+            } catch (Exception $e) {
+                ob_clean();
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Error al procesar devolución: ' . $e->getMessage()
+                ]);
+            }
             break;
 
         default:

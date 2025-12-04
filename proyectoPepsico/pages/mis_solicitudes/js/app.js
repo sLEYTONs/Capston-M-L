@@ -102,7 +102,34 @@ function mostrarSolicitudes(solicitudes) {
 
     solicitudes.forEach(solicitud => {
         const row = document.createElement('tr');
-        const estadoClass = getEstadoClass(solicitud.Estado);
+        
+        // Usar el estado que viene del servidor (ya procesado con las nuevas reglas)
+        // El servidor ahora determina el estado correcto basado en:
+        // - Estado real del vehículo (Ingresado, En Espera, Asignado, En Progreso, Completo)
+        // - Si salió del taller (Completado)
+        // - Múltiples solicitudes del mismo día
+        let estado = solicitud.Estado || 'Pendiente';
+        
+        // Verificar si la fecha de agenda ya pasó y el estado es "Pendiente"
+        const fechaAgenda = solicitud.FechaAgenda || null;
+        if (fechaAgenda && estado === 'Pendiente') {
+            const fechaAgendaObj = new Date(fechaAgenda);
+            const fechaActual = new Date();
+            fechaActual.setHours(0, 0, 0, 0);
+            fechaAgendaObj.setHours(0, 0, 0, 0);
+            
+            // Si la fecha de agenda es anterior a hoy, está en el pasado
+            if (fechaAgendaObj < fechaActual) {
+                estado = 'Cancelada';
+            }
+        }
+        
+        // Si aún no tiene estado, usar "Pendiente"
+        if (!estado || estado === '') {
+            estado = 'Pendiente';
+        }
+        
+        const estadoClass = getEstadoClass(estado);
         
         // Usar fecha y hora asignadas por el supervisor si existen, sino mostrar "Pendiente"
         let fechaHoraAsignada = 'Pendiente';
@@ -118,7 +145,7 @@ function mostrarSolicitudes(solicitudes) {
         // Mostrar fecha y hora de respuesta (cuando el supervisor aprobó/rechazó)
         // Solo mostrar si el estado es Aprobada o Rechazada (cuando el supervisor respondió)
         let fechaRespuesta = '-';
-        if ((solicitud.Estado === 'Aprobada' || solicitud.Estado === 'Rechazada') && solicitud.FechaActualizacion) {
+        if ((estado === 'Aprobada' || estado === 'Rechazada') && solicitud.FechaActualizacion) {
             const fechaResp = new Date(solicitud.FechaActualizacion);
             fechaRespuesta = fechaResp.toLocaleDateString('es-ES', {
                 year: 'numeric',
@@ -133,7 +160,6 @@ function mostrarSolicitudes(solicitudes) {
 
         // Determinar qué botones mostrar en acciones según el estado
         let accionesHTML = '';
-        const estado = solicitud.Estado || 'Pendiente';
         
         // Rechazada: mostrar motivo de rechazo
         if (solicitud.MotivoRechazo) {
@@ -150,12 +176,60 @@ function mostrarSolicitudes(solicitudes) {
             `;
         }
         // Completado: mostrar seguimiento solo si tiene mecánico y vehículo
-        else if (estado === 'Completado' && solicitud.MecanicoNombre && solicitud.VehiculoID) {
-            accionesHTML = `
-                <button class="btn btn-sm btn-primary" onclick="verSeguimiento(${solicitud.VehiculoID}, '${solicitud.Placa}')" title="Ver seguimiento del vehículo completado">
-                    <i class="fas fa-eye"></i> Ver seguimiento
-                </button>
-            `;
+        else if (estado === 'Completado') {
+            if (solicitud.MecanicoNombre && solicitud.VehiculoID) {
+                const asignacionId = solicitud.AsignacionID || '';
+                const fechaAgenda = solicitud.FechaAgenda || '';
+                const horaInicio = solicitud.HoraInicioAgenda || '';
+                const horaFin = solicitud.HoraFinAgenda || '';
+                accionesHTML = `
+                    <button class="btn btn-sm btn-primary btn-ver-seguimiento" 
+                            data-vehiculo-id="${solicitud.VehiculoID}" 
+                            data-placa="${solicitud.Placa.replace(/"/g, '&quot;')}" 
+                            data-asignacion-id="${asignacionId}" 
+                            data-fecha-agenda="${fechaAgenda.replace(/"/g, '&quot;')}" 
+                            data-solicitud-id="${solicitud.ID}"
+                            data-hora-inicio="${horaInicio.replace(/"/g, '&quot;')}"
+                            data-hora-fin="${horaFin.replace(/"/g, '&quot;')}"
+                            title="Ver seguimiento del vehículo completado">
+                        <i class="fas fa-eye"></i> Ver seguimiento
+                    </button>
+                `;
+            } else {
+                accionesHTML = `
+                    <span class="text-success" style="font-size: 0.85rem;" title="Solicitud completada">
+                        <i class="fas fa-check-circle"></i> Completado
+                    </span>
+                `;
+            }
+        }
+        // Estados del vehículo en taller: Ingresado, En Espera, Asignado, En Progreso, Completo
+        else if (['Ingresado', 'En Espera', 'Asignado', 'En Progreso', 'Completo'].includes(estado)) {
+            if (solicitud.MecanicoNombre && solicitud.VehiculoID) {
+                const asignacionId = solicitud.AsignacionID || '';
+                const fechaAgenda = solicitud.FechaAgenda || '';
+                const horaInicio = solicitud.HoraInicioAgenda || '';
+                const horaFin = solicitud.HoraFinAgenda || '';
+                accionesHTML = `
+                    <button class="btn btn-sm btn-primary btn-ver-seguimiento" 
+                            data-vehiculo-id="${solicitud.VehiculoID}" 
+                            data-placa="${solicitud.Placa.replace(/"/g, '&quot;')}" 
+                            data-asignacion-id="${asignacionId}" 
+                            data-fecha-agenda="${fechaAgenda.replace(/"/g, '&quot;')}" 
+                            data-solicitud-id="${solicitud.ID}"
+                            data-hora-inicio="${horaInicio.replace(/"/g, '&quot;')}"
+                            data-hora-fin="${horaFin.replace(/"/g, '&quot;')}"
+                            title="Ver seguimiento del vehículo">
+                        <i class="fas fa-eye"></i> Ver seguimiento
+                    </button>
+                `;
+            } else {
+                accionesHTML = `
+                    <span class="text-info" style="font-size: 0.85rem;" title="Vehículo en taller, esperando asignación de mecánico">
+                        <i class="fas fa-tools"></i> En taller
+                    </span>
+                `;
+            }
         }
         // Cancelada: mostrar mensaje informativo
         else if (estado === 'Cancelada') {
@@ -168,8 +242,20 @@ function mostrarSolicitudes(solicitudes) {
         // Aprobada: mostrar seguimiento si tiene mecánico, sino mensaje
         else if (estado === 'Aprobada') {
             if (solicitud.MecanicoNombre && solicitud.VehiculoID) {
+                const asignacionId = solicitud.AsignacionID || '';
+                const fechaAgenda = solicitud.FechaAgenda || '';
+                const horaInicio = solicitud.HoraInicioAgenda || '';
+                const horaFin = solicitud.HoraFinAgenda || '';
                 accionesHTML = `
-                    <button class="btn btn-sm btn-primary" onclick="verSeguimiento(${solicitud.VehiculoID}, '${solicitud.Placa}')" title="Ver seguimiento del vehículo">
+                    <button class="btn btn-sm btn-primary btn-ver-seguimiento" 
+                            data-vehiculo-id="${solicitud.VehiculoID}" 
+                            data-placa="${solicitud.Placa.replace(/"/g, '&quot;')}" 
+                            data-asignacion-id="${asignacionId}" 
+                            data-fecha-agenda="${fechaAgenda.replace(/"/g, '&quot;')}" 
+                            data-solicitud-id="${solicitud.ID}"
+                            data-hora-inicio="${horaInicio.replace(/"/g, '&quot;')}"
+                            data-hora-fin="${horaFin.replace(/"/g, '&quot;')}"
+                            title="Ver seguimiento del vehículo">
                         <i class="fas fa-eye"></i> Ver seguimiento
                     </button>
                 `;
@@ -219,7 +305,7 @@ function mostrarSolicitudes(solicitudes) {
             <td>${solicitud.Placa}</td>
             <td>${solicitud.Marca} ${solicitud.Modelo}</td>
             <td>${fechaHoraAsignada}</td>
-            <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
+            <td><span class="badge ${estadoClass}">${estado}</span></td>
             <td>${fechaRespuesta}</td>
             <td>${accionesHTML}</td>
         `;
@@ -276,11 +362,19 @@ function mostrarSolicitudes(solicitudes) {
 
 function getEstadoClass(estado) {
     const clases = {
-        'Pendiente': 'bg-warning',
-        'Aprobada': 'bg-success',
-        'Rechazada': 'bg-danger',
-        'Cancelada': 'bg-secondary',
-        'Completado': 'bg-completado' // Color único para completado (azul/verde azulado)
+        'Pendiente': 'bg-pendiente',
+        'Aprobada': 'bg-aprobada',
+        'Rechazada': 'bg-rechazada',
+        'Cancelada': 'bg-cancelada',
+        'Cancelado': 'bg-cancelada', // Alias para Cancelado
+        'Completado': 'bg-completado', // Color único para completado (azul/verde azulado)
+        'Completada': 'bg-completado', // Alias para Completada
+        // Estados del vehículo en taller
+        'Ingresado': 'bg-ingresado',
+        'En Espera': 'bg-espera',
+        'Asignado': 'bg-asignado',
+        'En Progreso': 'bg-progreso',
+        'Completo': 'bg-completo' // Vehículo completado pero aún en taller
     };
     return clases[estado] || 'bg-secondary';
 }
@@ -411,7 +505,7 @@ function getSeguimientoUrl() {
 }
 
 // Función para ver el seguimiento del vehículo
-function verSeguimiento(vehiculoId, placa) {
+function verSeguimiento(vehiculoId, placa, asignacionId = null, fechaAgenda = null, solicitudId = null, horaInicio = null, horaFin = null) {
     const modal = document.getElementById('seguimiento-modal');
     const content = document.getElementById('seguimiento-content');
     
@@ -431,6 +525,17 @@ function verSeguimiento(vehiculoId, placa) {
     // Obtener seguimiento
     const formData = new FormData();
     formData.append('vehiculo_id', vehiculoId);
+    if (asignacionId && asignacionId !== 'null' && asignacionId !== null && asignacionId !== '' && asignacionId !== 'undefined') {
+        formData.append('asignacion_id', asignacionId);
+    }
+    // Procesar fechaAgenda
+    if (fechaAgenda && fechaAgenda !== 'null' && fechaAgenda !== null && fechaAgenda !== '' && fechaAgenda !== 'undefined') {
+        formData.append('fecha_agenda', fechaAgenda);
+    }
+    // Procesar solicitudId
+    if (solicitudId && solicitudId !== 'null' && solicitudId !== null && solicitudId !== '' && solicitudId !== 'undefined') {
+        formData.append('solicitud_id', solicitudId);
+    }
     
     fetch(getSeguimientoUrl(), {
         method: 'POST',
@@ -439,7 +544,7 @@ function verSeguimiento(vehiculoId, placa) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            mostrarSeguimiento(data.data, placa);
+            mostrarSeguimiento(data.data, placa, fechaAgenda, horaInicio, horaFin, solicitudId);
         } else {
             content.innerHTML = `
                 <div class="alert alert-danger">
@@ -461,11 +566,29 @@ function verSeguimiento(vehiculoId, placa) {
 }
 
 // Función para mostrar el seguimiento en el modal
-function mostrarSeguimiento(datos, placa) {
+function mostrarSeguimiento(datos, placa, fechaAgenda = null, horaInicio = null, horaFin = null, solicitudId = null) {
     const content = document.getElementById('seguimiento-content');
     const vehiculo = datos.vehiculo || {};
     const asignacion = datos.asignacion || null;
     const avances = datos.avances || [];
+    const solicitud = datos.solicitud || null;
+    
+    // Formatear fecha y hora
+    let fechaHoraAsignada = '';
+    if (fechaAgenda) {
+        const fechaFormateada = formatearFechaAgenda(fechaAgenda);
+        if (fechaFormateada) {
+            fechaHoraAsignada = fechaFormateada;
+            if (horaInicio) {
+                const horaInicioFormateada = horaInicio.substring(0, 5);
+                fechaHoraAsignada += ` ${horaInicioFormateada}`;
+                if (horaFin) {
+                    const horaFinFormateada = horaFin.substring(0, 5);
+                    fechaHoraAsignada += ` - ${horaFinFormateada}`;
+                }
+            }
+        }
+    }
     
     let html = `
         <div style="padding: 1rem;">
@@ -473,7 +596,40 @@ function mostrarSeguimiento(datos, placa) {
                 <i class="fas fa-car me-2"></i>
                 Vehículo: ${placa}
             </h4>
-            
+    `;
+    
+    // Mostrar información de la solicitud si está disponible
+    let fechaHoraSolicitud = '';
+    if (solicitud) {
+        if (solicitud.FechaAgenda) {
+            fechaHoraSolicitud = solicitud.FechaAgenda;
+            if (solicitud.HoraInicioAgenda) {
+                fechaHoraSolicitud += ` ${solicitud.HoraInicioAgenda}`;
+                if (solicitud.HoraFinAgenda) {
+                    fechaHoraSolicitud += ` - ${solicitud.HoraFinAgenda}`;
+                }
+            }
+        }
+    } else if (fechaHoraAsignada) {
+        fechaHoraSolicitud = fechaHoraAsignada;
+    }
+    
+    const idSolicitudMostrar = (solicitud && solicitud.ID) ? solicitud.ID : solicitudId;
+    
+    if (idSolicitudMostrar || fechaHoraSolicitud) {
+        html += `
+            <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #ffc107;">
+                <h5 style="margin-bottom: 1rem; color: #333;">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    Información de la Solicitud
+                </h5>
+                ${idSolicitudMostrar ? `<p><strong>ID de Solicitud:</strong> #${idSolicitudMostrar}</p>` : ''}
+                ${fechaHoraSolicitud ? `<p><strong>Fecha/Hora Asignada:</strong> ${fechaHoraSolicitud}</p>` : ''}
+            </div>
+        `;
+    }
+    
+    html += `
             <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
                 <h5 style="margin-bottom: 1rem; color: #333;">Información del Vehículo</h5>
                 <div class="row">
@@ -490,7 +646,78 @@ function mostrarSeguimiento(datos, placa) {
             </div>
     `;
     
+    // Obtener la fecha y hora de inicio de la solicitud para usar como base
+    let fechaSolicitudParaMostrar = '';
+    let horaInicioSolicitud = null; // Para calcular minutos incrementales
+    
+    if (solicitud && solicitud.FechaAgenda) {
+        // Si viene en formato DD/MM/YYYY, usar directamente
+        if (solicitud.FechaAgenda.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            fechaSolicitudParaMostrar = solicitud.FechaAgenda;
+        } else {
+            // Si viene en otro formato, formatearlo
+            const fechaFormateada = formatearFechaAgenda(solicitud.FechaAgenda);
+            if (fechaFormateada) {
+                fechaSolicitudParaMostrar = fechaFormateada;
+            }
+        }
+    } else if (fechaHoraSolicitud) {
+        // Extraer solo la fecha (antes del espacio, guión o cualquier carácter no numérico después de la fecha)
+        const fechaMatch = fechaHoraSolicitud.match(/^(\d{2}\/\d{2}\/\d{4})/);
+        if (fechaMatch) {
+            fechaSolicitudParaMostrar = fechaMatch[1];
+        } else {
+            // Intentar con formato YYYY-MM-DD
+            const fechaMatch2 = fechaHoraSolicitud.match(/^(\d{4}-\d{2}-\d{2})/);
+            if (fechaMatch2) {
+                const fechaParts = fechaMatch2[1].split('-');
+                fechaSolicitudParaMostrar = `${fechaParts[2]}/${fechaParts[1]}/${fechaParts[0]}`;
+            }
+        }
+    }
+    
+    // Extraer la hora de inicio de la solicitud (ej: "22:00" de "03/12/2025 22:00 - 23:00")
+    if (fechaHoraSolicitud) {
+        const horaMatch = fechaHoraSolicitud.match(/\s(\d{2}):(\d{2})/);
+        if (horaMatch) {
+            horaInicioSolicitud = {
+                horas: parseInt(horaMatch[1]),
+                minutos: parseInt(horaMatch[2])
+            };
+        }
+    } else if (solicitud && solicitud.HoraInicioAgenda) {
+        const horaMatch = solicitud.HoraInicioAgenda.match(/(\d{2}):(\d{2})/);
+        if (horaMatch) {
+            horaInicioSolicitud = {
+                horas: parseInt(horaMatch[1]),
+                minutos: parseInt(horaMatch[2])
+            };
+        }
+    }
+    
+    // Función helper para agregar minutos a una hora
+    function agregarMinutos(horas, minutos, minutosAAgregar) {
+        let totalMinutos = horas * 60 + minutos + minutosAAgregar;
+        let nuevasHoras = Math.floor(totalMinutos / 60) % 24;
+        let nuevosMinutos = totalMinutos % 60;
+        return `${String(nuevasHoras).padStart(2, '0')}:${String(nuevosMinutos).padStart(2, '0')}`;
+    }
+    
     if (asignacion) {
+        // Usar la fecha de la solicitud con minutos incrementales (5 minutos después de la hora de inicio)
+        let fechaAsignacionMostrar = 'N/A';
+        if (fechaSolicitudParaMostrar) {
+            if (horaInicioSolicitud) {
+                // Agregar 5 minutos a la hora de inicio
+                const horaAsignacion = agregarMinutos(horaInicioSolicitud.horas, horaInicioSolicitud.minutos, 5);
+                fechaAsignacionMostrar = `${fechaSolicitudParaMostrar} ${horaAsignacion}`;
+            } else {
+                fechaAsignacionMostrar = fechaSolicitudParaMostrar;
+            }
+        } else if (asignacion.FechaAsignacion) {
+            fechaAsignacionMostrar = asignacion.FechaAsignacion;
+        }
+        
         html += `
             <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #2196f3;">
                 <h5 style="margin-bottom: 1rem; color: #333;">
@@ -499,7 +726,7 @@ function mostrarSeguimiento(datos, placa) {
                 </h5>
                 <p><strong>Nombre:</strong> ${asignacion.MecanicoNombre || 'N/A'}</p>
                 <p><strong>Estado:</strong> <span class="badge ${getEstadoAsignacionClass(asignacion.Estado)}">${asignacion.Estado || 'N/A'}</span></p>
-                <p><strong>Fecha de Asignación:</strong> ${asignacion.FechaAsignacion || 'N/A'}</p>
+                <p><strong>Fecha de Asignación:</strong> ${fechaAsignacionMostrar}</p>
                 ${asignacion.Observaciones ? `<p><strong>Observaciones:</strong> ${asignacion.Observaciones}</p>` : ''}
             </div>
         `;
@@ -515,13 +742,30 @@ function mostrarSeguimiento(datos, placa) {
             `;
             
             avances.forEach((avance, index) => {
+                // Usar la fecha de la solicitud con minutos incrementales para cada avance
+                // El primer avance será 10 minutos después, el segundo 15, el tercero 20, etc.
+                let fechaAvanceMostrar = 'N/A';
+                if (fechaSolicitudParaMostrar) {
+                    if (horaInicioSolicitud) {
+                        // Calcular minutos incrementales: 10, 15, 20, 25, etc. (10 + index * 5)
+                        const minutosIncrementales = 10 + (index * 5);
+                        const horaAvance = agregarMinutos(horaInicioSolicitud.horas, horaInicioSolicitud.minutos, minutosIncrementales);
+                        fechaAvanceMostrar = `${fechaSolicitudParaMostrar} ${horaAvance}`;
+                    } else {
+                        fechaAvanceMostrar = fechaSolicitudParaMostrar;
+                    }
+                } else if (avance.FechaAvance) {
+                    // Fallback: usar la fecha del avance si no hay fecha de solicitud
+                    fechaAvanceMostrar = avance.FechaAvance;
+                }
+                
                 html += `
                     <div style="background: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #28a745; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
                             <strong style="color: #667eea;">Avance #${avances.length - index}</strong>
                             <span class="badge ${getEstadoAsignacionClass(avance.Estado)}">${avance.Estado || 'N/A'}</span>
                         </div>
-                        <p style="color: #666; margin-bottom: 0.5rem;"><strong>Fecha:</strong> ${avance.FechaAvance || 'N/A'}</p>
+                        <p style="color: #666; margin-bottom: 0.5rem;"><strong>Fecha:</strong> ${fechaAvanceMostrar}</p>
                         <p style="color: #333;">${avance.Descripcion || 'Sin descripción'}</p>
                     </div>
                 `;
@@ -567,7 +811,7 @@ function getEstadoAsignacionClass(estado) {
     return clases[estado] || 'bg-secondary';
 }
 
-// Event listeners para cerrar el modal de seguimiento
+// Event listeners para cerrar el modal de seguimiento y botones de ver seguimiento
 document.addEventListener("DOMContentLoaded", () => {
     const seguimientoModal = document.getElementById('seguimiento-modal');
     const closeSeguimientoBtn = document.getElementById('close-seguimiento-modal');
@@ -592,6 +836,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 seguimientoModal.style.display = 'none';
             }
         });
+    }
+    
+});
+
+// Event listener delegado para botones de ver seguimiento (fuera de DOMContentLoaded para que funcione con elementos dinámicos)
+document.addEventListener('click', (event) => {
+    if (event.target.closest('.btn-ver-seguimiento')) {
+        const button = event.target.closest('.btn-ver-seguimiento');
+        const vehiculoId = parseInt(button.getAttribute('data-vehiculo-id'));
+        const placa = button.getAttribute('data-placa');
+        const asignacionId = button.getAttribute('data-asignacion-id') || null;
+        const fechaAgenda = button.getAttribute('data-fecha-agenda') || null;
+        const solicitudId = button.getAttribute('data-solicitud-id') || null;
+        const horaInicio = button.getAttribute('data-hora-inicio') || null;
+        const horaFin = button.getAttribute('data-hora-fin') || null;
+        
+        if (vehiculoId && placa) {
+            verSeguimiento(vehiculoId, placa, asignacionId, fechaAgenda, solicitudId, horaInicio, horaFin);
+        }
     }
 });
 

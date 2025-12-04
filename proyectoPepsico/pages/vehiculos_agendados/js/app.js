@@ -52,33 +52,20 @@ class VehiculosAgendados {
     }
 
     inicializar() {
-        this.inicializarDataTable();
+        // Solo inicializar eventos del historial
         this.inicializarEventos();
-        this.cargarVehiculos();
+        
+        // Cargar el historial
         this.cargarHistorial();
     }
 
     inicializarEventos() {
-        const fechaFiltro = document.getElementById('fecha-filtro');
-        const btnRefrescar = document.getElementById('btn-refrescar');
+        const esGuardia = window.esGuardia === true;
+        
+        // Eventos para el historial
         const fechaFiltroHistorial = document.getElementById('fecha-filtro-historial');
         const btnRefrescarHistorial = document.getElementById('btn-refrescar-historial');
-        const esGuardia = window.esGuardia === true;
-
-        // Solo agregar evento de fecha si no es Guardia y el filtro existe
-        if (fechaFiltro && !esGuardia) {
-            fechaFiltro.addEventListener('change', () => {
-                this.cargarVehiculos();
-            });
-        }
-
-        if (btnRefrescar) {
-            btnRefrescar.addEventListener('click', () => {
-                this.cargarVehiculos();
-            });
-        }
-
-        // Eventos para el historial
+        
         if (fechaFiltroHistorial && !esGuardia) {
             fechaFiltroHistorial.addEventListener('change', () => {
                 this.cargarHistorial();
@@ -93,83 +80,13 @@ class VehiculosAgendados {
     }
 
     inicializarDataTable() {
-        if ($.fn.DataTable) {
-            const configDataTable = {
-                language: {
-                    "sProcessing": "Procesando...",
-                    "sLengthMenu": "Mostrar _MENU_ registros",
-                    "sZeroRecords": "No se encontraron resultados",
-                    "sEmptyTable": "Ningún dato disponible en esta tabla",
-                    "sInfo": "Mostrando registros del _START_ al _END_ de un total de _TOTAL_ registros",
-                    "sInfoEmpty": "Mostrando registros del 0 al 0 de un total de 0 registros",
-                    "sInfoFiltered": "(filtrado de un total de _MAX_ registros)",
-                    "sInfoPostFix": "",
-                    "sSearch": "Buscar:",
-                    "sUrl": "",
-                    "sInfoThousands": ",",
-                    "sLoadingRecords": "Cargando...",
-                    "oPaginate": {
-                        "sFirst": "Primero",
-                        "sLast": "Último",
-                        "sNext": "Siguiente",
-                        "sPrevious": "Anterior"
-                    },
-                    "oAria": {
-                        "sSortAscending": ": Activar para ordenar la columna de manera ascendente",
-                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
-                    }
-                },
-                responsive: true,
-                pageLength: 25,
-                columnDefs: [
-                    { orderable: false, targets: 7 } // Columna de acciones no ordenable
-                ]
-            };
-
-            // Tabla de vehículos pendientes
-            this.table = $('#vehiculos-agendados-table').DataTable({
-                ...configDataTable,
-                order: [[3, 'asc'], [4, 'asc']] // Ordenar por fecha y hora
-            });
-
-            // Tabla de historial - se inicializará después de cargar los datos
-            // No inicializar aquí, se hará en mostrarHistorialVehiculos
-        }
+        // Ya no se inicializa la primera tabla, solo se mantiene el método por compatibilidad
+        // La tabla de historial se inicializa en mostrarHistorial()
     }
 
     cargarVehiculos() {
-        // Cargar vehículos: pendientes para otros roles, todos (incluyendo completados) para guardia
-        const esGuardia = window.esGuardia === true;
-        const fechaFiltro = document.getElementById('fecha-filtro');
-        const fecha = (esGuardia || !fechaFiltro) ? null : fechaFiltro.value;
-
-        const formData = new FormData();
-        formData.append('action', 'obtenerVehiculosAgendados');
-        // Para el guardia, mostrar todos (pendientes y completados) para que pueda procesar salidas
-        // Para otros roles, solo pendientes
-        formData.append('soloPendientes', esGuardia ? 'false' : 'true');
-        // Solo enviar fecha si no es Guardia
-        if (!esGuardia && fecha) {
-        formData.append('fecha', fecha);
-        }
-
-        fetch(this.baseUrl, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data) {
-                this.vehiculosData = data.data; // Guardar datos para el modal
-                this.mostrarVehiculos(data.data);
-            } else {
-                this.mostrarError(data.message || 'Error al cargar vehículos agendados');
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar vehículos:', error);
-            this.mostrarError('Error de conexión al cargar vehículos agendados');
-        });
+        // Este método ya no se usa, se mantiene por compatibilidad
+        // La funcionalidad se movió completamente al historial
     }
 
     cargarHistorial() {
@@ -421,11 +338,37 @@ class VehiculosAgendados {
             let estadoIcon = 'fa-question-circle';
             let estadoTexto = estado;
             
-            if (estado === 'En Circulación') {
+            // Verificar si el vehículo está realmente en el taller
+            // Si el estado es "En Circulación" pero el vehículo está en el taller, no mostrar "En Circulación"
+            const estadosEnTaller = ['Ingresado', 'Asignado', 'Completado', 'En Proceso', 'En Revisión', 'En Pausa', 'En Taller'];
+            const estaEnTaller = estadosEnTaller.includes(estado) || 
+                                 estadosEnTaller.includes(vehiculo.EstadoVehiculo || '');
+            
+            if (estaEnTaller && estado === 'En Circulación') {
+                // Si está en el taller pero dice "En Circulación", usar el estado del vehículo
+                const estadoReal = vehiculo.EstadoVehiculo || 'En Taller';
+                if (estadoReal === 'Completado') {
+                    estadoClass = 'info';
+                    estadoIcon = 'fa-check-double';
+                    estadoTexto = 'Completado';
+                } else if (estadoReal === 'Ingresado') {
+                    estadoClass = 'success';
+                    estadoIcon = 'fa-check-circle';
+                    estadoTexto = 'En Taller';
+                } else if (estadoReal === 'Asignado') {
+                    estadoClass = 'warning';
+                    estadoIcon = 'fa-clock';
+                    estadoTexto = 'En Taller - Asignado';
+                } else {
+                    estadoClass = 'success';
+                    estadoIcon = 'fa-wrench';
+                    estadoTexto = 'En Taller';
+                }
+            } else if (estado === 'En Circulación') {
                 estadoClass = 'info';
                 estadoIcon = 'fa-road';
                 estadoTexto = 'En Circulación';
-            } else if (estado === 'Ingresado') {
+            } else if (estado === 'Ingresado' || estado === 'En Taller') {
                 estadoClass = 'success';
                 estadoIcon = 'fa-check-circle';
                 estadoTexto = 'En Taller';
@@ -436,7 +379,7 @@ class VehiculosAgendados {
             } else if (estado === 'Asignado' || estado === 'Solicitó Hora') {
                 estadoClass = 'warning';
                 estadoIcon = 'fa-clock';
-                estadoTexto = 'Solicitó Hora';
+                estadoTexto = estado === 'Asignado' ? 'En Taller - Asignado' : 'Solicitó Hora';
             } else if (estado === 'No Llegó' || estado === 'No llegó') {
                 estadoClass = 'danger';
                 estadoIcon = 'fa-times-circle';
@@ -449,6 +392,10 @@ class VehiculosAgendados {
                 estadoClass = 'warning';
                 estadoIcon = 'fa-hourglass-half';
                 estadoTexto = 'Pendiente Ingreso';
+            } else if (estado === 'En Proceso' || estado === 'En Revisión' || estado === 'En Pausa') {
+                estadoClass = 'warning';
+                estadoIcon = 'fa-wrench';
+                estadoTexto = 'En Taller - ' + estado;
             }
 
             // Vehículo completo
@@ -623,11 +570,36 @@ class VehiculosAgendados {
         let estadoIcon = 'fa-question-circle';
         let estadoTexto = estado;
         
-        if (estado === 'En Circulación') {
+        // Verificar si el vehículo está realmente en el taller
+        const estadosEnTaller = ['Ingresado', 'Asignado', 'Completado', 'En Proceso', 'En Revisión', 'En Pausa', 'En Taller'];
+        const estaEnTaller = estadosEnTaller.includes(estado) || 
+                             estadosEnTaller.includes(vehiculo.EstadoVehiculo || '');
+        
+        if (estaEnTaller && estado === 'En Circulación') {
+            // Si está en el taller pero dice "En Circulación", usar el estado del vehículo
+            const estadoReal = vehiculo.EstadoVehiculo || 'En Taller';
+            if (estadoReal === 'Completado') {
+                estadoClass = 'info';
+                estadoIcon = 'fa-check-double';
+                estadoTexto = 'Completado';
+            } else if (estadoReal === 'Ingresado') {
+                estadoClass = 'success';
+                estadoIcon = 'fa-check-circle';
+                estadoTexto = 'En Taller';
+            } else if (estadoReal === 'Asignado') {
+                estadoClass = 'warning';
+                estadoIcon = 'fa-clock';
+                estadoTexto = 'En Taller - Asignado';
+            } else {
+                estadoClass = 'success';
+                estadoIcon = 'fa-wrench';
+                estadoTexto = 'En Taller';
+            }
+        } else if (estado === 'En Circulación') {
             estadoClass = 'info';
             estadoIcon = 'fa-road';
             estadoTexto = 'En Circulación';
-        } else if (estado === 'Ingresado') {
+        } else if (estado === 'Ingresado' || estado === 'En Taller') {
             estadoClass = 'success';
             estadoIcon = 'fa-check-circle';
             estadoTexto = 'En Taller';
@@ -638,7 +610,7 @@ class VehiculosAgendados {
         } else if (estado === 'Asignado' || estado === 'Solicitó Hora') {
             estadoClass = 'warning';
             estadoIcon = 'fa-clock';
-            estadoTexto = 'Solicitó Hora';
+            estadoTexto = estado === 'Asignado' ? 'En Taller - Asignado' : 'Solicitó Hora';
         } else if (estado === 'No Llegó' || estado === 'No llegó') {
             estadoClass = 'danger';
             estadoIcon = 'fa-times-circle';
@@ -651,6 +623,10 @@ class VehiculosAgendados {
             estadoClass = 'warning';
             estadoIcon = 'fa-hourglass-half';
             estadoTexto = 'Pendiente Ingreso';
+        } else if (estado === 'En Proceso' || estado === 'En Revisión' || estado === 'En Pausa') {
+            estadoClass = 'warning';
+            estadoIcon = 'fa-wrench';
+            estadoTexto = 'En Taller - ' + estado;
         } else {
             estadoClass = 'secondary';
             estadoIcon = 'fa-question-circle';

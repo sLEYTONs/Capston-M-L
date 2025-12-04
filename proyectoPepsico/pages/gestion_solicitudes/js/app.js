@@ -147,8 +147,11 @@ class GestionSolicitudes {
 
         solicitudes.forEach(solicitud => {
             const row = document.createElement('tr');
-            const estadoClass = this.getEstadoClass(solicitud.Estado || 'Pendiente');
+            
+            // Usar el estado que viene de la base de datos
             const estado = solicitud.Estado || 'Pendiente';
+            
+            const estadoClass = this.getEstadoClass(estado);
             const id = solicitud.ID || 0;
             const placa = solicitud.Placa || 'N/A';
             const marca = solicitud.Marca || '';
@@ -182,12 +185,12 @@ class GestionSolicitudes {
                 <td>${horaSolicitud}</td>
                 <td>
                     ${estado === 'Pendiente' ? `
-                        <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${id})">
+                        <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${id})" title="Gestionar solicitud">
                             <i class="fas fa-edit"></i> Gestionar
                         </button>
                     ` : `
-                        <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${id})">
-                            <i class="fas fa-eye"></i> Ver
+                        <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${id})" title="Ver detalles de la solicitud">
+                            <i class="fas fa-eye"></i> Ver Detalles
                         </button>
                     `}
                 </td>
@@ -231,24 +234,42 @@ class GestionSolicitudes {
                 order: [[0, 'desc']],
                 pageLength: 10,
                 responsive: true,
-                autoWidth: true,
-                scrollX: false
+                autoWidth: false,
+                scrollX: false,
+                scrollCollapse: false,
+                columnDefs: [
+                    { width: "60px", targets: 0 }, // ID
+                    { width: "100px", targets: 1 }, // Placa
+                    { width: "150px", targets: 2 }, // Vehículo
+                    { width: "200px", targets: 3 }, // Propósito
+                    { width: "120px", targets: 4 }, // Estado
+                    { width: "120px", targets: 5 }, // Chofer
+                    { width: "100px", targets: 6 }, // Hora Solicitud
+                    { width: "130px", targets: 7 }  // Acciones
+                ]
             });
         }
     }
 
     getEstadoClass(estado) {
         const clases = {
-            'Pendiente': 'bg-warning text-dark',
-            'Aprobada': 'bg-success text-white',
-            'Rechazada': 'bg-danger text-white',
-            'Cancelada': 'bg-secondary text-white',
-            'Completado': 'bg-info text-white',
-            'Completada': 'bg-info text-white',
-            'Atrasado': 'bg-warning text-dark',
-            'No llegó': 'bg-info text-white'
+            'Pendiente': 'bg-pendiente',
+            'Aprobada': 'bg-aprobada',
+            'Rechazada': 'bg-rechazada',
+            'Cancelada': 'bg-cancelada',
+            'Cancelado': 'bg-cancelada',
+            'Completado': 'bg-completado',
+            'Completada': 'bg-completado',
+            'Atrasado': 'bg-pendiente',
+            'No llegó': 'bg-info',
+            // Estados del vehículo en taller
+            'Ingresado': 'bg-ingresado',
+            'En Espera': 'bg-espera',
+            'Asignado': 'bg-asignado',
+            'En Progreso': 'bg-progreso',
+            'Completo': 'bg-completo'
         };
-        return clases[estado] || 'bg-secondary text-white';
+        return clases[estado] || 'bg-secondary';
     }
 
     actualizarFilaSolicitud(solicitudId, nuevoEstado) {
@@ -278,17 +299,17 @@ class GestionSolicitudes {
             const estadoClass = this.getEstadoClass(nuevoEstado);
             filaEncontrada.cells[4].innerHTML = `<span class="badge ${estadoClass}">${nuevoEstado}</span>`;
 
-            // Actualizar el botón de acciones (columna 6, índice 6)
+            // Actualizar el botón de acciones (columna 7, índice 7 - última columna)
             if (nuevoEstado === 'Pendiente') {
-                filaEncontrada.cells[6].innerHTML = `
-                    <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${solicitudId})">
+                filaEncontrada.cells[7].innerHTML = `
+                    <button class="btn btn-sm btn-primary" onclick="gestionSolicitudes.abrirModalGestionar(${solicitudId})" title="Gestionar solicitud">
                         <i class="fas fa-edit"></i> Gestionar
                     </button>
                 `;
             } else {
-                filaEncontrada.cells[6].innerHTML = `
-                    <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${solicitudId})">
-                        <i class="fas fa-eye"></i> Ver
+                filaEncontrada.cells[7].innerHTML = `
+                    <button class="btn btn-sm btn-info" onclick="gestionSolicitudes.verDetalles(${solicitudId})" title="Ver detalles de la solicitud">
+                        <i class="fas fa-eye"></i> Ver Detalles
                     </button>
                 `;
             }
@@ -935,14 +956,18 @@ class GestionSolicitudes {
             ? (solicitud.HoraFinAgenda || solicitud.HoraFin).substring(0, 5)
             : 'N/A';
 
+        // Usar el estado que viene de la base de datos
+        const estado = solicitud.Estado || 'Pendiente';
+        
         // Estado badge
-        const estadoClass = this.getEstadoClass(solicitud.Estado);
+        const estadoClass = this.getEstadoClass(estado);
         const estadoIcon = {
             'Pendiente': 'fa-clock',
             'Aprobada': 'fa-check-circle',
             'Rechazada': 'fa-times-circle',
-            'Cancelada': 'fa-ban'
-        }[solicitud.Estado] || 'fa-info-circle';
+            'Cancelada': 'fa-ban',
+            'Completado': 'fa-check-double'
+        }[estado] || 'fa-info-circle';
 
         // Construir HTML del modal
         const modalHtml = `
@@ -1020,8 +1045,13 @@ class GestionSolicitudes {
                                                     <th width="40%" class="text-muted">Estado:</th>
                                                     <td>
                                                         <span class="badge ${estadoClass}">
-                                                            <i class="fas ${estadoIcon} me-1"></i>${solicitud.Estado}
+                                                            <i class="fas ${estadoIcon} me-1"></i>${estado}
                                                         </span>
+                                                        ${solicitud.EstadoVehiculo && solicitud.EstadoVehiculo !== estado && estado !== 'Completado' ? `
+                                                        <br><small class="text-muted mt-1 d-block">
+                                                            <i class="fas fa-wrench me-1"></i>Estado vehículo: ${solicitud.EstadoVehiculo}
+                                                        </small>
+                                                        ` : ''}
                                                     </td>
                                                 </tr>
                                                 <tr>

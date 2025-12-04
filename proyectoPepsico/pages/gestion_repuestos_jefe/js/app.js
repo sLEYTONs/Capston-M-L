@@ -293,7 +293,44 @@ class GestionRepuestosJefe {
     }
 
     generarReporte() {
-        console.log('Generando reporte...');
+        // Mostrar loading
+        const btn = $('#btn-generar-reporte');
+        const textoOriginal = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Generando...');
+        
+        // Crear un formulario temporal para descargar el archivo
+        const form = $('<form>', {
+            'method': 'POST',
+            'action': this.baseUrl,
+            'target': '_blank'
+        });
+        
+        form.append($('<input>', {
+            'type': 'hidden',
+            'name': 'accion',
+            'value': 'generar_reporte_excel'
+        }));
+        
+        // Agregar al body y enviar
+        $('body').append(form);
+        form.submit();
+        
+        // Remover el formulario después de un momento
+        setTimeout(() => {
+            form.remove();
+            btn.prop('disabled', false).html(textoOriginal);
+            
+            // Mostrar notificación de éxito
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reporte Generado',
+                    text: 'El reporte Excel se está descargando...',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }
+        }, 1000);
     }
 }
 

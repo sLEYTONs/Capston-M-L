@@ -84,7 +84,17 @@ class EstadoSolicitudesRepuestos {
 
         solicitudes.forEach(solicitud => {
             const row = document.createElement('tr');
-            const estadoClass = this.getEstadoClass(solicitud.Estado);
+            // Asegurar que el estado nunca esté vacío
+            let estado = solicitud.Estado || '';
+            if (!estado || estado.trim() === '') {
+                // Si el estado está vacío pero hay FechaAprobacion, es "Entregada"
+                if (solicitud.FechaAprobacion) {
+                    estado = 'Entregada';
+                } else {
+                    estado = 'Pendiente';
+                }
+            }
+            const estadoClass = this.getEstadoClass(estado);
             const urgenciaClass = this.getUrgenciaClass(solicitud.Urgencia);
 
             // Verificar si hay vehículo asignado
@@ -104,14 +114,17 @@ class EstadoSolicitudesRepuestos {
                 </button>
             `;
             
-            // Mostrar botón de asignar vehículo si está aprobada y no tiene placa asignada
-            const estaAprobada = solicitud.Estado === 'Aprobada' || solicitud.Estado === 'aprobada';
+            // Mostrar botón de asignar vehículo si está entregada y no tiene placa asignada
+            const estadoParaVerificar = estado || solicitud.Estado || '';
+            const estaEntregada = estadoParaVerificar === 'Entregada' || 
+                                 estadoParaVerificar === 'entregada' ||
+                                 (solicitud.FechaAprobacion !== null && solicitud.FechaAprobacion !== '');
             const sinVehiculo = !tienePlaca;
             
             // Debug: descomentar para verificar condiciones
             // console.log('Solicitud ID:', solicitud.ID, 'Estado:', solicitud.Estado, 'Placa:', solicitud.Placa, 'EstaAprobada:', estaAprobada, 'SinVehiculo:', sinVehiculo);
             
-            if (estaAprobada && sinVehiculo) {
+            if (estaEntregada && sinVehiculo) {
                 botonesAccion += `
                     <button class="btn btn-sm btn-success ms-1" onclick="estadoSolicitudes.mostrarModalAsignarVehiculo(${solicitud.ID})" title="Asignar vehículo">
                         <i class="fas fa-car me-1"></i>Asignar Vehículo
@@ -125,7 +138,7 @@ class EstadoSolicitudesRepuestos {
                 <td>${solicitud.Cantidad}</td>
                 <td><span class="badge ${urgenciaClass}">${solicitud.Urgencia}</span></td>
                 <td>${placaHTML}</td>
-                <td><span class="badge ${estadoClass}">${solicitud.Estado}</span></td>
+                <td><span class="badge ${estadoClass}">${estado}</span></td>
                 <td>${solicitud.FechaSolicitud}</td>
                 <td>
                     <div class="btn-group">
@@ -148,11 +161,21 @@ class EstadoSolicitudesRepuestos {
         const content = document.getElementById('detalles-solicitud-content');
         if (!content) return;
 
+        // Asegurar que el estado nunca esté vacío
+        let estado = solicitud.Estado || '';
+        if (!estado || estado.trim() === '') {
+            if (solicitud.FechaAprobacion) {
+                estado = 'Entregada';
+            } else {
+                estado = 'Pendiente';
+            }
+        }
+
         // Timeline del estado
         const timelineSteps = [
-            { estado: 'Pendiente', icon: 'clock', class: solicitud.Estado === 'Pendiente' ? 'active' : (['Aprobada', 'Entregada'].includes(solicitud.Estado) ? 'completed' : '') },
-            { estado: 'Aprobada', icon: 'check-circle', class: solicitud.Estado === 'Aprobada' ? 'active' : (solicitud.Estado === 'Entregada' ? 'completed' : '') },
-            { estado: 'Entregada', icon: 'truck', class: solicitud.Estado === 'Entregada' ? 'active completed' : '' }
+            { estado: 'Pendiente', icon: 'clock', class: estado === 'Pendiente' ? 'active' : (['Aprobada', 'Aceptada', 'En Proceso', 'En Tránsito', 'Recibido', 'Entregada'].includes(estado) ? 'completed' : '') },
+            { estado: 'Aprobada', icon: 'check-circle', class: ['Aprobada', 'Aceptada', 'En Proceso', 'En Tránsito', 'Recibido', 'Entregada'].includes(estado) ? 'completed' : '' },
+            { estado: 'Entregada', icon: 'truck', class: estado === 'Entregada' ? 'active completed' : '' }
         ];
 
         const timelineHtml = timelineSteps.map(step => `
@@ -250,8 +273,8 @@ class EstadoSolicitudesRepuestos {
                             </h6>
                         </div>
                         <div class="card-body text-center">
-                            <span class="badge ${this.getEstadoClass(solicitud.Estado)} fs-5 px-4 py-2">
-                                ${solicitud.Estado}
+                            <span class="badge ${this.getEstadoClass(estado)} fs-5 px-4 py-2">
+                                ${estado}
                             </span>
                         </div>
                     </div>
@@ -318,17 +341,47 @@ class EstadoSolicitudesRepuestos {
         // Mostrar modal usando Bootstrap
         const modalElement = document.getElementById('detalles-solicitud-modal');
         if (modalElement && typeof bootstrap !== 'undefined') {
-            const modal = new bootstrap.Modal(modalElement);
+            // Cerrar cualquier instancia previa del modal
+            const existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+                existingModal.dispose();
+            }
+            
+            // Crear nueva instancia del modal
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            
+            // Mostrar el modal
             modal.show();
+            
+            // Limpiar el contenido cuando se cierre el modal
+            modalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+                const content = document.getElementById('detalles-solicitud-content');
+                if (content) {
+                    content.innerHTML = '';
+                }
+                modalElement.removeEventListener('hidden.bs.modal', onModalHidden);
+            }, { once: true });
         } else {
             // Fallback si Bootstrap no está disponible
-            modalElement.style.display = 'block';
+            if (modalElement) {
+                modalElement.style.display = 'block';
+            }
         }
     }
 
     actualizarResumen(solicitudes) {
-        const pendientes = solicitudes.filter(s => s.Estado === 'Pendiente').length;
-        const aprobadas = solicitudes.filter(s => s.Estado === 'Aprobada').length;
+        const pendientes = solicitudes.filter(s => {
+            const estado = s.Estado || '';
+            return estado === 'Pendiente' || (estado === '' && !s.FechaAprobacion);
+        }).length;
+        const aprobadas = solicitudes.filter(s => {
+            const estado = s.Estado || '';
+            return estado === 'Aprobada' || estado === 'Aceptada' || estado === 'En Proceso' || estado === 'En Tránsito' || estado === 'Recibido' || estado === 'Entregada' || (estado === '' && s.FechaAprobacion);
+        }).length;
         const entregadas = solicitudes.filter(s => s.Estado === 'Entregada').length;
         const rechazadas = solicitudes.filter(s => s.Estado === 'Rechazada').length;
 
@@ -342,6 +395,10 @@ class EstadoSolicitudesRepuestos {
         const clases = {
             'Pendiente': 'bg-warning',
             'Aprobada': 'bg-info',
+            'Aceptada': 'bg-info', // Alias para Aprobada
+            'En Proceso': 'bg-primary',
+            'En Tránsito': 'bg-primary',
+            'Recibido': 'bg-info',
             'Rechazada': 'bg-danger',
             'Entregada': 'bg-success',
             'Cancelada': 'bg-secondary'

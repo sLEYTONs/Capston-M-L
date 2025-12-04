@@ -50,6 +50,8 @@ if (!in_array($usuario_rol, $roles_permitidos)) {
         </div>
         <div class="pc-content" style="margin-top: 75px !important; padding-top: 0 !important;">
             <?php include 'registro_insumos_vehiculo/components/c_registro_insumos.php'; ?>
+            
+            <div class="pc-footer-fix" style="height: 100px;"></div>
         </div>
     </div>
     

@@ -803,6 +803,7 @@ function obtenerHistorialVehiculosAgendados($fecha = null, $rol = null) {
                     CASE 
                         WHEN COALESCE(iv.fechasalida, iv.FechaSalida) IS NOT NULL THEN 'En Circulación'
                         WHEN COALESCE(iv.estado, iv.Estado) = 'Finalizado' THEN 'En Circulación'
+                        WHEN COALESCE(iv.estado, iv.Estado) = 'Retirado' THEN 'En Circulación'
                         WHEN COALESCE(iv.estado, iv.Estado) = 'Ingresado' THEN 'Ingresado'
                         WHEN COALESCE(iv.estado, iv.Estado) = 'Completado' THEN 'Completado'
                         WHEN COALESCE(iv.estado, iv.Estado) = 'Asignado' THEN 'Solicitó Hora'
@@ -879,15 +880,123 @@ function obtenerHistorialVehiculosAgendados($fecha = null, $rol = null) {
         
         $result = $stmt->get_result();
         $count = 0;
+        $vehiculosRaw = [];
         
         while ($row = $result->fetch_assoc()) {
-            $vehiculos[] = $row;
+            $vehiculosRaw[] = $row;
             $count++;
             error_log("Vehículo historial encontrado - Placa: " . ($row['Placa'] ?? 'N/A') . ", Estado: " . ($row['EstadoVehiculo'] ?? 'N/A') . ", Fecha: " . ($row['FechaIngreso'] ?? 'N/A'));
         }
         
+        // Verificar para cada placa si el vehículo más reciente está en el taller
+        // Agrupar por placa y encontrar el más reciente
+        $vehiculosPorPlaca = [];
+        foreach ($vehiculosRaw as $vehiculo) {
+            $placa = $vehiculo['Placa'] ?? '';
+            if (empty($placa)) continue;
+            
+            if (!isset($vehiculosPorPlaca[$placa])) {
+                $vehiculosPorPlaca[$placa] = [];
+            }
+            $vehiculosPorPlaca[$placa][] = $vehiculo;
+        }
+        
+        // Para cada placa, verificar si el vehículo más reciente está en el taller
+        $placasEnTaller = [];
+        foreach ($vehiculosPorPlaca as $placa => $vehiculosPlaca) {
+            // Ordenar por fecha de ingreso descendente (más reciente primero)
+            usort($vehiculosPlaca, function($a, $b) {
+                $fechaA = $a['FechaIngreso'] ?? $a['FechaAgenda'] ?? '';
+                $fechaB = $b['FechaIngreso'] ?? $b['FechaAgenda'] ?? '';
+                if ($fechaA === $fechaB) {
+                    // Si las fechas son iguales, comparar por ID
+                    $idA = intval($a['VehiculoID'] ?? 0);
+                    $idB = intval($b['VehiculoID'] ?? 0);
+                    return $idB - $idA;
+                }
+                return strcmp($fechaB, $fechaA);
+            });
+            
+            $vehiculoMasReciente = $vehiculosPlaca[0];
+            $estadoVehiculo = $vehiculoMasReciente['EstadoVehiculo'] ?? '';
+            $estadoIngreso = $vehiculoMasReciente['EstadoIngreso'] ?? '';
+            
+            // Verificar si está en el taller
+            $estaEnTaller = false;
+            
+            // Estados que indican que está en el taller
+            $estadosEnTaller = ['Ingresado', 'Asignado', 'Completado', 'En Proceso', 'En Revisión', 'En Pausa'];
+            
+            if (in_array($estadoVehiculo, $estadosEnTaller) || 
+                in_array($estadoIngreso, $estadosEnTaller) ||
+                $estadoIngreso === 'En Taller' ||
+                $estadoIngreso === 'Solicitó Hora' ||
+                $estadoIngreso === 'Pendiente Ingreso') {
+                $estaEnTaller = true;
+            }
+            
+            // También verificar si tiene asignación activa (antes de cerrar la conexión)
+            if (!$estaEnTaller && !empty($vehiculoMasReciente['VehiculoID'])) {
+                $vehiculoId = intval($vehiculoMasReciente['VehiculoID']);
+                $queryAsignacion = "SELECT Estado FROM asignaciones_mecanico 
+                                   WHERE VehiculoID = $vehiculoId 
+                                   AND Estado IN ('Asignado', 'En Proceso', 'En Revisión', 'Completado', 'En Pausa')
+                                   ORDER BY FechaAsignacion DESC LIMIT 1";
+                $resultAsignacion = $conn->query($queryAsignacion);
+                if ($resultAsignacion && $resultAsignacion->num_rows > 0) {
+                    $estaEnTaller = true;
+                }
+                if ($resultAsignacion) {
+                    mysqli_free_result($resultAsignacion);
+                }
+            }
+            
+            if ($estaEnTaller) {
+                $placasEnTaller[$placa] = true;
+            }
+        }
+        
+        // Procesar vehículos y ajustar estado si están en el taller
+        $vehiculos = [];
+        foreach ($vehiculosRaw as $vehiculo) {
+            $placa = $vehiculo['Placa'] ?? '';
+            $estadoIngreso = $vehiculo['EstadoIngreso'] ?? '';
+            $fechaSalida = $vehiculo['FechaSalida'] ?? null;
+            $estadoVehiculo = $vehiculo['EstadoVehiculo'] ?? '';
+            
+            // IMPORTANTE: Si el vehículo tiene FechaSalida o estado Finalizado/Retirado, 
+            // significa que ya fue retirado y debe estar "En Circulación"
+            // NO cambiar este estado aunque esté marcado como en el taller
+            $estaRetirado = ($fechaSalida !== null && $fechaSalida !== '') || 
+                           ($estadoVehiculo === 'Finalizado') ||
+                           ($estadoVehiculo === 'Retirado');
+            
+            // Si la placa está en el taller y el estado es "En Circulación", 
+            // pero el vehículo NO está retirado (no tiene FechaSalida ni estado Finalizado), cambiarlo
+            if (isset($placasEnTaller[$placa]) && $estadoIngreso === 'En Circulación' && !$estaRetirado) {
+                // Verificar el estado real del vehículo
+                
+                // Si tiene estado de taller, usar ese
+                if (in_array($estadoVehiculo, ['Ingresado', 'Asignado', 'Completado', 'En Proceso', 'En Revisión', 'En Pausa'])) {
+                    $vehiculo['EstadoIngreso'] = $estadoVehiculo === 'Completado' ? 'Completado' : 
+                                                  ($estadoVehiculo === 'Ingresado' ? 'Ingresado' : 
+                                                  ($estadoVehiculo === 'Asignado' ? 'Solicitó Hora' : 'En Taller'));
+                } else {
+                    // Si no tiene estado específico pero está en el taller, mostrar "En Taller"
+                    $vehiculo['EstadoIngreso'] = 'En Taller';
+                }
+            }
+            
+            // Asegurar que si tiene FechaSalida o estado Finalizado, siempre muestre "En Circulación"
+            if ($estaRetirado) {
+                $vehiculo['EstadoIngreso'] = 'En Circulación';
+            }
+            
+            $vehiculos[] = $vehiculo;
+        }
+        
         error_log("obtenerHistorialVehiculosAgendados - Total vehículos encontrados: " . $count);
-        error_log("SQL ejecutado: " . $sql);
+        error_log("obtenerHistorialVehiculosAgendados - Placas en taller: " . implode(', ', array_keys($placasEnTaller)));
         
         $stmt->close();
         $conn->close();

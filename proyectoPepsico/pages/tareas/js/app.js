@@ -1137,13 +1137,27 @@ class TareasMecanico {
             data: { action: 'obtenerRepuestosAprobados' },
             dataType: 'json',
             success: (response) => {
-                if (response.status === 'success' && response.data && response.data.length > 0) {
-                    this.mostrarRepuestosAprobados(response.data);
+                console.log('Respuesta de obtenerRepuestosAprobados:', response);
+                
+                if (response.status === 'success') {
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        this.mostrarRepuestosAprobados(response.data);
+                    } else {
+                        lista.html('<div class="alert alert-info text-center"><i class="fas fa-info-circle me-2"></i>No tiene repuestos aprobados pendientes de gestionar.</div>');
+                    }
+                } else if (response.status === 'error') {
+                    console.error('Error del servidor:', response.message);
+                    if (response.query) {
+                        console.error('Query:', response.query);
+                    }
+                    lista.html(`<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar repuestos: ${response.message || 'Error desconocido'}</div>`);
                 } else {
                     lista.html('<div class="alert alert-info text-center"><i class="fas fa-info-circle me-2"></i>No tiene repuestos aprobados pendientes de gestionar.</div>');
                 }
             },
             error: (xhr, status, error) => {
+                console.error('Error AJAX:', xhr, status, error);
+                console.error('Respuesta del servidor:', xhr.responseText);
                 lista.html(`<div class="alert alert-danger text-center"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar repuestos: ${error}</div>`);
             }
         });
@@ -1151,43 +1165,76 @@ class TareasMecanico {
 
     mostrarRepuestosAprobados(repuestos) {
         const lista = $('#repuestos-aprobados-lista');
-        let html = '<div class="table-responsive"><table class="table table-hover">';
-        html += '<thead><tr><th>Repuesto</th><th>Cantidad Aprobada</th><th>Usada</th><th>Devuelta</th><th>Disponible</th><th>Acciones</th></tr></thead><tbody>';
+        console.log('Mostrando repuestos aprobados:', repuestos);
+        
+        let html = '<div class="table-responsive" style="max-height: 500px; overflow-y: auto; overflow-x: auto; width: 100%;">';
+        html += '<table class="table table-hover table-sm" style="font-size: 0.9rem; width: 100%; min-width: 1000px; table-layout: fixed;">';
+        html += '<thead class="table-light sticky-top">';
+        html += '<tr>';
+        html += '<th style="min-width: 250px; width: 30%;">Repuesto</th>';
+        html += '<th style="min-width: 120px; width: 12%;">Estado</th>';
+        html += '<th style="min-width: 110px; width: 11%; text-align: center;">Cantidad Aprobada</th>';
+        html += '<th style="min-width: 90px; width: 10%; text-align: center;">Usada</th>';
+        html += '<th style="min-width: 90px; width: 10%; text-align: center;">Devuelta</th>';
+        html += '<th style="min-width: 100px; width: 11%; text-align: center;">Disponible</th>';
+        html += '<th style="min-width: 200px; width: 16%; text-align: center;">Acciones</th>';
+        html += '</tr>';
+        html += '</thead>';
+        html += '<tbody>';
 
         repuestos.forEach(repuesto => {
-            const cantidadDisponible = parseInt(repuesto.CantidadPendiente) || 0;
+            // Calcular cantidad disponible correctamente (0 es un valor válido, no usar || como fallback)
+            const cantidadTotal = parseInt(repuesto.Cantidad) || 0;
+            const cantidadUsada = parseInt(repuesto.CantidadUsada) || 0;
+            const cantidadDevuelta = parseInt(repuesto.CantidadDevuelta) || 0;
+            const cantidadDisponible = Math.max(0, cantidadTotal - cantidadUsada - cantidadDevuelta);
+            const estadoEfectivo = repuesto.EstadoEfectivo || repuesto.EstadoOriginal || repuesto.Estado || 'Desconocido';
+            const estadoClass = estadoEfectivo === 'Entregada' ? 'bg-success' : 
+                               estadoEfectivo === 'Recibido' ? 'bg-info' :
+                               estadoEfectivo === 'Aprobada' ? 'bg-primary' :
+                               estadoEfectivo === 'En Tránsito' ? 'bg-warning' :
+                               estadoEfectivo === 'En Proceso' ? 'bg-warning' : 'bg-secondary';
+            
+            // Obtener el primer ID de solicitud (o usar SolicitudID si no hay array)
+            const solicitudId = Array.isArray(repuesto.SolicitudIDs) ? repuesto.SolicitudIDs[0] : (repuesto.SolicitudID || '');
+            
             html += `
                 <tr>
                     <td>
-                        <strong>${repuesto.RepuestoNombre}</strong><br>
-                        <small class="text-muted">${repuesto.RepuestoCodigo || 'Sin código'}</small>
-                        ${repuesto.Placa ? `<br><small class="text-info"><i class="fas fa-car me-1"></i>${repuesto.Placa}</small>` : ''}
+                        <strong style="font-size: 0.95rem;">${repuesto.RepuestoNombre}</strong><br>
+                        <small class="text-muted" style="font-size: 0.8rem;">${repuesto.RepuestoCodigo || 'Sin código'}</small>
+                        ${repuesto.Placa ? `<br><small class="text-info" style="font-size: 0.8rem;"><i class="fas fa-car me-1"></i>${repuesto.Placa}</small>` : ''}
                     </td>
-                    <td>${repuesto.Cantidad}</td>
-                    <td><span class="badge bg-success">${repuesto.CantidadUsada || 0}</span></td>
-                    <td><span class="badge bg-info">${repuesto.CantidadDevuelta || 0}</span></td>
-                    <td><span class="badge bg-primary">${cantidadDisponible}</span></td>
-                    <td>
+                    <td><span class="badge ${estadoClass}" style="font-size: 0.85rem;">${estadoEfectivo}</span></td>
+                    <td style="text-align: center;"><strong>${repuesto.Cantidad}</strong></td>
+                    <td style="text-align: center;"><span class="badge bg-success" style="font-size: 0.85rem;">${parseInt(repuesto.CantidadUsada) || 0}</span></td>
+                    <td style="text-align: center;"><span class="badge bg-info" style="font-size: 0.85rem;">${parseInt(repuesto.CantidadDevuelta) || 0}</span></td>
+                    <td style="text-align: center;"><span class="badge bg-primary" style="font-size: 0.85rem;">${cantidadDisponible}</span></td>
+                    <td style="text-align: center; width: 16%;">
                         ${cantidadDisponible > 0 ? `
-                            <button class="btn btn-sm btn-success btn-usar-repuesto" 
-                                    data-solicitud-id="${repuesto.SolicitudID}"
-                                    data-repuesto-nombre="${repuesto.RepuestoNombre}"
-                                    data-cantidad-aprobada="${repuesto.Cantidad}"
-                                    data-cantidad-usada="${repuesto.CantidadUsada || 0}"
-                                    data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
-                                    data-cantidad-disponible="${cantidadDisponible}">
-                                <i class="fas fa-check me-1"></i>Usar
-                            </button>
-                            <button class="btn btn-sm btn-info btn-devolver-repuesto" 
-                                    data-solicitud-id="${repuesto.SolicitudID}"
-                                    data-repuesto-nombre="${repuesto.RepuestoNombre}"
-                                    data-cantidad-aprobada="${repuesto.Cantidad}"
-                                    data-cantidad-usada="${repuesto.CantidadUsada || 0}"
-                                    data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
-                                    data-cantidad-disponible="${cantidadDisponible}">
-                                <i class="fas fa-undo me-1"></i>Devolver
-                            </button>
-                        ` : '<span class="badge bg-secondary">Completado</span>'}
+                            <div class="d-flex flex-row gap-1 justify-content-center">
+                                <button class="btn btn-sm btn-success btn-usar-repuesto" 
+                                        data-solicitud-id="${solicitudId}"
+                                        data-repuesto-nombre="${repuesto.RepuestoNombre}"
+                                        data-cantidad-aprobada="${repuesto.Cantidad}"
+                                        data-cantidad-usada="${repuesto.CantidadUsada || 0}"
+                                        data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
+                                        data-cantidad-disponible="${cantidadDisponible}"
+                                        style="font-size: 0.8rem; padding: 0.35rem 0.6rem; white-space: nowrap;">
+                                    <i class="fas fa-check"></i> Usar
+                                </button>
+                                <button class="btn btn-sm btn-info btn-devolver-repuesto" 
+                                        data-solicitud-id="${solicitudId}"
+                                        data-repuesto-nombre="${repuesto.RepuestoNombre}"
+                                        data-cantidad-aprobada="${repuesto.Cantidad}"
+                                        data-cantidad-usada="${repuesto.CantidadUsada || 0}"
+                                        data-cantidad-devuelta="${repuesto.CantidadDevuelta || 0}"
+                                        data-cantidad-disponible="${cantidadDisponible}"
+                                        style="font-size: 0.8rem; padding: 0.35rem 0.6rem; white-space: nowrap;">
+                                    <i class="fas fa-undo"></i> Devolver
+                                </button>
+                            </div>
+                        ` : '<span class="badge bg-warning text-dark" style="font-size: 0.85rem;"><i class="fas fa-exclamation-triangle me-1"></i>Sin productos disponibles</span>'}
                     </td>
                 </tr>
             `;
@@ -1237,12 +1284,12 @@ class TareasMecanico {
         if (tipo === 'uso') {
             $('#modal-titulo-uso-repuestos').text('Registrar Uso de Repuestos');
             $('#label-cantidad-accion').text('Cantidad a Usar');
-            $('#help-cantidad-accion').text(`Ingrese la cantidad que desea usar (máximo: ${cantidadDisponible})`);
+            $('#help-cantidad-accion').text(`Máximo: ${cantidadDisponible}`);
             $('#modal-header-uso-repuestos').removeClass('bg-info').addClass('bg-success');
         } else {
             $('#modal-titulo-uso-repuestos').text('Devolver Repuestos');
             $('#label-cantidad-accion').text('Cantidad a Devolver');
-            $('#help-cantidad-accion').text(`Ingrese la cantidad que desea devolver al stock (máximo: ${cantidadDisponible})`);
+            $('#help-cantidad-accion').text(`Máximo: ${cantidadDisponible}`);
             $('#modal-header-uso-repuestos').removeClass('bg-success').addClass('bg-info');
         }
 
@@ -1267,7 +1314,12 @@ class TareasMecanico {
             return;
         }
 
-        $('#guardar-uso-repuestos').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
+        // Deshabilitar botón inmediatamente para evitar doble clic
+        const $btnGuardar = $('#guardar-uso-repuestos');
+        if ($btnGuardar.prop('disabled')) {
+            return; // Ya está procesando, evitar doble envío
+        }
+        $btnGuardar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Guardando...');
 
         const action = tipo === 'uso' ? 'registrarUsoRepuestos' : 'registrarDevolucionRepuestos';
         const formData = new FormData();
@@ -1283,21 +1335,47 @@ class TareasMecanico {
             processData: false,
             contentType: false,
             dataType: 'json',
+            timeout: 30000, // 30 segundos de timeout
             success: (response) => {
-                if (response.status === 'success') {
+                $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+                
+                if (response && response.status === 'success') {
                     this.mostrarToast('Éxito', response.message, 'success');
                     const usoModal = bootstrap.Modal.getInstance(document.getElementById('usoRepuestosModal'));
-                    usoModal.hide();
+                    if (usoModal) {
+                        usoModal.hide();
+                    }
                     $('#form-uso-repuestos')[0].reset();
-                    this.cargarRepuestosAprobados();
+                    // Recargar repuestos aprobados después de un breve delay para asegurar que se vea la actualización
+                    setTimeout(() => {
+                        this.cargarRepuestosAprobados();
+                        // También recargar la tabla de tareas para actualizar cualquier cambio
+                        this.cargarTareas();
+                    }, 1000);
                 } else {
-                    alert('Error: ' + response.message);
-                    $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+                    const errorMsg = (response && response.message) ? response.message : 'Error desconocido';
+                    this.mostrarToast('Error', errorMsg, 'danger');
                 }
             },
             error: (xhr, status, error) => {
-                alert('Error de conexión: ' + error);
                 $('#guardar-uso-repuestos').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Guardar');
+                
+                let errorMsg = 'Error de conexión';
+                if (status === 'timeout') {
+                    errorMsg = 'La operación está tomando demasiado tiempo. Por favor, intente nuevamente.';
+                } else if (xhr.responseText) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMsg = response.message || 'Error desconocido';
+                    } catch (e) {
+                        errorMsg = 'Error en la respuesta del servidor: ' + error;
+                    }
+                } else {
+                    errorMsg = 'Error de conexión: ' + error;
+                }
+                
+                this.mostrarToast('Error', errorMsg, 'danger');
+                console.error('Error AJAX:', xhr, status, error);
             }
         });
     }

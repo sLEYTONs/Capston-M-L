@@ -278,7 +278,19 @@
 
 /* Modal de gestión de repuestos - tamaño personalizado */
 .modal-repuestos-custom {
-    max-width: 900px !important;
+    max-width: 95% !important;
+    width: 95% !important;
+}
+
+/* Tabla de repuestos dentro del modal */
+#repuestos-aprobados-lista .table-responsive {
+    width: 100% !important;
+    overflow-x: auto;
+}
+
+#repuestos-aprobados-lista table {
+    width: 100% !important;
+    min-width: 1000px !important;
 }
 
 /* Modal de fotos - más ancho para mostrar imágenes */
@@ -373,6 +385,21 @@
 /* Modales pequeños (pausa, uso repuestos, confirmación) */
 .modal-tareas-sm {
     max-width: 500px !important;
+}
+
+/* Modal de uso/devolución de repuestos - más compacto */
+#usoRepuestosModal .modal-dialog {
+    max-width: 500px !important;
+    margin: 1.75rem auto !important;
+}
+
+#usoRepuestosModal .modal-content {
+    max-width: 500px !important;
+}
+
+#usoRepuestosModal .modal-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
 }
 
 /* Responsive para todos los modales */

@@ -1,52 +1,11 @@
 <?php
 // Obtener el rol del usuario desde la sesión
-$usuario_rol = isset($_SESSION['usuario']['rol']) ? $_SESSION['usuario']['rol'] : '';
-$esGuardia = ($usuario_rol === 'Guardia');
+$usuario_rol = isset($_SESSION['usuario']['rol']) ? trim($_SESSION['usuario']['rol']) : '';
+$esGuardia = (strcasecmp($usuario_rol, 'Guardia') === 0);
 ?>
 <div class="vehiculos-agendados-container">
+    <!-- Historial de Vehículos Agendados -->
     <div class="card">
-        <div class="card-header vehiculos-header">
-            <h4 class="mb-0">
-                <i class="fas fa-calendar-check me-2"></i>
-                Vehículos con Horas Agendadas
-            </h4>
-            <div class="header-actions">
-                <?php if (!$esGuardia): ?>
-                <div class="date-filter">
-                    <label for="fecha-filtro" class="form-label">Filtrar por fecha:</label>
-                    <input type="date" id="fecha-filtro" class="form-control" value="<?php echo date('Y-m-d'); ?>">
-                </div>
-                <?php endif; ?>
-                <button class="btn btn-primary" id="btn-refrescar">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="vehiculos-agendados-table" class="table table-hover" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>Placa</th>
-                            <th>Vehículo</th>
-                            <th>Conductor</th>
-                            <th>Fecha Agenda</th>
-                            <th>Hora</th>
-                            <th>Propósito</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Los datos se cargarán via Ajax -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Recuadro de Historial -->
-    <div class="card mt-4">
         <div class="card-header historial-header">
             <h4 class="mb-0">
                 <i class="fas fa-history me-2"></i>
